@@ -136,7 +136,7 @@ export default function LeaveCredits() {
         setEmpStat(fetchedEmpStat);
         setUserPosition(row.Position || "");
         setUserSalary(row.Salary || "");
-        
+
         const lastNameWithSuffix = row.Suffix ? `${row.Last_Name || ''} ${row.Suffix}`.trim() : (row.Last_Name || '');
         setUserNameParts({
           firstName: row.First_Name || '',
@@ -409,7 +409,7 @@ export default function LeaveCredits() {
                   <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
                 </div>
                 <h3 className="text-lg font-bold text-slate-800 mb-1">USE Leave</h3>
-                <p className="text-sm text-slate-500 font-medium mb-6">Utility & Service</p>
+                <p className="text-sm text-slate-500 font-medium mb-6">Union of Statistical Employees</p>
                 <div className="flex items-end gap-2">
                   <span className="text-5xl font-black text-slate-800 tracking-tighter">{Number(userBalances.use_balance).toFixed(2)}</span>
                   <span className="text-sm font-bold text-slate-400 mb-2 uppercase tracking-wider">Days</span>
@@ -610,13 +610,13 @@ export default function LeaveCredits() {
           <div className="sticky top-0 bg-white shadow-sm px-6 py-4 flex justify-between items-center print:hidden border-b z-10">
             <h2 className="text-xl font-bold">Print Preview: CSC Form No. 6</h2>
             <div className="flex gap-4">
-              <button 
+              <button
                 onClick={() => setShowPrintPreview(false)}
                 className="px-4 py-2 text-gray-600 hover:text-gray-800 font-medium"
               >
                 Close Preview
               </button>
-              <button 
+              <button
                 onClick={() => window.print()}
                 className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium flex items-center gap-2"
               >
@@ -626,13 +626,13 @@ export default function LeaveCredits() {
             </div>
           </div>
           <div className="py-8 print:py-0">
-            <CscForm6Printable 
+            <CscForm6Printable
               formData={{
                 officeDepartment: 'PSA-RSSO CAR, Kalinga',
-                nameParts: { 
-                  firstName: userNameParts.firstName || user?.firstName || '', 
-                  lastName: userNameParts.lastName || user?.lastName || '', 
-                  middleName: userNameParts.middleName || '' 
+                nameParts: {
+                  firstName: userNameParts.firstName || user?.firstName || '',
+                  lastName: userNameParts.lastName || user?.lastName || '',
+                  middleName: userNameParts.middleName || ''
                 },
                 dateFiled: new Date().toLocaleDateString(),
                 position: userPosition,
