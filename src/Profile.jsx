@@ -200,9 +200,15 @@ export default function Profile() {
         })
       });
 
-      const data = await response.json();
+      let data;
+      try {
+        data = await response.json();
+      } catch (e) {
+        throw new Error('The server is currently unavailable or restarting. Please try again in a few seconds.');
+      }
+
       if (!response.ok) {
-        throw new Error(data.error || 'Failed to create user');
+        throw new Error(data?.error || 'Failed to create user');
       }
       
       setAllUsers([...allUsers, { Email: newUserEmail, First_Name: newUserFirstName, Last_Name: newUserLastName, Middle_Name: newUserMiddleName, Suffix: newUserSuffix, Role: newUserRole, emp_stat: newUserEmpStat }]);

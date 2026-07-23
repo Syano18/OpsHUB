@@ -64,7 +64,15 @@ export default function Login() {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ email })
          });
-         const statusData = await statusRes.json();
+         let statusData;
+         try {
+            statusData = await statusRes.json();
+         } catch (e) {
+            setError("The server is currently unavailable. Please try again in a few seconds.");
+            setIsLoading(false);
+            setLoadingAction(null);
+            return;
+         }
 
          if (statusRes.ok && statusData.status) {
             const status = statusData.status;
