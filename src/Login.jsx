@@ -11,6 +11,11 @@ export default function Login() {
    const [isLoading, setIsLoading] = useState(false);
    const [loadingAction, setLoadingAction] = useState(null);
 
+   // Forgot Password State
+   const [resetState, setResetState] = useState('none');
+   const [resetCode, setResetCode] = useState('');
+   const [newPassword, setNewPassword] = useState('');
+
    // Check for Google OAuth redirect errors
    useEffect(() => {
       const href = window.location.href;
@@ -107,9 +112,60 @@ export default function Login() {
          console.error("Google Sign In Error:", err);
          setError(err.errors?.[0]?.longMessage || err.message || "Failed to initialize Google Sign In.");
          setIsLoading(false);
-         setLoadingAction(null);
-      }
-   };
+          setLoadingAction(null);
+       }
+    };
+
+    const handleForgotPassword = async (e) => {
+       e.preventDefault();
+       if (!email) {
+          setError('Please enter your email address first.');
+          return;
+       }
+       setError('');
+       setIsLoading(true);
+       setLoadingAction('reset');
+
+       try {
+          await signIn.create({
+             strategy: 'reset_password_email_code',
+             identifier: email,
+          });
+          setResetState('email_sent');
+       } catch (err) {
+          setError(err.errors?.[0]?.longMessage || 'Failed to send password reset email.');
+       } finally {
+          setIsLoading(false);
+          setLoadingAction(null);
+       }
+    };
+
+    const handleResetPassword = async (e) => {
+       e.preventDefault();
+       setError('');
+       setIsLoading(true);
+       setLoadingAction('reset_submit');
+
+       try {
+          const result = await signIn.attemptFirstFactor({
+             strategy: 'reset_password_email_code',
+             code: resetCode,
+             password: newPassword,
+          });
+
+          if (result.status === 'complete') {
+             await setActive({ session: result.createdSessionId });
+             setResetState('success');
+          } else {
+             setError('Something went wrong. Please try again.');
+          }
+       } catch (err) {
+          setError(err.errors?.[0]?.longMessage || 'Failed to reset password. Please check your code.');
+       } finally {
+          setIsLoading(false);
+          setLoadingAction(null);
+       }
+    };
 
    return (
       // Main container centering the form vertically and horizontally
@@ -128,120 +184,162 @@ export default function Login() {
                   <p className="text-sm text-slate-600 ">Enter your email and password to sign in.</p>
                </div>
 
-               {/* Login Form */}
-               <form className="space-y-6 mt-6" onSubmit={handleSubmit}>
-                  
-                  {/* Error Message */}
-                  <Alert message={error} onClose={() => setError('')} />
-
-                  {/* Email Input Field */}
-                  <div>
-                     <label htmlFor="email"
-                        className="mb-2 text-slate-900 font-medium text-sm inline-block ">Email</label>
-                     <input
-                        type="email"
-                        id="email"
-                        name="email"
-                        value={email}
-                        onChange={(e) => setEmail(e.target.value)}
-                        placeholder="officialchano18@gmail.com"
-                        className="px-3 py-2.5 text-sm text-slate-900 rounded-md bg-white w-full outline-1 -outline-offset-1 outline-slate-300 focus:outline-2 focus:-outline-offset-2 focus:outline-teal-600   "
-                        required
-                     />
-                  </div>
-
-                  {/* Password Input Field with Toggle */}
-                  <div className="relative">
-                     <label htmlFor="password"
-                        className="mb-2 text-slate-900 font-medium text-sm inline-block ">Password</label>
-
-                     {/* Button to toggle password visibility */}
-                     <button
-                        type="button"
-                        id="togglePassword"
-                        onClick={toggleVisibility}
-                        aria-label={isVisible ? "Hide password" : "Show password"}
-                        aria-pressed={isVisible}
-                        className="absolute top-1 right-2 p-0.5 flex cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-600 rounded">
-                        <svg xmlns="http://www.w3.org/2000/svg"
-                           className="size-[18px] fill-slate-400 text-slate-400 overflow-visible" viewBox="0 0 128 128">
-                           <path
-                              d="M64 104C22.127 104 1.367 67.496.504 65.943a4 4 0 0 1 0-3.887C1.367 60.504 22.127 24 64 24s62.633 36.504 63.496 38.057a4 4 0 0 1 0 3.887C126.633 67.496 105.873 104 64 104zM8.707 63.994C13.465 71.205 32.146 96 64 96c31.955 0 50.553-24.775 55.293-31.994C114.535 56.795 95.854 32 64 32 32.045 32 13.447 56.775 8.707 63.994zM64 88c-13.234 0-24-10.766-24-24s10.766-24 24-24 24 10.766 24 24-10.766 24-24 24zm0-40c-8.822 0-16 7.178-16 16s7.178 16 16 16 16-7.178 16-16-7.178-16-16-16z">
-                           </path>
-                           {!isVisible && (
-                              <path
-                                 d="M15 15l98 98"
-                                 stroke="currentColor"
-                                 strokeWidth="10"
-                                 strokeLinecap="round"
-                                 className="stroke-slate-400"
-                              />
-                           )}
-                        </svg>
-                     </button>
-
-                     <input
-                        type={isVisible ? "text" : "password"}
-                        id="password"
-                        name="password"
-                        value={password}
-                        onChange={(e) => setPassword(e.target.value)}
-                        placeholder="••••••••"
-                        className="px-3 py-2.5 text-sm text-slate-900 rounded-md bg-white w-full outline-1 -outline-offset-1 outline-slate-300 focus:outline-2 focus:-outline-offset-2 focus:outline-teal-600   "
-                        required
-                     />
-                  </div>
-
-                  {/* Form Actions (Remember me & Forgot password) */}
-                  <div className="flex items-start flex-wrap gap-2">
-                     <label className="flex items-center group has-[input:checked]:text-slate-900">
-                        <input id="remember" name="remember" type="checkbox" className="sr-only" />
-                        {/* Custom box */}
-                        <span className="flex h-4 w-4 shrink-0 items-center justify-center rounded outline-1 outline-slate-300 
-                              bg-white 
-                              group-has-[input:checked]:bg-teal-600
-                              group-has-[input:checked]:outline-teal-600
-                              group-focus-within:outline-2
-                              group-focus-within:outline-teal-600" aria-hidden="true">
-                           {/* Checkmark */}
-                           <svg className="size-3 text-white opacity-0 group-has-[input:checked]:opacity-100" viewBox="0 0 12 10"
-                              fill="none" stroke="currentColor" strokeWidth="2">
-                              <path d="M1 5l3 3 7-7" />
+               {/* Conditional Forms based on resetState */}
+               {resetState === 'email_sent' ? (
+                  <form className="space-y-6 mt-6" onSubmit={handleResetPassword}>
+                     <div className="text-center mb-4">
+                        <p className="text-sm text-slate-600">A reset code has been sent to <strong>{email}</strong></p>
+                     </div>
+                     <Alert message={error} onClose={() => setError('')} />
+                     <div>
+                        <label htmlFor="code" className="mb-2 text-slate-900 font-medium text-sm inline-block">Reset Code</label>
+                        <input type="text" id="code" value={resetCode} onChange={(e) => setResetCode(e.target.value)} className="px-3 py-2.5 text-sm text-slate-900 rounded-md bg-white w-full outline-1 -outline-offset-1 outline-slate-300 focus:outline-2 focus:-outline-offset-2 focus:outline-teal-600" required />
+                     </div>
+                     <div className="relative">
+                        <label htmlFor="newPassword" className="mb-2 text-slate-900 font-medium text-sm inline-block">New Password</label>
+                        <button type="button" onClick={toggleVisibility} className="absolute top-1 right-2 p-0.5 flex cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-600 rounded">
+                           <svg xmlns="http://www.w3.org/2000/svg" className="size-[18px] fill-slate-400 text-slate-400" viewBox="0 0 128 128">
+                              <path d="M64 104C22.127 104 1.367 67.496.504 65.943a4 4 0 0 1 0-3.887C1.367 60.504 22.127 24 64 24s62.633 36.504 63.496 38.057a4 4 0 0 1 0 3.887C126.633 67.496 105.873 104 64 104zM8.707 63.994C13.465 71.205 32.146 96 64 96c31.955 0 50.553-24.775 55.293-31.994C114.535 56.795 95.854 32 64 32 32.045 32 13.447 56.775 8.707 63.994zM64 88c-13.234 0-24-10.766-24-24s10.766-24 24-24 24 10.766 24 24-10.766 24-24 24zm0-40c-8.822 0-16 7.178-16 16s7.178 16 16 16 16-7.178 16-16-7.178-16-16-16z"></path>
+                              {!isVisible && <path d="M15 15l98 98" stroke="currentColor" strokeWidth="10" strokeLinecap="round" className="stroke-slate-400" />}
                            </svg>
-                        </span>
-                        <span className="ml-3 text-sm text-slate-700 ">
-                           Remember me
-                        </span>
-                     </label>
-
-                     <a href="#"
-                        className="ml-auto text-sm font-medium text-teal-700  hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-500 rounded">
-                        Forgot password?
-                     </a>
-                  </div>
-
-                  {/* Submit Button */}
-                  <button type="submit"
-                     disabled={isLoading}
-                     className={`w-full py-2 px-3.5 text-sm rounded-md font-semibold tracking-wide text-white border border-teal-600 bg-teal-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-500 flex items-center justify-center gap-2 ${
-                        isLoading ? "opacity-70 cursor-not-allowed scale-[0.98]" : "hover:bg-teal-700 transition-all cursor-pointer"
-                     }`}>
-                     {isLoading && loadingAction === 'manual' ? (
-                        <svg className="animate-spin h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                           <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                           <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </button>
+                        <input type={isVisible ? "text" : "password"} id="newPassword" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} className="px-3 py-2.5 text-sm text-slate-900 rounded-md bg-white w-full outline-1 -outline-offset-1 outline-slate-300 focus:outline-2 focus:-outline-offset-2 focus:outline-teal-600" required />
+                     </div>
+                     <button type="submit" disabled={isLoading} className={`w-full py-2 px-3.5 text-sm rounded-md font-semibold tracking-wide text-white border border-teal-600 bg-teal-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-500 flex items-center justify-center gap-2 ${isLoading ? "opacity-70 cursor-not-allowed scale-[0.98]" : "hover:bg-teal-700 transition-all cursor-pointer"}`}>
+                        {isLoading && loadingAction === 'reset_submit' ? "Resetting..." : "Reset Password"}
+                     </button>
+                     <div className="text-center mt-2">
+                        <button type="button" onClick={() => { setResetState('none'); setError(''); }} className="text-sm text-teal-600 hover:underline">Cancel</button>
+                     </div>
+                  </form>
+               ) : resetState === 'success' ? (
+                  <div className="space-y-6 mt-6 text-center">
+                     <div className="p-4 bg-emerald-50 text-emerald-700 rounded-md border border-emerald-200">
+                        <svg className="size-8 mx-auto mb-2 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                         </svg>
-                     ) : null}
-                     {isLoading && loadingAction === 'manual' ? "Signing in..." : "Sign in"}
-                  </button>
-               </form>
+                        <p className="font-medium">Password Reset Successful!</p>
+                        <p className="text-sm mt-1">You are now securely signed in.</p>
+                     </div>
+                  </div>
+               ) : (
+                  <>
+                     {/* Login Form */}
+                     <form className="space-y-6 mt-6" onSubmit={handleSubmit}>
+                        
+                        {/* Error Message */}
+                        <Alert message={error} onClose={() => setError('')} />
 
-               {/* Divider */}
-               <div className="flex items-center gap-4 my-6">
-                  <hr className="w-full border-slate-300 " />
-                  <p className="text-sm text-slate-700 text-center ">or</p>
-                  <hr className="w-full border-slate-300 " />
-               </div>
+                        {/* Email Input Field */}
+                        <div>
+                           <label htmlFor="email"
+                              className="mb-2 text-slate-900 font-medium text-sm inline-block ">Email</label>
+                           <input
+                              type="email"
+                              id="email"
+                              name="email"
+                              value={email}
+                              onChange={(e) => setEmail(e.target.value)}
+                              placeholder="officialchano18@gmail.com"
+                              className="px-3 py-2.5 text-sm text-slate-900 rounded-md bg-white w-full outline-1 -outline-offset-1 outline-slate-300 focus:outline-2 focus:-outline-offset-2 focus:outline-teal-600   "
+                              required
+                           />
+                        </div>
+
+                        {/* Password Input Field with Toggle */}
+                        <div className="relative">
+                           <label htmlFor="password"
+                              className="mb-2 text-slate-900 font-medium text-sm inline-block ">Password</label>
+
+                           {/* Button to toggle password visibility */}
+                           <button
+                              type="button"
+                              id="togglePassword"
+                              onClick={toggleVisibility}
+                              aria-label={isVisible ? "Hide password" : "Show password"}
+                              aria-pressed={isVisible}
+                              className="absolute top-1 right-2 p-0.5 flex cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-600 rounded">
+                              <svg xmlns="http://www.w3.org/2000/svg"
+                                 className="size-[18px] fill-slate-400 text-slate-400 overflow-visible" viewBox="0 0 128 128">
+                                 <path
+                                    d="M64 104C22.127 104 1.367 67.496.504 65.943a4 4 0 0 1 0-3.887C1.367 60.504 22.127 24 64 24s62.633 36.504 63.496 38.057a4 4 0 0 1 0 3.887C126.633 67.496 105.873 104 64 104zM8.707 63.994C13.465 71.205 32.146 96 64 96c31.955 0 50.553-24.775 55.293-31.994C114.535 56.795 95.854 32 64 32 32.045 32 13.447 56.775 8.707 63.994zM64 88c-13.234 0-24-10.766-24-24s10.766-24 24-24 24 10.766 24 24-10.766 24-24 24zm0-40c-8.822 0-16 7.178-16 16s7.178 16 16 16 16-7.178 16-16-7.178-16-16-16z">
+                                 </path>
+                                 {!isVisible && (
+                                    <path
+                                       d="M15 15l98 98"
+                                       stroke="currentColor"
+                                       strokeWidth="10"
+                                       strokeLinecap="round"
+                                       className="stroke-slate-400"
+                                    />
+                                 )}
+                              </svg>
+                           </button>
+
+                           <input
+                              type={isVisible ? "text" : "password"}
+                              id="password"
+                              name="password"
+                              value={password}
+                              onChange={(e) => setPassword(e.target.value)}
+                              placeholder="••••••••"
+                              className="px-3 py-2.5 text-sm text-slate-900 rounded-md bg-white w-full outline-1 -outline-offset-1 outline-slate-300 focus:outline-2 focus:-outline-offset-2 focus:outline-teal-600   "
+                              required
+                           />
+                        </div>
+
+                        {/* Form Actions (Remember me & Forgot password) */}
+                        <div className="flex items-start flex-wrap gap-2">
+                           <label className="flex items-center group has-[input:checked]:text-slate-900">
+                              <input id="remember" name="remember" type="checkbox" className="sr-only" />
+                              {/* Custom box */}
+                              <span className="flex h-4 w-4 shrink-0 items-center justify-center rounded outline-1 outline-slate-300 
+                                    bg-white 
+                                    group-has-[input:checked]:bg-teal-600
+                                    group-has-[input:checked]:outline-teal-600
+                                    group-focus-within:outline-2
+                                    group-focus-within:outline-teal-600" aria-hidden="true">
+                                 {/* Checkmark */}
+                                 <svg className="size-3 text-white opacity-0 group-has-[input:checked]:opacity-100" viewBox="0 0 12 10"
+                                    fill="none" stroke="currentColor" strokeWidth="2">
+                                    <path d="M1 5l3 3 7-7" />
+                                 </svg>
+                              </span>
+                              <span className="ml-3 text-sm text-slate-700 ">
+                                 Remember me
+                              </span>
+                           </label>
+
+                           <button type="button" onClick={handleForgotPassword} disabled={isLoading}
+                              className="ml-auto text-sm font-medium text-teal-700 hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-500 rounded disabled:opacity-70">
+                              {isLoading && loadingAction === 'reset' ? "Sending code..." : "Forgot password?"}
+                           </button>
+                        </div>
+
+                        {/* Submit Button */}
+                        <button type="submit"
+                           disabled={isLoading}
+                           className={`w-full py-2 px-3.5 text-sm rounded-md font-semibold tracking-wide text-white border border-teal-600 bg-teal-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-500 flex items-center justify-center gap-2 ${
+                              isLoading ? "opacity-70 cursor-not-allowed scale-[0.98]" : "hover:bg-teal-700 transition-all cursor-pointer"
+                           }`}>
+                           {isLoading && loadingAction === 'manual' ? (
+                              <svg className="animate-spin h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                 <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                 <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                              </svg>
+                           ) : null}
+                           {isLoading && loadingAction === 'manual' ? "Signing in..." : "Sign in"}
+                        </button>
+                     </form>
+
+                     {/* Divider */}
+                     <div className="flex items-center gap-4 my-6">
+                        <hr className="w-full border-slate-300 " />
+                        <p className="text-sm text-slate-700 text-center ">or</p>
+                        <hr className="w-full border-slate-300 " />
+                     </div>
+                  </>
+               )}
 
                {/* Social Login Buttons */}
                <div>

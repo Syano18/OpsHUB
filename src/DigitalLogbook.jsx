@@ -54,7 +54,7 @@ export default function DigitalLogbook() {
     try {
       const [logbookResult, sectionsResult, addresseesResult, transmittalResult] = await Promise.all([
         turso.execute({
-          sql: "SELECT * FROM Digital_Logbook ORDER BY REFERENCE_NUMBER DESC",
+          sql: "SELECT * FROM Digital_Logbook ORDER BY CAST(SUBSTR(REFERENCE_NUMBER, INSTR(REFERENCE_NUMBER, '-') + 1) AS INTEGER) DESC, REFERENCE_NUMBER DESC",
           args: []
         }),
         turso.execute({

@@ -22,6 +22,25 @@ export default function Profile() {
   const [isUserRoleDropdownOpen, setIsUserRoleDropdownOpen] = useState(false);
   const [isUpdatingRole, setIsUpdatingRole] = useState(false);
 
+  // Create User State
+  const [newUserEmail, setNewUserEmail] = useState('');
+  const [newUserFirstName, setNewUserFirstName] = useState('');
+  const [newUserLastName, setNewUserLastName] = useState('');
+  const [newUserMiddleName, setNewUserMiddleName] = useState('');
+  const [newUserSuffix, setNewUserSuffix] = useState('');
+  const [newUserRole, setNewUserRole] = useState('');
+  const [isCreatingUser, setIsCreatingUser] = useState(false);
+  const [isNewUserRoleDropdownOpen, setIsNewUserRoleDropdownOpen] = useState(false);
+  const [createUserSuccess, setCreateUserSuccess] = useState('');
+
+  // Password Update State
+  const [currentPassword, setCurrentPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [isChangingPassword, setIsChangingPassword] = useState(false);
+  const [passwordSuccess, setPasswordSuccess] = useState('');
+  const [passwordError, setPasswordError] = useState('');
+
   useEffect(() => {
     const fetchUserData = async () => {
       if (!user || !user.primaryEmailAddress?.emailAddress) return;
@@ -151,6 +170,84 @@ export default function Profile() {
     }
   };
 
+  const handleCreateUser = async () => {
+    if (!newUserEmail || !newUserFirstName || !newUserLastName || !newUserRole) {
+      setError("Please fill in all fields to create a user.");
+      return;
+    }
+    setIsCreatingUser(true);
+    setError('');
+    setCreateUserSuccess('');
+    try {
+      const response = await fetch('/api/create-user', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: newUserEmail,
+          firstName: newUserFirstName,
+          lastName: newUserLastName,
+          middleName: newUserMiddleName,
+          suffix: newUserSuffix,
+          role: newUserRole
+        })
+      });
+
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to create user');
+      }
+      
+      setAllUsers([...allUsers, { Email: newUserEmail, First_Name: newUserFirstName, Last_Name: newUserLastName, Middle_Name: newUserMiddleName, Suffix: newUserSuffix, Role: newUserRole }]);
+      
+      setCreateUserSuccess(`Successfully created user: ${newUserEmail}`);
+      setNewUserEmail('');
+      setNewUserFirstName('');
+      setNewUserLastName('');
+      setNewUserMiddleName('');
+      setNewUserSuffix('');
+      setNewUserRole('');
+      setTimeout(() => setCreateUserSuccess(''), 5000);
+    } catch (err) {
+      console.error(err);
+      setError("Failed to create user: " + err.message);
+    } finally {
+      setIsCreatingUser(false);
+    }
+  };
+
+  const handleChangePassword = async (e) => {
+    e.preventDefault();
+    if (newPassword !== confirmPassword) {
+      setPasswordError("New passwords do not match.");
+      return;
+    }
+    if (newPassword.length < 8) {
+      setPasswordError("Password must be at least 8 characters long.");
+      return;
+    }
+    
+    setIsChangingPassword(true);
+    setPasswordError('');
+    setPasswordSuccess('');
+    
+    try {
+      await user.updatePassword({
+        currentPassword: currentPassword,
+        newPassword: newPassword
+      });
+      setPasswordSuccess("Password updated successfully!");
+      setCurrentPassword('');
+      setNewPassword('');
+      setConfirmPassword('');
+      setTimeout(() => setPasswordSuccess(''), 5000);
+    } catch (err) {
+      console.error(err);
+      setPasswordError(err.errors?.[0]?.longMessage || err.message || "Failed to update password.");
+    } finally {
+      setIsChangingPassword(false);
+    }
+  };
+
   const formatCurrency = (amount) => {
     if (amount == null) return 'N/A';
     return new Intl.NumberFormat('en-PH', { style: 'currency', currency: 'PHP' }).format(amount);
@@ -165,7 +262,7 @@ export default function Profile() {
       </header>
 
       <div className="flex-1 overflow-y-auto p-2">
-        <div className="w-full h-full flex flex-col space-y-4">
+        <div className="w-full min-h-full flex flex-col space-y-4">
 
           <Alert message={error} onClose={() => setError('')} duration={5000} />
 
@@ -173,9 +270,9 @@ export default function Profile() {
             {/* Profile Header */}
             <div className="h-32 bg-gradient-to-r from-teal-500 to-emerald-400"></div>
             <div className="px-8 pb-8">
-              <div className="flex justify-between items-end -mt-12 mb-6">
-                <div className="flex items-end gap-6">
-                  <div className="relative w-24 h-24 rounded-2xl bg-white p-1 shadow-md border border-slate-100 group">
+              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end -mt-12 mb-6 gap-4 sm:gap-0">
+                <div className="flex flex-col sm:flex-row items-start sm:items-end gap-4 sm:gap-6 w-full">
+                  <div className="relative shrink-0 w-24 h-24 rounded-2xl bg-white p-1 shadow-md border border-slate-100 group">
                     <label htmlFor="profile-upload" className={`absolute inset-1 rounded-xl bg-black/40 flex items-center justify-center cursor-pointer transition-opacity z-10 ${isUploadingImage ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}>
                       {isUploadingImage ? (
                         <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
@@ -200,17 +297,17 @@ export default function Profile() {
                       className="w-full h-full rounded-xl object-cover relative z-0"
                     />
                   </div>
-                  <div className="pb-6">
-                    <h1 className="text-2xl font-bold text-slate-900">
+                  <div className="pb-0 sm:pb-6 w-full min-w-0">
+                    <h1 className="text-2xl font-bold text-slate-900 break-words">
                       {userData ? `${userData.First_Name || ''} ${userData.Middle_Name ? userData.Middle_Name.charAt(0).toUpperCase() + '.' : ''} ${userData.Last_Name || ''} ${userData.Suffix || ''}`.replace(/\s+/g, ' ').trim() : user?.fullName}
                     </h1>
                     <p className="text-slate-500 font-medium">{user?.primaryEmailAddress?.emailAddress}</p>
                   </div>
                 </div>
                 {userData?.Role && (
-                  <div className="mb-2 px-4 py-1.5 rounded-full bg-teal-50 border border-teal-200 text-teal-700 font-semibold text-sm shadow-sm flex items-center gap-2">
-                    <span className="w-2 h-2 rounded-full bg-teal-500"></span>
-                    {userData.Role} Access
+                  <div className="mb-0 sm:mb-2 px-4 py-1.5 rounded-full bg-teal-50 border border-teal-200 text-teal-700 font-semibold text-sm shadow-sm flex items-center gap-2 self-start sm:self-auto">
+                    <span className="shrink-0 w-2 h-2 rounded-full bg-teal-500"></span>
+                    <span className="whitespace-nowrap">{userData.Role} Access</span>
                   </div>
                 )}
               </div>
@@ -239,7 +336,7 @@ export default function Profile() {
 
                     {isEditing ? (
                       <div className="space-y-4">
-                        <div className="grid grid-cols-2 gap-4">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                           <div>
                             <label className="text-xs text-slate-500 mb-1 block">First Name</label>
                             <input type="text" value={editForm.First_Name} onChange={e => setEditForm({ ...editForm, First_Name: e.target.value })} className="w-full px-3 py-1.5 border border-slate-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 bg-white text-slate-900" />
@@ -249,7 +346,7 @@ export default function Profile() {
                             <input type="text" value={editForm.Last_Name} onChange={e => setEditForm({ ...editForm, Last_Name: e.target.value })} className="w-full px-3 py-1.5 border border-slate-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 bg-white text-slate-900" />
                           </div>
                         </div>
-                        <div className="grid grid-cols-2 gap-4">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                           <div>
                             <label className="text-xs text-slate-500 mb-1 block">Middle Name</label>
                             <input type="text" value={editForm.Middle_Name} onChange={e => setEditForm({ ...editForm, Middle_Name: e.target.value })} className="w-full px-3 py-1.5 border border-slate-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 bg-white text-slate-900" />
@@ -317,7 +414,7 @@ export default function Profile() {
                           <div className="text-xs text-slate-500 mb-1">Position</div>
                           <div className="font-medium text-slate-900">{userData.Position || 'N/A'}</div>
                         </div>
-                        <div className="grid grid-cols-2 gap-4">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                           <div>
                             <div className="text-xs text-slate-500 mb-1">Sex</div>
                             <div className="font-medium text-slate-900">{userData.sex || 'N/A'}</div>
@@ -342,7 +439,7 @@ export default function Profile() {
                             <input type="text" value={editForm.emp_stat} onChange={e => setEditForm({ ...editForm, emp_stat: e.target.value })} className="w-full px-3 py-1.5 border border-slate-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 bg-white text-slate-900" />
                           </div>
 
-                          <div className="grid grid-cols-2 gap-4">
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <div>
                               <label className="text-xs text-slate-500 mb-1 block">Salary Grade</label>
                               <input type="number" value={editForm.Salary_Grade} onChange={e => setEditForm({ ...editForm, Salary_Grade: e.target.value })} className="w-full px-3 py-1.5 border border-slate-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 bg-white text-slate-900" />
@@ -359,7 +456,7 @@ export default function Profile() {
                             <div className="text-xs text-slate-500 mb-1">Employment Status</div>
                             <div className="font-medium text-slate-900">{userData.emp_stat || 'N/A'}</div>
                           </div>
-                          <div className="grid grid-cols-2 gap-4">
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <div>
                               <div className="text-xs text-slate-500 mb-1">Salary Grade</div>
                               <div className="font-medium text-slate-900">{userData.Salary_Grade ? `SG-${userData.Salary_Grade}` : 'N/A'}</div>
@@ -396,90 +493,228 @@ export default function Profile() {
 
                 </div>
 
-                {/* User Role Management */}
+                {/* Security Settings */}
+                <div className="bg-slate-50 rounded-xl p-6 border border-slate-100 mt-6">
+                  <h3 className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-6 flex items-center gap-2">
+                    <svg className="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>
+                    Security Settings
+                  </h3>
+                  
+                  <div className="max-w-md">
+                    <form onSubmit={handleChangePassword} className="space-y-4">
+                      {passwordError && (
+                        <div className="bg-rose-50 text-rose-700 p-2 text-xs rounded border border-rose-200">
+                          {passwordError}
+                        </div>
+                      )}
+                      {passwordSuccess && (
+                        <div className="bg-emerald-50 text-emerald-700 p-2 text-xs rounded border border-emerald-200">
+                          {passwordSuccess}
+                        </div>
+                      )}
+                      <div>
+                        <label className="text-xs text-slate-500 mb-1 block">Current Password</label>
+                        <input type="password" required value={currentPassword} onChange={e => setCurrentPassword(e.target.value)} className="w-full px-3 py-1.5 border border-slate-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 bg-white text-slate-900" />
+                      </div>
+                      <div>
+                        <label className="text-xs text-slate-500 mb-1 block">New Password</label>
+                        <input type="password" required value={newPassword} onChange={e => setNewPassword(e.target.value)} className="w-full px-3 py-1.5 border border-slate-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 bg-white text-slate-900" />
+                      </div>
+                      <div>
+                        <label className="text-xs text-slate-500 mb-1 block">Confirm New Password</label>
+                        <input type="password" required value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} className="w-full px-3 py-1.5 border border-slate-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 bg-white text-slate-900" />
+                      </div>
+                      <div className="pt-2">
+                        <button
+                          type="submit"
+                          disabled={isChangingPassword || !currentPassword || !newPassword || !confirmPassword}
+                          className="px-4 py-2 text-sm font-medium text-white bg-teal-600 rounded-lg hover:bg-teal-700 transition-colors flex items-center gap-2 disabled:opacity-50"
+                        >
+                          {isChangingPassword && <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>}
+                          Update Password
+                        </button>
+                      </div>
+                    </form>
+                  </div>
+                </div>
+
+                {/* User Management */}
                 {(userData.Role === 'Admin' || userData.Role === 'Super Admin') && (
                   <div className="bg-slate-50 rounded-xl p-6 border border-slate-100 mt-6">
-                    <h3 className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-4 flex items-center gap-2">
+                    <h3 className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-6 flex items-center gap-2">
                       <svg className="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" /></svg>
-                      User Role Management
+                      User Management
                     </h3>
-                    <div className="flex flex-col gap-4 max-w-md">
-                      <div>
-                        <label className="text-xs text-slate-500 mb-1 block">Select User</label>
-                        <div className={`relative ${isUserDropdownOpen ? 'z-50' : ''}`}>
-                          <div className="relative flex items-center">
-                            <input
-                              type="text"
-                              value={selectedUserEmail}
-                              onChange={(e) => setSelectedUserEmail(e.target.value)}
-                              onFocus={() => { setIsUserDropdownOpen(true); setSelectedUserEmail(''); setSelectedUserRole(''); }}
-                              onBlur={() => setTimeout(() => setIsUserDropdownOpen(false), 200)}
-                              placeholder="Search user by email or name..."
-                              className="w-full px-3 py-1.5 border border-slate-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 bg-white text-slate-900 pr-8"
-                            />
-                            <button
-                              type="button"
-                              onClick={() => { setIsUserDropdownOpen(!isUserDropdownOpen); if (!isUserDropdownOpen) { setSelectedUserEmail(''); setSelectedUserRole(''); } }}
-                              className="absolute right-1 p-1 text-slate-400 hover:text-slate-600 rounded transition-colors"
-                            >
-                              <svg className={`size-4 transition-transform duration-200 ${isUserDropdownOpen ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                              </svg>
-                            </button>
-                          </div>
-                          {isUserDropdownOpen && (
-                            <div className="absolute z-10 w-full mt-1 bg-white border border-slate-200 rounded-lg shadow-lg max-h-40 overflow-auto py-1">
-                              {allUsers
-                                .filter(u => u.Email.toLowerCase().includes((selectedUserEmail || "").toLowerCase()) || (u.First_Name || "").toLowerCase().includes((selectedUserEmail || "").toLowerCase()))
-                                .map((u) => (
-                                  <button
-                                    key={u.Email}
-                                    type="button"
-                                    onClick={() => { setSelectedUserEmail(u.Email); setSelectedUserRole(u.Role || ''); setIsUserDropdownOpen(false); }}
-                                    className="w-full text-left px-3 py-1.5 hover:bg-teal-50 hover:text-teal-700 transition-colors text-sm text-slate-700 focus:bg-teal-50 focus:outline-none flex flex-col"
-                                  >
-                                    <span className="font-medium">{u.First_Name} {u.Last_Name}</span>
-                                    <span className="text-xs text-slate-400">{u.Email}</span>
-                                  </button>
-                                ))}
-                            </div>
-                          )}
-                        </div>
-                      </div>
-
-                      {selectedUserEmail && (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
+                      
+                      {/* Update Existing User */}
+                      <div className="flex flex-col gap-4">
+                        <h4 className="text-slate-800 font-semibold border-b border-slate-200 pb-2">Update User Role</h4>
                         <div>
-                          <label className="text-xs text-slate-500 mb-1 block">New System Role</label>
-                          <div className={`relative ${isUserRoleDropdownOpen ? 'z-50' : ''}`}>
+                          <label className="text-xs text-slate-500 mb-1 block">Select User</label>
+                          <div className={`relative ${isUserDropdownOpen ? 'z-50' : ''}`}>
                             <div className="relative flex items-center">
                               <input
                                 type="text"
-                                value={selectedUserRole}
-                                onChange={(e) => setSelectedUserRole(e.target.value)}
-                                onFocus={() => { setIsUserRoleDropdownOpen(true); setSelectedUserRole(''); }}
-                                onBlur={() => setTimeout(() => setIsUserRoleDropdownOpen(false), 200)}
+                                value={selectedUserEmail}
+                                onChange={(e) => setSelectedUserEmail(e.target.value)}
+                                onFocus={() => { setIsUserDropdownOpen(true); setSelectedUserEmail(''); setSelectedUserRole(''); }}
+                                onBlur={() => setTimeout(() => setIsUserDropdownOpen(false), 200)}
+                                placeholder="Search user by email or name..."
+                                className="w-full px-3 py-1.5 border border-slate-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 bg-white text-slate-900 pr-8"
+                              />
+                              <button
+                                type="button"
+                                onClick={() => { setIsUserDropdownOpen(!isUserDropdownOpen); if (!isUserDropdownOpen) { setSelectedUserEmail(''); setSelectedUserRole(''); } }}
+                                className="absolute right-1 p-1 text-slate-400 hover:text-slate-600 rounded transition-colors"
+                              >
+                                <svg className={`size-4 transition-transform duration-200 ${isUserDropdownOpen ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                                </svg>
+                              </button>
+                            </div>
+                            {isUserDropdownOpen && (
+                              <div className="absolute z-10 w-full mt-1 bg-white border border-slate-200 rounded-lg shadow-lg max-h-40 overflow-auto py-1">
+                                {allUsers
+                                  .filter(u => u.Email.toLowerCase().includes((selectedUserEmail || "").toLowerCase()) || (u.First_Name || "").toLowerCase().includes((selectedUserEmail || "").toLowerCase()))
+                                  .map((u) => (
+                                    <button
+                                      key={u.Email}
+                                      type="button"
+                                      onClick={() => { setSelectedUserEmail(u.Email); setSelectedUserRole(u.Role || ''); setIsUserDropdownOpen(false); }}
+                                      className="w-full text-left px-3 py-1.5 hover:bg-teal-50 hover:text-teal-700 transition-colors text-sm text-slate-700 focus:bg-teal-50 focus:outline-none flex flex-col"
+                                    >
+                                      <span className="font-medium">{u.First_Name} {u.Last_Name}</span>
+                                      <span className="text-xs text-slate-400">{u.Email}</span>
+                                    </button>
+                                  ))}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+
+                        {selectedUserEmail && (
+                          <div>
+                            <label className="text-xs text-slate-500 mb-1 block">New System Role</label>
+                            <div className={`relative ${isUserRoleDropdownOpen ? 'z-50' : ''}`}>
+                              <div className="relative flex items-center">
+                                <input
+                                  type="text"
+                                  value={selectedUserRole}
+                                  onChange={(e) => setSelectedUserRole(e.target.value)}
+                                  onFocus={() => { setIsUserRoleDropdownOpen(true); setSelectedUserRole(''); }}
+                                  onBlur={() => setTimeout(() => setIsUserRoleDropdownOpen(false), 200)}
+                                  placeholder="Select a role..."
+                                  className="w-full px-3 py-1.5 border border-slate-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 bg-white text-slate-900 pr-8"
+                                />
+                                <button
+                                  type="button"
+                                  onClick={() => { setIsUserRoleDropdownOpen(!isUserRoleDropdownOpen); if (!isUserRoleDropdownOpen) setSelectedUserRole(''); }}
+                                  className="absolute right-1 p-1 text-slate-400 hover:text-slate-600 rounded transition-colors"
+                                >
+                                  <svg className={`size-4 transition-transform duration-200 ${isUserRoleDropdownOpen ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                                  </svg>
+                                </button>
+                              </div>
+                              {isUserRoleDropdownOpen && (
+                                <div className="absolute z-10 w-full mt-1 bg-white border border-slate-200 rounded-lg shadow-lg max-h-60 overflow-auto py-1">
+                                  {(userData.Role === 'Super Admin' ? ["Super Admin", "Admin", "PACD", "Staff"] : ["PACD", "Staff"])
+                                    .filter(role => role.toLowerCase().includes((selectedUserRole || "").toLowerCase()))
+                                    .map((role) => (
+                                      <button
+                                        key={role}
+                                        type="button"
+                                        onClick={() => { setSelectedUserRole(role); setIsUserRoleDropdownOpen(false); }}
+                                        className="w-full text-left px-3 py-1.5 hover:bg-teal-50 hover:text-teal-700 transition-colors text-sm text-slate-700 focus:bg-teal-50 focus:outline-none"
+                                      >
+                                        {role}
+                                      </button>
+                                    ))}
+                                </div>
+                              )}
+                            </div>
+                            <div className="mt-4 flex justify-end">
+                              <button
+                                onClick={handleUpdateUserRole}
+                                disabled={isUpdatingRole || !selectedUserRole}
+                                className="px-4 py-2 text-sm font-medium text-white bg-teal-600 rounded-lg hover:bg-teal-700 transition-colors flex items-center gap-2 disabled:opacity-50"
+                              >
+                                {isUpdatingRole && <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>}
+                                Update Role
+                              </button>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Create New User */}
+                      <div className="flex flex-col gap-4">
+                        <h4 className="text-slate-800 font-semibold border-b border-slate-200 pb-2">Create New User</h4>
+                        
+                        {createUserSuccess && (
+                          <div className="bg-emerald-50 text-emerald-700 p-2 text-xs rounded border border-emerald-200">
+                            {createUserSuccess}
+                          </div>
+                        )}
+
+                        <div>
+                          <label className="text-xs text-slate-500 mb-1 block">Email</label>
+                          <input type="email" value={newUserEmail} onChange={e => setNewUserEmail(e.target.value)} placeholder="Email Address" className="w-full px-3 py-1.5 border border-slate-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 bg-white text-slate-900" />
+                        </div>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                          <div>
+                            <label className="text-xs text-slate-500 mb-1 block">First Name</label>
+                            <input type="text" value={newUserFirstName} onChange={e => setNewUserFirstName(e.target.value)} placeholder="First Name" className="w-full px-3 py-1.5 border border-slate-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 bg-white text-slate-900" />
+                          </div>
+                          <div>
+                            <label className="text-xs text-slate-500 mb-1 block">Middle Name (Optional)</label>
+                            <input type="text" value={newUserMiddleName} onChange={e => setNewUserMiddleName(e.target.value)} placeholder="Middle Name" className="w-full px-3 py-1.5 border border-slate-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 bg-white text-slate-900" />
+                          </div>
+                        </div>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                          <div>
+                            <label className="text-xs text-slate-500 mb-1 block">Last Name</label>
+                            <input type="text" value={newUserLastName} onChange={e => setNewUserLastName(e.target.value)} placeholder="Last Name" className="w-full px-3 py-1.5 border border-slate-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 bg-white text-slate-900" />
+                          </div>
+                          <div>
+                            <label className="text-xs text-slate-500 mb-1 block">Suffix (Optional)</label>
+                            <input type="text" value={newUserSuffix} onChange={e => setNewUserSuffix(e.target.value)} placeholder="E.g., Jr., Sr., III" className="w-full px-3 py-1.5 border border-slate-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 bg-white text-slate-900" />
+                          </div>
+                        </div>
+                        
+                        <div>
+                          <label className="text-xs text-slate-500 mb-1 block">System Role</label>
+                          <div className={`relative ${isNewUserRoleDropdownOpen ? 'z-50' : ''}`}>
+                            <div className="relative flex items-center">
+                              <input
+                                type="text"
+                                value={newUserRole}
+                                onChange={(e) => setNewUserRole(e.target.value)}
+                                onFocus={() => setIsNewUserRoleDropdownOpen(true)}
+                                onBlur={() => setTimeout(() => setIsNewUserRoleDropdownOpen(false), 200)}
                                 placeholder="Select a role..."
                                 className="w-full px-3 py-1.5 border border-slate-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 bg-white text-slate-900 pr-8"
                               />
                               <button
                                 type="button"
-                                onClick={() => { setIsUserRoleDropdownOpen(!isUserRoleDropdownOpen); if (!isUserRoleDropdownOpen) setSelectedUserRole(''); }}
+                                onClick={() => setIsNewUserRoleDropdownOpen(!isNewUserRoleDropdownOpen)}
                                 className="absolute right-1 p-1 text-slate-400 hover:text-slate-600 rounded transition-colors"
                               >
-                                <svg className={`size-4 transition-transform duration-200 ${isUserRoleDropdownOpen ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <svg className={`size-4 transition-transform duration-200 ${isNewUserRoleDropdownOpen ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                                 </svg>
                               </button>
                             </div>
-                            {isUserRoleDropdownOpen && (
+                            {isNewUserRoleDropdownOpen && (
                               <div className="absolute z-10 w-full mt-1 bg-white border border-slate-200 rounded-lg shadow-lg max-h-60 overflow-auto py-1">
                                 {(userData.Role === 'Super Admin' ? ["Super Admin", "Admin", "PACD", "Staff"] : ["PACD", "Staff"])
-                                  .filter(role => role.toLowerCase().includes((selectedUserRole || "").toLowerCase()))
+                                  .filter(role => role.toLowerCase().includes((newUserRole || "").toLowerCase()))
                                   .map((role) => (
                                     <button
                                       key={role}
                                       type="button"
-                                      onClick={() => { setSelectedUserRole(role); setIsUserRoleDropdownOpen(false); }}
+                                      onClick={() => { setNewUserRole(role); setIsNewUserRoleDropdownOpen(false); }}
                                       className="w-full text-left px-3 py-1.5 hover:bg-teal-50 hover:text-teal-700 transition-colors text-sm text-slate-700 focus:bg-teal-50 focus:outline-none"
                                     >
                                       {role}
@@ -488,18 +723,20 @@ export default function Profile() {
                               </div>
                             )}
                           </div>
-                          <div className="mt-4 flex justify-end">
-                            <button
-                              onClick={handleUpdateUserRole}
-                              disabled={isUpdatingRole || !selectedUserRole}
-                              className="px-4 py-2 text-sm font-medium text-white bg-teal-600 rounded-lg hover:bg-teal-700 transition-colors flex items-center gap-2 disabled:opacity-50"
-                            >
-                              {isUpdatingRole && <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>}
-                              Update Role
-                            </button>
-                          </div>
                         </div>
-                      )}
+
+                        <div className="mt-4 flex justify-end">
+                          <button
+                            onClick={handleCreateUser}
+                            disabled={isCreatingUser || !newUserEmail || !newUserFirstName || !newUserLastName || !newUserRole}
+                            className="px-4 py-2 text-sm font-medium text-white bg-teal-600 rounded-lg hover:bg-teal-700 transition-colors flex items-center gap-2 disabled:opacity-50"
+                          >
+                            {isCreatingUser && <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>}
+                            Create User
+                          </button>
+                        </div>
+                      </div>
+
                     </div>
                   </div>
                 )}
