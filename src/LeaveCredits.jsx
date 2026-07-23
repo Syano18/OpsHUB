@@ -409,7 +409,7 @@ export default function LeaveCredits() {
                   <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
                 </div>
                 <h3 className="text-lg font-bold text-slate-800 mb-1">USE Leave</h3>
-                <p className="text-sm text-slate-500 font-medium mb-6">Union of Statistical Employees</p>
+                <p className="text-sm text-slate-500 font-medium mb-6">Union of Statistics Employees</p>
                 <div className="flex items-end gap-2">
                   <span className="text-5xl font-black text-slate-800 tracking-tighter">{Number(userBalances.use_balance).toFixed(2)}</span>
                   <span className="text-sm font-bold text-slate-400 mb-2 uppercase tracking-wider">Days</span>
