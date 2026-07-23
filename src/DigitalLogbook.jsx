@@ -459,7 +459,6 @@ export default function DigitalLogbook() {
                   Edit Record
                 </button>
               )}
-              {['PACD', 'Admin', 'Super Admin'].includes(userRole) && (
                 <button
                   onClick={() => handleInsertEntry(entry)}
                   className="w-full text-left px-4 py-2 text-sm text-slate-700 hover:bg-slate-100 flex items-center gap-2 transition-colors">
@@ -467,8 +466,7 @@ export default function DigitalLogbook() {
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.5v15m7.5-7.5h-15" />
                   </svg>
                   Insert Record
-                </button>
-              )}                        </div>
+                </button>                        </div>
           </div>
         )}
 
@@ -898,7 +896,6 @@ export default function DigitalLogbook() {
                   </svg>
                   Export
                 </button>
-                {['PACD', 'Admin', 'Super Admin'].includes(userRole) && (
                   <button
                     onClick={() => setShowForm(true)}
                     className="flex items-center gap-2 px-4 py-2 bg-slate-900 text-white text-sm font-medium rounded-lg hover:bg-slate-800 transition-colors shadow-sm whitespace-nowrap"
@@ -908,7 +905,6 @@ export default function DigitalLogbook() {
                     </svg>
                     New Entry
                   </button>
-                )}
               </div>
             </div>
 
