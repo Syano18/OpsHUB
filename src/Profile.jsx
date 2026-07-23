@@ -5,6 +5,7 @@ import Alert from './Alert';
 
 export default function Profile() {
   const { user } = useUser();
+  const { getToken } = useAuth();
   const [userData, setUserData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -29,8 +30,10 @@ export default function Profile() {
   const [newUserMiddleName, setNewUserMiddleName] = useState('');
   const [newUserSuffix, setNewUserSuffix] = useState('');
   const [newUserRole, setNewUserRole] = useState('');
+  const [newUserEmpStat, setNewUserEmpStat] = useState('');
   const [isCreatingUser, setIsCreatingUser] = useState(false);
   const [isNewUserRoleDropdownOpen, setIsNewUserRoleDropdownOpen] = useState(false);
+  const [isNewUserEmpStatDropdownOpen, setIsNewUserEmpStatDropdownOpen] = useState(false);
   const [createUserSuccess, setCreateUserSuccess] = useState('');
 
   // Password Update State
@@ -179,16 +182,21 @@ export default function Profile() {
     setError('');
     setCreateUserSuccess('');
     try {
+      const token = await getToken();
       const response = await fetch('/api/create-user', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
         body: JSON.stringify({
           email: newUserEmail,
           firstName: newUserFirstName,
           lastName: newUserLastName,
           middleName: newUserMiddleName,
           suffix: newUserSuffix,
-          role: newUserRole
+          role: newUserRole,
+          empStat: newUserEmpStat
         })
       });
 
@@ -197,7 +205,7 @@ export default function Profile() {
         throw new Error(data.error || 'Failed to create user');
       }
       
-      setAllUsers([...allUsers, { Email: newUserEmail, First_Name: newUserFirstName, Last_Name: newUserLastName, Middle_Name: newUserMiddleName, Suffix: newUserSuffix, Role: newUserRole }]);
+      setAllUsers([...allUsers, { Email: newUserEmail, First_Name: newUserFirstName, Last_Name: newUserLastName, Middle_Name: newUserMiddleName, Suffix: newUserSuffix, Role: newUserRole, emp_stat: newUserEmpStat }]);
       
       setCreateUserSuccess(`Successfully created user: ${newUserEmail}`);
       setNewUserEmail('');
@@ -206,6 +214,7 @@ export default function Profile() {
       setNewUserMiddleName('');
       setNewUserSuffix('');
       setNewUserRole('');
+      setNewUserEmpStat('');
       setTimeout(() => setCreateUserSuccess(''), 5000);
     } catch (err) {
       console.error(err);
@@ -718,6 +727,48 @@ export default function Profile() {
                                       className="w-full text-left px-3 py-1.5 hover:bg-teal-50 hover:text-teal-700 transition-colors text-sm text-slate-700 focus:bg-teal-50 focus:outline-none"
                                     >
                                       {role}
+                                    </button>
+                                  ))}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+
+                        <div>
+                          <label className="text-xs text-slate-500 mb-1 block">Employment Status</label>
+                          <div className={`relative ${isNewUserEmpStatDropdownOpen ? 'z-50' : ''}`}>
+                            <div className="relative flex items-center">
+                              <input
+                                type="text"
+                                value={newUserEmpStat}
+                                onChange={(e) => setNewUserEmpStat(e.target.value)}
+                                onFocus={() => setIsNewUserEmpStatDropdownOpen(true)}
+                                onBlur={() => setTimeout(() => setIsNewUserEmpStatDropdownOpen(false), 200)}
+                                placeholder="Select employment status..."
+                                className="w-full px-3 py-1.5 border border-slate-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 bg-white text-slate-900 pr-8"
+                              />
+                              <button
+                                type="button"
+                                onClick={() => setIsNewUserEmpStatDropdownOpen(!isNewUserEmpStatDropdownOpen)}
+                                className="absolute right-1 p-1 text-slate-400 hover:text-slate-600 rounded transition-colors"
+                              >
+                                <svg className={`size-4 transition-transform duration-200 ${isNewUserEmpStatDropdownOpen ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                                </svg>
+                              </button>
+                            </div>
+                            {isNewUserEmpStatDropdownOpen && (
+                              <div className="absolute z-10 w-full mt-1 bg-white border border-slate-200 rounded-lg shadow-lg max-h-60 overflow-auto py-1">
+                                {["COSW", "Permanent", "Contractual"]
+                                  .filter(stat => stat.toLowerCase().includes((newUserEmpStat || "").toLowerCase()))
+                                  .map((stat) => (
+                                    <button
+                                      key={stat}
+                                      type="button"
+                                      onClick={() => { setNewUserEmpStat(stat); setIsNewUserEmpStatDropdownOpen(false); }}
+                                      className="w-full text-left px-3 py-1.5 hover:bg-teal-50 hover:text-teal-700 transition-colors text-sm text-slate-700 focus:bg-teal-50 focus:outline-none"
+                                    >
+                                      {stat}
                                     </button>
                                   ))}
                               </div>

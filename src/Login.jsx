@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useSignIn } from '@clerk/clerk-react';
 import Alert from './Alert';
-import { turso } from './db';
 
 export default function Login() {
    const { isLoaded, signIn, setActive } = useSignIn();
@@ -59,14 +58,16 @@ export default function Login() {
       setLoadingAction('manual');
       
       try {
-         // Check if user is active in DB before authenticating
-         const userStatusRes = await turso.execute({
-            sql: "SELECT Status FROM User_Permissions WHERE LOWER(Email) = LOWER(?)",
-            args: [email]
+         // Check if user is active in DB before authenticating using the backend endpoint
+         const statusRes = await fetch('/api/check-user-status', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email })
          });
+         const statusData = await statusRes.json();
 
-         if (userStatusRes.rows.length > 0) {
-            const status = userStatusRes.rows[0].Status;
+         if (statusRes.ok && statusData.status) {
+            const status = statusData.status;
             if (status && status.toLowerCase() === 'inactive') {
                setError("Your account is inactive. Please contact your administrator.");
                setIsLoading(false);

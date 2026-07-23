@@ -54,14 +54,28 @@ const smtpMiddleware = (env) => {
           req.on('data', chunk => body += chunk.toString());
           req.on('end', async () => {
             try {
-              const data = JSON.parse(body);
-              const { email, firstName, lastName, middleName, suffix, role } = data;
+              const authHeader = req.headers.authorization;
+              if (!authHeader || !authHeader.startsWith('Bearer ')) {
+                throw new Error("Unauthorized: Missing or invalid token");
+              }
+              const token = authHeader.split(' ')[1];
 
               if (!env.CLERK_SECRET_KEY) {
                 throw new Error("CLERK_SECRET_KEY is missing in .env.local");
               }
 
-              const { createClerkClient } = await import('@clerk/backend');
+              const { createClerkClient, verifyToken } = await import('@clerk/backend');
+              
+              // Verify the session token
+              try {
+                await verifyToken(token, { secretKey: env.CLERK_SECRET_KEY });
+              } catch (err) {
+                throw new Error("Unauthorized: Invalid token");
+              }
+
+              const data = JSON.parse(body);
+              const { email, firstName, lastName, middleName, suffix, role, empStat } = data;
+
               const crypto = await import('crypto');
               const { createClient } = await import('@libsql/client');
 
@@ -91,8 +105,8 @@ const smtpMiddleware = (env) => {
 
               // 4. Save to Turso
               await turso.execute({
-                sql: `INSERT INTO User_Permissions (Email, First_Name, Last_Name, Middle_Name, Suffix, Role) VALUES (?, ?, ?, ?, ?, ?)`,
-                args: [email, firstName, lastName, middleName || '', suffix || '', role]
+                sql: `INSERT INTO User_Permissions (Email, First_Name, Last_Name, Middle_Name, Suffix, Role, emp_stat) VALUES (?, ?, ?, ?, ?, ?, ?)`,
+                args: [email, firstName, lastName, middleName || '', suffix || '', role, empStat || '']
               });
 
               // 5. Send Email
@@ -130,6 +144,41 @@ const smtpMiddleware = (env) => {
               res.statusCode = 500;
               res.setHeader('Content-Type', 'application/json');
               res.end(JSON.stringify({ success: false, error: err.errors?.[0]?.message || err.message }));
+            }
+          });
+        } else if (req.url === '/api/check-user-status' && req.method === 'POST') {
+          let body = '';
+          req.on('data', chunk => body += chunk.toString());
+          req.on('end', async () => {
+            try {
+              const { email } = JSON.parse(body);
+              if (!email) {
+                res.statusCode = 400;
+                res.setHeader('Content-Type', 'application/json');
+                res.end(JSON.stringify({ success: false, error: 'Email is required' }));
+                return;
+              }
+
+              const { createClient } = await import('@libsql/client');
+              const turso = createClient({ url: env.VITE_TURSO_DB_URL, authToken: env.VITE_TURSO_DB_AUTH_TOKEN });
+
+              const checkRes = await turso.execute({
+                sql: "SELECT Status FROM User_Permissions WHERE LOWER(Email) = LOWER(?)",
+                args: [email]
+              });
+
+              if (checkRes.rows.length > 0) {
+                res.setHeader('Content-Type', 'application/json');
+                res.end(JSON.stringify({ success: true, status: checkRes.rows[0].Status }));
+              } else {
+                res.setHeader('Content-Type', 'application/json');
+                res.end(JSON.stringify({ success: true, status: null }));
+              }
+            } catch (err) {
+              console.error("Check Status Error:", err);
+              res.statusCode = 500;
+              res.setHeader('Content-Type', 'application/json');
+              res.end(JSON.stringify({ success: false, error: err.message }));
             }
           });
         } else {
