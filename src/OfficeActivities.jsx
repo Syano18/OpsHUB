@@ -528,7 +528,7 @@ export default function OfficeActivities() {
                     <span className="w-2.5 h-2.5 rounded-full bg-teal-500 animate-pulse"></span>
                     Today
                   </h3>
-                  <div className="grid grid-cols-[repeat(auto-fit,minmax(400px,1fr))] gap-6">
+                  <div className="grid grid-cols-1 md:grid-cols-[repeat(auto-fit,minmax(350px,1fr))] gap-6">
                     {ongoing.map(renderActivityCard)}
                   </div>
                 </div>
@@ -540,7 +540,7 @@ export default function OfficeActivities() {
                     <span className="w-2.5 h-2.5 rounded-full bg-amber-500"></span>
                     Upcoming
                   </h3>
-                  <div className="grid grid-cols-[repeat(auto-fit,minmax(400px,1fr))] gap-6">
+                  <div className="grid grid-cols-1 md:grid-cols-[repeat(auto-fit,minmax(350px,1fr))] gap-6">
                     {upcoming.map(renderActivityCard)}
                   </div>
                 </div>
@@ -552,7 +552,7 @@ export default function OfficeActivities() {
                     <span className="w-2.5 h-2.5 rounded-full bg-slate-400"></span>
                     Finished
                   </h3>
-                  <div className="grid grid-cols-[repeat(auto-fit,minmax(400px,1fr))] gap-6">
+                  <div className="grid grid-cols-1 md:grid-cols-[repeat(auto-fit,minmax(350px,1fr))] gap-6">
                     {finished.map(renderActivityCard)}
                   </div>
                 </div>
