@@ -30,13 +30,10 @@ export default function Sidebar({ isOpen, setIsOpen }) {
         ${isOpen ? 'translate-x-0' : '-translate-x-full'}
       `}>
         {/* Logo Section */}
-        <div className="p-6 border-b border-slate-100 flex items-center justify-between">
+        <div className="p-6 border-b border-slate-100 flex items-center justify-center">
           <a href="#">
             <img src="/logo.png" alt="logo" className="w-32 md:w-40 hue-rotate-[-35deg]" />
           </a>
-          <button onClick={() => setIsOpen(false)} className="md:hidden text-slate-500 hover:bg-slate-100 p-2 rounded-lg transition-colors">
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
-          </button>
         </div>
 
         {/* Navigation */}

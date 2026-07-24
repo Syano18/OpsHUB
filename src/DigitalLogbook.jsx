@@ -1,9 +1,11 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { useOutletContext } from 'react-router-dom';
 import { UserButton, useUser } from '@clerk/clerk-react';
 import { turso } from './db';
 
 export default function DigitalLogbook() {
-  const { user } = useUser();
+    const { setIsSidebarOpen } = useOutletContext();
+const { user } = useUser();
   const [entries, setEntries] = useState([]);
   const [sectionsList, setSectionsList] = useState([]);
   const [addresseesList, setAddresseesList] = useState([]);
@@ -493,15 +495,31 @@ export default function DigitalLogbook() {
 
   return (
     <div className="h-full flex flex-col overflow-hidden">
-      <header className="shrink-0 h-16 bg-white border-b border-slate-200 flex items-center justify-between px-8 shadow-sm">
-        <h2 className="text-xl font-bold text-slate-800 flex items-center gap-2">
+      <header className="shrink-0 h-16 bg-white border-b border-slate-200 flex items-center justify-between px-4 md:px-8 shadow-sm sticky top-0 z-20">
+        <div className="flex items-center gap-2">
+          <button onClick={() => setIsSidebarOpen(true)} className="md:hidden p-2 -ml-2 mr-1 text-slate-600 hover:bg-slate-100 rounded-lg transition-colors">
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" /></svg>
+          </button>
+          <h2 className="text-xl font-bold text-slate-800 flex items-center gap-2">
           Digital Logbook
         </h2>
+        </div>
         <div className="flex items-center gap-4">
           <div className="text-sm text-slate-600 font-medium hidden sm:block">
             {user?.firstName ? `Welcome back, ${user.firstName}!` : 'Welcome back!'}
           </div>
-          <UserButton afterSignOutUrl="/" />
+          <UserButton 
+            afterSignOutUrl="/" 
+            userProfileMode="navigation" 
+            userProfileUrl="/profile"
+            appearance={{
+              elements: {
+                userButtonPopoverActionButton__signOut: { display: "none" },
+                userButtonPopoverActionButtonIcon__signOut: { display: "none" },
+                userButtonPopoverFooter: { display: "none" }
+              }
+            }}
+          />
         </div>
       </header>
 

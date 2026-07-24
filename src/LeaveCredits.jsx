@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useOutletContext } from 'react-router-dom';
 import { UserButton, useUser } from '@clerk/clerk-react';
 import { turso } from './db';
 import CscForm6Printable from './components/CscForm6Printable';
@@ -82,7 +83,8 @@ async function syncLeaveCredits(email) {
 }
 
 export default function LeaveCredits() {
-  const { user } = useUser();
+    const { setIsSidebarOpen } = useOutletContext();
+const { user } = useUser();
   const [isAdmin, setIsAdmin] = useState(false);
   const [userBalances, setUserBalances] = useState({
     vl_balance: 0, sl_balance: 0, fl_balance: 5, wl_balance: 5, use_balance: 6, spl_balance: 3
@@ -261,15 +263,31 @@ export default function LeaveCredits() {
   return (
     <div className="h-full flex flex-col overflow-hidden bg-slate-50/50">
       {/* Header */}
-      <header className="shrink-0 h-16 bg-white border-b border-slate-200 flex items-center justify-between px-8 shadow-sm">
-        <h2 className="text-xl font-bold text-slate-800 flex items-center gap-2">
+      <header className="shrink-0 h-16 bg-white border-b border-slate-200 flex items-center justify-between px-4 md:px-8 shadow-sm sticky top-0 z-20">
+        <div className="flex items-center gap-2">
+          <button onClick={() => setIsSidebarOpen(true)} className="md:hidden p-2 -ml-2 mr-1 text-slate-600 hover:bg-slate-100 rounded-lg transition-colors">
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" /></svg>
+          </button>
+          <h2 className="text-xl font-bold text-slate-800 flex items-center gap-2">
           Leave Credits
         </h2>
+        </div>
         <div className="flex items-center gap-4">
           <div className="text-sm text-slate-600 font-medium hidden sm:block">
             {user?.firstName ? `Welcome back, ${user.firstName}!` : 'Welcome back!'}
           </div>
-          <UserButton afterSignOutUrl="/" />
+          <UserButton 
+            afterSignOutUrl="/" 
+            userProfileMode="navigation" 
+            userProfileUrl="/profile"
+            appearance={{
+              elements: {
+                userButtonPopoverActionButton__signOut: { display: "none" },
+                userButtonPopoverActionButtonIcon__signOut: { display: "none" },
+                userButtonPopoverFooter: { display: "none" }
+              }
+            }}
+          />
         </div>
       </header>
 
