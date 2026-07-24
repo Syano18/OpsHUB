@@ -477,15 +477,15 @@ export default function LeaveCredits() {
       {/* File Leave Modal */}
       {showFileLeave && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm">
-          <div className="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in-95 duration-200">
-            <div className="px-6 py-4 border-b border-slate-100 flex justify-between items-center bg-slate-50">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden flex flex-col max-h-[90vh] animate-in fade-in zoom-in-95 duration-200">
+            <div className="px-6 py-4 border-b border-slate-100 flex justify-between items-center bg-slate-50 shrink-0">
               <h3 className="text-lg font-bold text-slate-800">File a Leave</h3>
               <button onClick={() => setShowFileLeave(false)} className="text-slate-400 hover:text-slate-600 transition-colors">
                 <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
               </button>
             </div>
-            <form onSubmit={(e) => { e.preventDefault(); alert("Database schema not built yet!"); setShowFileLeave(false); }} className="p-6">
-              <div className="space-y-4">
+            <form onSubmit={(e) => { e.preventDefault(); alert("Database schema not built yet!"); setShowFileLeave(false); }} className="flex flex-col min-h-0">
+              <div className="p-6 space-y-4 overflow-y-auto">
                 <div>
                   <label className="block text-sm font-medium text-slate-700 mb-1">Leave Type</label>
                   <select
@@ -586,15 +586,15 @@ export default function LeaveCredits() {
                   <textarea value={reason} onChange={(e) => setReason(e.target.value)} required rows="3" className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-shadow resize-none" placeholder="Please state your reason for leave..."></textarea>
                 </div>
               </div>
-              <div className="mt-8 flex justify-between gap-3">
-                <button type="button" onClick={() => setShowPrintPreview(true)} className="px-4 py-2 text-sm font-medium text-indigo-600 bg-indigo-50 border border-indigo-200 rounded-lg hover:bg-indigo-100 transition-colors shadow-sm">
+              <div className="p-6 bg-slate-50 border-t border-slate-100 flex flex-col sm:flex-row justify-between gap-3 shrink-0">
+                <button type="button" onClick={() => setShowPrintPreview(true)} className="w-full sm:w-auto px-4 py-2 text-sm font-medium text-indigo-600 bg-indigo-50 border border-indigo-200 rounded-lg hover:bg-indigo-100 transition-colors shadow-sm">
                   Preview Form 6
                 </button>
-                <div className="flex gap-3">
-                  <button type="button" onClick={() => setShowFileLeave(false)} className="px-4 py-2 text-sm font-medium text-slate-700 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 transition-colors shadow-sm">
+                <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
+                  <button type="button" onClick={() => setShowFileLeave(false)} className="w-full sm:w-auto px-4 py-2 text-sm font-medium text-slate-700 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 transition-colors shadow-sm">
                     Cancel
                   </button>
-                  <button type="submit" className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors shadow-sm">
+                  <button type="submit" className="w-full sm:w-auto px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors shadow-sm">
                     Submit Leave
                   </button>
                 </div>
@@ -654,8 +654,8 @@ export default function LeaveCredits() {
       {/* Edit Balances Modal */}
       {editingUser && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm">
-          <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg overflow-hidden border border-slate-200 animate-in fade-in zoom-in duration-200">
-            <div className="px-6 py-4 border-b border-slate-100 bg-slate-50/50 flex items-center justify-between">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg overflow-hidden border border-slate-200 flex flex-col max-h-[90vh] animate-in fade-in zoom-in duration-200">
+            <div className="px-6 py-4 border-b border-slate-100 bg-slate-50/50 flex items-center justify-between shrink-0">
               <h2 className="text-lg font-bold text-slate-800">Edit Leave Balances</h2>
               <button
                 onClick={() => setEditingUser(null)}
@@ -665,8 +665,8 @@ export default function LeaveCredits() {
               </button>
             </div>
 
-            <form onSubmit={handleSaveEdit}>
-              <div className="p-6">
+            <form onSubmit={handleSaveEdit} className="flex flex-col min-h-0">
+              <div className="p-6 overflow-y-auto">
                 <div className="mb-6 pb-6 border-b border-slate-100">
                   <p className="font-medium text-slate-800">{editingUser.Name}</p>
                   <p className="text-sm text-slate-500">{editingUser.Email}</p>
@@ -703,7 +703,7 @@ export default function LeaveCredits() {
                   </div>
                 </div>
               </div>
-              <div className="px-6 py-4 bg-slate-50 border-t border-slate-100 flex justify-end gap-3">
+              <div className="px-6 py-4 bg-slate-50 border-t border-slate-100 flex justify-end gap-3 shrink-0">
                 <button
                   type="button"
                   onClick={() => setEditingUser(null)}
