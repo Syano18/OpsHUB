@@ -470,7 +470,7 @@ export default function DigitalLogbook() {
           </div>
         )}
 
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-y-2 gap-x-4 text-sm mt-2">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-y-2 gap-x-4 text-sm mt-2">
           {entry.ADDRESSE && <div><span className="text-slate-500 block text-xs uppercase tracking-wider mb-0.5">To</span> <span className="font-medium text-slate-700">{entry.ADDRESSE}</span></div>}
           {entry.TRANSMITTER && <div><span className="text-slate-500 block text-xs uppercase tracking-wider mb-0.5">From</span> <span className="font-medium text-slate-700">{entry.TRANSMITTER}</span></div>}
           {entry.SECTION && <div><span className="text-slate-500 block text-xs uppercase tracking-wider mb-0.5">Section</span> <span className="font-medium text-slate-700">{entry.SECTION}</span></div>}
@@ -828,7 +828,7 @@ export default function DigitalLogbook() {
         <div className="flex-1 flex flex-col min-h-0">
           <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 flex-1 flex flex-col min-h-0">
 
-            <div className="flex items-center justify-between mb-6">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
               <div className="flex items-center gap-4">
                 <div className="relative">
                   <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">

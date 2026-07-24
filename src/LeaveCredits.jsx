@@ -571,7 +571,7 @@ export default function LeaveCredits() {
                   </div>
                 )}
 
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm font-medium text-slate-700 mb-1">Start Date</label>
                     <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} required className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-shadow" />
@@ -676,7 +676,7 @@ export default function LeaveCredits() {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm font-medium text-slate-700 mb-1">Vacation Leave (VL)</label>
                     <input type="number" step="0.01" name="vl" defaultValue={editingUser.emp_stat === 'COSW' ? '' : editingUser.credits.vl_balance} disabled={editingUser.emp_stat === 'COSW'} required={editingUser.emp_stat !== 'COSW'} className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all disabled:bg-slate-100 disabled:text-slate-400" />
