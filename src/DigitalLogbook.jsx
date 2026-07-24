@@ -509,8 +509,8 @@ export default function DigitalLogbook() {
 
         {/* Modal Overlay for Form */}
         {showForm && (
-          <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-4 z-50 overflow-y-auto">
-            <div className="bg-slate-50 rounded-xl shadow-2xl border border-slate-200 p-6 w-full max-w-2xl my-8 relative">
+          <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+            <div className="bg-slate-50 rounded-xl shadow-2xl border border-slate-200 p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto relative">
 
               <button
                 onClick={handleCloseForm}
