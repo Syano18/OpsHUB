@@ -475,8 +475,8 @@ export default function OfficeActivities() {
       </header>
 
       {/* Main Content */}
-      <div className="flex-1 flex flex-col px-2 pb-2 pt-4">
-        <div className="w-full h-full flex flex-col gap-6">
+      <div className="flex-1 flex flex-col px-2 pb-2 pt-4 min-h-0">
+        <div className="w-full h-full flex flex-col gap-6 min-h-0">
 
           {error && (
             <div className="p-4 bg-red-50 border border-red-200 text-red-600 rounded-lg text-sm font-medium shrink-0">
