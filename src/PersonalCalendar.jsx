@@ -305,8 +305,7 @@ export default function PersonalCalendar() {
                           return (
                             <div
                               key={`${event.id}-${ymd}`}
-                              onClick={(e) => { e.stopPropagation(); setSelectedEvent(event); }}
-                              className={`text-xs px-2 py-1 rounded border shadow-sm cursor-pointer hover:opacity-80 transition-opacity truncate font-medium ${colorClasses} ${!isStart ? 'border-l-4 rounded-l-none' : ''}`}
+                              className={`text-xs px-2 py-1 rounded border shadow-sm transition-opacity truncate font-medium ${colorClasses} ${!isStart ? 'border-l-4 rounded-l-none' : ''}`}
                               title={event.title}
                             >
                               {event.title}
