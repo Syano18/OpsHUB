@@ -422,15 +422,15 @@ export default function DigitalLogbook() {
       <div key={entry.id} className="relative p-4 rounded-lg border border-slate-200 bg-slate-50 flex flex-col gap-3 hover:bg-teal-50/50 hover:border-teal-300 hover:shadow-md transition-all duration-200 cursor-pointer"
         onClick={() => setActiveMenuId(activeMenuId === entry.id ? null : entry.id)}
       >
-        <div className="flex justify-between items-start">
-          <div>
-            <span className="inline-block px-2.5 py-0.5 rounded-full text-xs font-semibold bg-teal-100 text-teal-800 mb-2">
-              Reference Number: {entry.REFERENCE_NUMBER}
+        <div className="flex justify-between items-start gap-3">
+          <div className="flex-1 min-w-0">
+            <span className="inline-block px-2.5 py-0.5 rounded-full text-xs font-semibold bg-teal-100 text-teal-800 mb-2 truncate max-w-full">
+              Ref: {entry.REFERENCE_NUMBER}
             </span>
-            <h3 className="font-semibold text-slate-900">{entry.PARTICULARS}</h3>
+            <h3 className="font-semibold text-slate-900 break-words line-clamp-2">{entry.PARTICULARS}</h3>
           </div>
-          <div className="flex items-center gap-4">
-            <span className="text-xs text-slate-500 whitespace-nowrap">
+          <div className="flex flex-col sm:flex-row items-end sm:items-center gap-2 shrink-0">
+            <span className="text-[10px] sm:text-xs text-slate-500 text-right">
               {entry.Timestamp}
             </span>
             <button
@@ -829,8 +829,8 @@ export default function DigitalLogbook() {
           <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 flex-1 flex flex-col min-h-0">
 
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
-              <div className="flex items-center gap-4">
-                <div className="relative">
+              <div className="flex flex-col sm:flex-row sm:items-center gap-4 w-full sm:w-auto">
+                <div className="relative w-full sm:w-auto">
                   <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="size-4">
                       <path strokeLinecap="round" strokeLinejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z" />
@@ -841,7 +841,7 @@ export default function DigitalLogbook() {
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                     placeholder="Search logs..."
-                    className="pl-9 pr-4 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 w-64"
+                    className="pl-9 pr-4 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 w-full sm:w-64"
                   />
                 </div>
 
@@ -855,7 +855,7 @@ export default function DigitalLogbook() {
                       type="text"
                       readOnly
                       value={displayYear === 'All' ? 'All Years' : displayYear}
-                      className="w-32 px-3 py-2 pr-8 border border-slate-300 bg-white text-slate-900 text-sm rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 cursor-pointer"
+                      className="w-full sm:w-32 px-3 py-2 pr-8 border border-slate-300 bg-white text-slate-900 text-sm rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 cursor-pointer"
                     />
                     <button type="button" className="absolute inset-y-0 right-0 flex items-center pr-2 text-slate-400 hover:text-slate-600 focus:outline-none pointer-events-none">
                       <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className={`w-4 h-4 transition-transform duration-200 ${isDisplayYearDropdownOpen ? 'rotate-180' : ''}`}>
