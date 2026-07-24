@@ -100,18 +100,16 @@ export default function OfficeActivities() {
         try { await turso.execute("ALTER TABLE Office_Activities RENAME COLUMN activity_date TO start_date"); } catch (e) { }
         try { await turso.execute("ALTER TABLE Office_Activities ADD COLUMN end_date TEXT DEFAULT ''"); } catch (e) { }
 
-        // 3. Fetch Employees for Dropdown (if Admin)
-        if (currentIsAdmin) {
-          const empRes = await turso.execute("SELECT First_Name, Middle_Name, Last_Name FROM User_Permissions WHERE LOWER(Status) != 'inactive' OR Status IS NULL ORDER BY First_Name ASC");
-          const uniqueEmps = new Set();
-          empRes.rows.forEach(row => {
-            if (row.First_Name && row.Last_Name) {
-              const name = `${row.First_Name} ${row.Middle_Name ? row.Middle_Name.charAt(0) + '. ' : ''}${row.Last_Name}`.trim();
-              uniqueEmps.add(name);
-            }
-          });
-          setEmployees(Array.from(uniqueEmps));
-        }
+        // 3. Fetch Employees for Dropdown
+        const empRes = await turso.execute("SELECT First_Name, Middle_Name, Last_Name FROM User_Permissions WHERE LOWER(Status) != 'inactive' OR Status IS NULL ORDER BY First_Name ASC");
+        const uniqueEmps = new Set();
+        empRes.rows.forEach(row => {
+          if (row.First_Name && row.Last_Name) {
+            const name = `${row.First_Name} ${row.Middle_Name ? row.Middle_Name.charAt(0) + '. ' : ''}${row.Last_Name}`.trim();
+            uniqueEmps.add(name);
+          }
+        });
+        setEmployees(Array.from(uniqueEmps));
 
         // 4. Fetch Activities
         const actRes = await turso.execute("SELECT * FROM Office_Activities ORDER BY start_date DESC, created_at DESC");
@@ -516,15 +514,13 @@ export default function OfficeActivities() {
               />
             </div>
 
-            {isAdmin && (
-              <button
-                onClick={() => setIsAddModalOpen(true)}
-                className="px-5 py-2.5 bg-teal-600 hover:bg-teal-700 text-white font-medium rounded-xl shadow-sm transition-colors flex items-center gap-2 shrink-0"
-              >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4"></path></svg>
-                New Activity
-              </button>
-            )}
+            <button
+              onClick={() => setIsAddModalOpen(true)}
+              className="px-5 py-2.5 bg-teal-600 hover:bg-teal-700 text-white font-medium rounded-xl shadow-sm transition-colors flex items-center gap-2 shrink-0"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4"></path></svg>
+              New Activity
+            </button>
           </div>
 
           {/* Activities Grid */}
@@ -581,8 +577,8 @@ export default function OfficeActivities() {
         </div>
       </div>
 
-      {/* Add Activity Modal (Admin Only) */}
-      {isAddModalOpen && isAdmin && (
+      {/* Add Activity Modal */}
+      {isAddModalOpen && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden flex flex-col max-h-[90vh]">
             <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/50 shrink-0">
