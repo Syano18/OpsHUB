@@ -93,7 +93,7 @@ export default function Login() {
             await setActive({ session: result.createdSessionId });
             console.log("Login successful!");
          } else {
-            setError("Something went wrong. Please try again.");
+            setError(`Login incomplete (Status: ${result.status}). Please check Clerk configuration.`);
             setIsLoading(false);
             setLoadingAction(null);
          }
