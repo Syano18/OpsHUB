@@ -150,7 +150,7 @@ export default function OfficeActivities() {
         await turso.execute({
           sql: `INSERT INTO Office_Activities (title, description, start_date, end_date, assigned_to, created_by, status) 
                 VALUES (?, ?, ?, ?, ?, ?, ?)`,
-          args: [formData.title, formData.description, formData.start_date, formData.end_date, assignedJson, currentUserDisplayName || email, formData.status]
+          args: [formData.title, formData.description, formData.start_date, formData.end_date, assignedJson, user.fullName || email, formData.status]
         });
 
         // Refetch
