@@ -47,9 +47,9 @@ export default function Layout() {
   }
 
   return (
-    <div className="flex h-screen bg-slate-50 overflow-hidden relative">
+    <div className="flex h-[100dvh] bg-slate-50 overflow-hidden relative">
       <Sidebar isOpen={isSidebarOpen} setIsOpen={setIsSidebarOpen} />
-      <main className="flex-1 flex flex-col overflow-y-auto relative">
+      <main className="flex-1 flex flex-col overflow-hidden min-h-0 relative">
         <Outlet context={{ setIsSidebarOpen }} />
       </main>
     </div>

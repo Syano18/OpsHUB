@@ -253,6 +253,7 @@ const { user } = useUser();
       }
 
       setEditingUser(null);
+      alert('Leave balances updated successfully!');
       fetchAllUsersCredits();
     } catch (err) {
       console.error("Error saving edits:", err);
@@ -443,11 +444,11 @@ const { user } = useUser();
         {isAdmin && (
           <div className="mt-8">
             <h2 className="text-2xl font-bold text-slate-800 tracking-tight mb-4">Leave Balances Management</h2>
-            <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
-              <table className="w-full text-left border-collapse">
+            <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-x-auto">
+              <table className="w-full text-left border-collapse min-w-[800px]">
                 <thead>
                   <tr className="bg-slate-50 border-b border-slate-200 text-sm uppercase tracking-wider text-slate-500">
-                    <th className="px-6 py-4 font-semibold">Employee</th>
+                    <th className="px-6 py-4 font-semibold sticky left-0 bg-slate-50 z-10 shadow-[1px_0_0_0_#e2e8f0]">Employee</th>
                     <th className="px-6 py-4 font-semibold">VL</th>
                     <th className="px-6 py-4 font-semibold">SL</th>
                     <th className="px-6 py-4 font-semibold">FL</th>
@@ -459,8 +460,8 @@ const { user } = useUser();
                 </thead>
                 <tbody className="divide-y divide-slate-100">
                   {allUsers.map((u, idx) => (
-                    <tr key={idx} className="hover:bg-slate-50 transition-colors">
-                      <td className="px-6 py-4">
+                    <tr key={idx} className="hover:bg-slate-50 transition-colors group">
+                      <td className="px-6 py-4 sticky left-0 bg-white group-hover:bg-slate-50 z-10 shadow-[1px_0_0_0_#e2e8f0]">
                         <div className="font-semibold text-slate-800">{u.Name}</div>
                         <div className="text-sm text-slate-500">{u.Email}</div>
                       </td>
