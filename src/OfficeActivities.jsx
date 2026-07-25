@@ -22,6 +22,7 @@ export default function OfficeActivities() {
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [modalStep, setModalStep] = useState(1);
   const [activityToDelete, setActivityToDelete] = useState(null);
+  const [editingActivityId, setEditingActivityId] = useState(null);
   const [isSaving, setIsSaving] = useState(false);
   const [emailProgress, setEmailProgress] = useState({ current: 0, total: 0 });
   const [formData, setFormData] = useState({
