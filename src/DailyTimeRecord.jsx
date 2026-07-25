@@ -313,7 +313,7 @@ const { user } = useUser();
                       ) : (
                         filteredAttendance.map((row, idx) => (
                           <tr
-                            key={row.id || idx}
+                            key={`${row.id || 'no-id'}-${idx}`}
                             onClick={() => handleRowClick(row)}
                             className="hover:bg-teal-50/40 hover:cursor-pointer transition-colors group"
                           >
