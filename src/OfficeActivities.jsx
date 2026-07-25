@@ -304,6 +304,12 @@ export default function OfficeActivities() {
         sql: "DELETE FROM Office_Activities WHERE id = ?",
         args: [activityToDelete.id]
       });
+
+      await turso.execute({
+        sql: "DELETE FROM Personal_Calendar WHERE title = ? AND event_type = 'Office Activity' AND start_date = ?",
+        args: [activityToDelete.title, activityToDelete.start_date]
+      });
+
       setActivities(prev => prev.filter(act => act.id !== activityToDelete.id));
       setActivityToDelete(null);
       setAlertConfig({ message: 'Activity deleted successfully!', type: 'success' });
@@ -403,6 +409,9 @@ export default function OfficeActivities() {
     try { assignedArray = JSON.parse(act.assigned_to); } catch (e) { }
     const isAll = assignedArray.includes('All');
 
+    const canEditOrDelete = act.status !== 'Completed' && 
+      (act.created_by === currentUserDisplayName || act.created_by === user?.primaryEmailAddress?.emailAddress);
+
     return (
       <div key={act.id} className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden flex flex-col group hover:shadow-md transition-shadow">
         <div className="p-6 flex-1 flex flex-col">
@@ -410,7 +419,7 @@ export default function OfficeActivities() {
             <span className={`inline-flex px-2.5 py-1 rounded-full text-xs font-bold border ${getStatusBadge(act.status)}`}>
               {act.status}
             </span>
-            {isAdmin && (
+            {canEditOrDelete && (
               <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                 <button onClick={() => handleEditActivity(act)} className="text-blue-400 hover:text-blue-600 p-1 bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors">
                   <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
