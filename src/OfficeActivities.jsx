@@ -410,7 +410,7 @@ export default function OfficeActivities() {
     const isAll = assignedArray.includes('All');
 
     const canEditOrDelete = act.status !== 'Completed' && 
-      (act.created_by === currentUserDisplayName || act.created_by === user?.primaryEmailAddress?.emailAddress);
+      (act.created_by === currentUserDisplayName || act.created_by === user?.primaryEmailAddress?.emailAddress || act.created_by === user?.fullName);
 
     return (
       <div key={act.id} className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden flex flex-col group hover:shadow-md transition-shadow">
