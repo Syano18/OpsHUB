@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useOutletContext } from 'react-router-dom';
 import { UserButton, useUser } from '@clerk/clerk-react';
 import { turso } from './db';
+import Alert from './Alert';
 
 export default function OfficeActivities() {
   const { setIsSidebarOpen } = useOutletContext();
@@ -14,6 +15,7 @@ export default function OfficeActivities() {
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [alertConfig, setAlertConfig] = useState(null);
 
   // Modal and Form States
   const [searchTerm, setSearchTerm] = useState('');
@@ -235,8 +237,12 @@ export default function OfficeActivities() {
             }
 
             if (failedCount > 0) {
-              alert(`Activity saved, but failed to send ${failedCount} out of ${emails.length} email notifications.`);
+              setAlertConfig({ message: `Activity saved, but failed to send ${failedCount} out of ${emails.length} email notifications.`, type: 'info' });
+            } else {
+              setAlertConfig({ message: 'Activity saved successfully!', type: 'success' });
             }
+          } else {
+            setAlertConfig({ message: 'Activity saved successfully!', type: 'success' });
           }
         } catch (emailErr) {
           console.error("Error triggering email notification:", emailErr);
@@ -247,7 +253,7 @@ export default function OfficeActivities() {
       handleCloseModal();
     } catch (err) {
       console.error("Error saving activity:", err);
-      alert("Failed to save activity.");
+      setAlertConfig({ message: "Failed to save activity.", type: 'error' });
     } finally {
       setIsSaving(false);
     }
@@ -256,7 +262,7 @@ export default function OfficeActivities() {
   const handleProceedToReview = (e) => {
     e.preventDefault();
     if (formData.assigned_to.length === 0) {
-      alert("Please assign at least one person.");
+      setAlertConfig({ message: "Please assign at least one person.", type: 'info' });
       return;
     }
     setModalStep(2);
@@ -286,7 +292,7 @@ export default function OfficeActivities() {
       setActivities(prev => prev.map(act => act.id === id ? { ...act, status: newStatus } : act));
     } catch (err) {
       console.error("Error updating status:", err);
-      alert("Failed to update status.");
+      setAlertConfig({ message: "Failed to update status.", type: 'error' });
     }
   };
 
@@ -299,9 +305,10 @@ export default function OfficeActivities() {
       });
       setActivities(prev => prev.filter(act => act.id !== activityToDelete.id));
       setActivityToDelete(null);
+      setAlertConfig({ message: 'Activity deleted successfully!', type: 'success' });
     } catch (err) {
       console.error("Error deleting activity:", err);
-      alert("Failed to delete activity.");
+      setAlertConfig({ message: "Failed to delete activity.", type: 'error' });
     }
   };
 
@@ -721,6 +728,15 @@ export default function OfficeActivities() {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Alert Notification */}
+      {alertConfig && (
+        <Alert
+          message={alertConfig.message}
+          type={alertConfig.type}
+          onClose={() => setAlertConfig(null)}
+        />
       )}
 
     </div>

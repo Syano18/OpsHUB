@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useOutletContext } from 'react-router-dom';
 import { UserButton, useUser } from '@clerk/clerk-react';
 import { turso } from './db';
+import Alert from './Alert';
 
 export default function DailyTimeRecord() {
     const { setIsSidebarOpen } = useOutletContext();
@@ -10,6 +11,7 @@ const { user } = useUser();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [userRole, setUserRole] = useState(null);
+  const [alertConfig, setAlertConfig] = useState(null);
 
   // Modal State
   const [selectedRecord, setSelectedRecord] = useState(null);
@@ -156,9 +158,10 @@ const { user } = useUser();
       ));
 
       setSelectedRecord(null);
+      setAlertConfig({ message: 'Remarks saved successfully!', type: 'success' });
     } catch (err) {
       console.error("Error updating remarks:", err);
-      alert("Failed to save remarks. Please try again.");
+      setAlertConfig({ message: "Failed to save remarks. Please try again.", type: 'error' });
     } finally {
       setIsSaving(false);
     }
@@ -444,6 +447,15 @@ const { user } = useUser();
             </div>
           </div>
         </div>
+      )}
+
+      {/* Alert Notification */}
+      {alertConfig && (
+        <Alert
+          message={alertConfig.message}
+          type={alertConfig.type}
+          onClose={() => setAlertConfig(null)}
+        />
       )}
     </div>
   );

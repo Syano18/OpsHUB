@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useOutletContext } from 'react-router-dom';
 import { UserButton, useUser } from '@clerk/clerk-react';
 import { turso } from './db';
+import Alert from './Alert';
 
 export default function PersonalCalendar() {
     const { setIsSidebarOpen } = useOutletContext();
@@ -10,6 +11,7 @@ const { user } = useUser();
   const [events, setEvents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [alertConfig, setAlertConfig] = useState(null);
 
   // Modal states
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
@@ -147,9 +149,10 @@ const { user } = useUser();
       setIsAddModalOpen(false);
       setEditingEventId(null);
       setFormData({ title: '', event_type: '', start_date: '', end_date: '', description: '' });
+      setAlertConfig({ message: 'Event saved successfully!', type: 'success' });
     } catch (err) {
       console.error("Error saving event:", err);
-      alert("Failed to save event.");
+      setAlertConfig({ message: "Failed to save event.", type: 'error' });
     } finally {
       setIsSaving(false);
     }
@@ -179,9 +182,10 @@ const { user } = useUser();
       setEvents(prev => prev.filter(e => e.id !== eventToDelete.id));
       setEventToDelete(null);
       setSelectedEvent(null);
+      setAlertConfig({ message: 'Event deleted successfully!', type: 'success' });
     } catch (err) {
       console.error("Error deleting event:", err);
-      alert("Failed to delete event.");
+      setAlertConfig({ message: "Failed to delete event.", type: 'error' });
     }
   };
 
@@ -506,6 +510,14 @@ const { user } = useUser();
         </div>
       )}
 
+      {/* Alert Notification */}
+      {alertConfig && (
+        <Alert
+          message={alertConfig.message}
+          type={alertConfig.type}
+          onClose={() => setAlertConfig(null)}
+        />
+      )}
     </div>
   );
 }

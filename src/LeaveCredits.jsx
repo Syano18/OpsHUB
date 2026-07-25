@@ -3,6 +3,7 @@ import { useOutletContext } from 'react-router-dom';
 import { UserButton, useUser } from '@clerk/clerk-react';
 import { turso } from './db';
 import CscForm6Printable from './components/CscForm6Printable';
+import Alert from './Alert';
 
 // Helper to calculate sync
 async function syncLeaveCredits(email) {
@@ -98,6 +99,7 @@ const { user } = useUser();
   const [empStat, setEmpStat] = useState("");
   const [userPosition, setUserPosition] = useState("");
   const [userSalary, setUserSalary] = useState("");
+  const [alertConfig, setAlertConfig] = useState(null);
   const [userNameParts, setUserNameParts] = useState({ firstName: '', middleName: '', lastName: '' });
   const [fileLeaveType, setFileLeaveType] = useState("");
   const [leaveDetailType, setLeaveDetailType] = useState("");
@@ -253,7 +255,7 @@ const { user } = useUser();
       }
 
       setEditingUser(null);
-      alert('Leave balances updated successfully!');
+      setAlertConfig({ message: 'Leave balances updated successfully!', type: 'success' });
       fetchAllUsersCredits();
     } catch (err) {
       console.error("Error saving edits:", err);
@@ -503,7 +505,7 @@ const { user } = useUser();
                 <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
               </button>
             </div>
-            <form onSubmit={(e) => { e.preventDefault(); alert("Database schema not built yet!"); setShowFileLeave(false); }} className="flex flex-col min-h-0">
+            <form onSubmit={(e) => { e.preventDefault(); setAlertConfig({ message: 'Database schema not built yet!', type: 'error' }); setShowFileLeave(false); }} className="flex flex-col min-h-0">
               <div className="p-6 space-y-4 overflow-y-auto">
                 <div>
                   <label className="block text-sm font-medium text-slate-700 mb-1">Leave Type</label>
@@ -740,6 +742,15 @@ const { user } = useUser();
             </form>
           </div>
         </div>
+      )}
+    
+      {/* Alert Notification */}
+      {alertConfig && (
+        <Alert
+          message={alertConfig.message}
+          type={alertConfig.type}
+          onClose={() => setAlertConfig(null)}
+        />
       )}
     </div>
   );

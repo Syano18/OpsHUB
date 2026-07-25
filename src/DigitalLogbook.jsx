@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { useOutletContext } from 'react-router-dom';
 import { UserButton, useUser } from '@clerk/clerk-react';
 import { turso } from './db';
+import Alert from './Alert';
 
 export default function DigitalLogbook() {
     const { setIsSidebarOpen } = useOutletContext();
@@ -12,6 +13,7 @@ const { user } = useUser();
   const [transmittalModesList, setTransmittalModesList] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [alertConfig, setAlertConfig] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showForm, setShowForm] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
@@ -168,7 +170,7 @@ const { user } = useUser();
     }
 
     if (filteredForExport.length === 0) {
-      alert("No records found for the selected filter.");
+      setAlertConfig({ message: "No records found for the selected filter.", type: 'info' });
       return;
     }
 
@@ -1089,6 +1091,15 @@ const { user } = useUser();
             </div>
           </div>
         </div>
+      )}
+
+      {/* Alert Notification */}
+      {alertConfig && (
+        <Alert
+          message={alertConfig.message}
+          type={alertConfig.type}
+          onClose={() => setAlertConfig(null)}
+        />
       )}
     </div>
   );
