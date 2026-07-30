@@ -14,6 +14,14 @@ const s3Client = new S3Client({
 const BUCKET_NAME = process.env.VITE_R2_BUCKET_NAME?.trim();
 import { verifyToken } from '@clerk/backend';
 
+export const config = {
+  api: {
+    bodyParser: {
+      sizeLimit: '4.5mb',
+    },
+  },
+};
+
 export default async function handler(req, res) {
   try {
     const authHeader = req.headers.authorization;

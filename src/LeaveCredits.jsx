@@ -4,7 +4,7 @@ import { UserButton, useUser, useAuth } from '@clerk/clerk-react';
 import CscForm6Printable from './components/CscForm6Printable';
 import UseLeavePrintable from './components/UseLeavePrintable';
 import Alert from './Alert';
-import { toPng } from 'html-to-image';
+import { toJpeg } from 'html-to-image';
 import { jsPDF } from 'jspdf';
 import { DayPicker } from "react-day-picker";
 import "react-day-picker/style.css";
@@ -551,8 +551,9 @@ export default function LeaveCredits() {
       // Small delay to ensure the hidden component renders cleanly before capture
       await new Promise(resolve => setTimeout(resolve, 100));
 
-      const imgData = await toPng(printRef.current, {
+      const imgData = await toJpeg(printRef.current, {
         pixelRatio: 2,
+        quality: 0.8,
         cacheBust: true,
       });
 
@@ -582,7 +583,7 @@ export default function LeaveCredits() {
       const x = (pdfWidth - imgWidth) / 2;
       const y = (pdfPageHeight - imgHeight) / 2;
 
-      pdf.addImage(imgData, 'PNG', x, y, imgWidth, imgHeight);
+      pdf.addImage(imgData, 'JPEG', x, y, imgWidth, imgHeight, undefined, 'FAST');
       const pdfBlobUrl = pdf.output('bloburl');
       const isCSS = userPosition && userPosition.toLowerCase().includes('chief statistical');
 
