@@ -1674,7 +1674,7 @@ export default function LeaveCredits() {
                   middleName: userNameParts.middleName || ''
                 },
                 dateFiled: new Date().toLocaleDateString(),
-                position: userPosition,
+                position: userPosition ? (userPosition.replace(/\s*[-\/]?\s*HR Designate\s*/gi, '').trim() || userPosition) : '',
                 salary: userSalary,
                 salaryGrade: userSalaryGrade,
                 inclusiveDates: Array.isArray(inclusiveDates) ? formatInclusiveDates(inclusiveDates) : inclusiveDates,
@@ -1694,7 +1694,7 @@ export default function LeaveCredits() {
                 },
                 dateFiled: new Date().toLocaleDateString(),
                 asOfDate: new Date(new Date().getFullYear(), new Date().getMonth(), 0).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }),
-                position: userPosition,
+                position: userPosition ? (userPosition.replace(/\s*[-\/]?\s*HR Designate\s*/gi, '').trim() || userPosition) : '',
                 salary: userSalary,
                 salaryGrade: userSalaryGrade,
                 fileLeaveType,

@@ -14,6 +14,32 @@ const s3Client = new S3Client({
 const BUCKET_NAME = process.env.VITE_R2_BUCKET_NAME?.trim();
 import { verifyToken } from '@clerk/backend';
 
+function parseFormattedDates(dateStr) {
+  const dates = [];
+  const groups = dateStr.split(';').map(s => s.trim());
+  for (const group of groups) {
+    const yearMatch = group.match(/(\d{4})$/);
+    if (!yearMatch) continue;
+    const year = yearMatch[1];
+    
+    const monthMatch = group.match(/^([a-zA-Z]+)/);
+    if (!monthMatch) continue;
+    const monthStr = monthMatch[1];
+    const monthIndex = new Date(`${monthStr} 1, 2000`).getMonth() + 1;
+    const mm = String(monthIndex).padStart(2, '0');
+    
+    const daysStr = group.substring(monthStr.length, group.lastIndexOf(year)).replace(/,$/, '').trim();
+    const cleanDaysStr = daysStr.endsWith(',') ? daysStr.slice(0, -1) : daysStr;
+    const dayTokens = cleanDaysStr.split(',').map(d => d.trim()).filter(d => d);
+    
+    for (const d of dayTokens) {
+       const dd = String(parseInt(d)).padStart(2, '0');
+       dates.push(`${year}-${mm}-${dd}`);
+    }
+  }
+  return dates;
+}
+
 export const config = {
   api: {
     bodyParser: {
@@ -447,6 +473,25 @@ export default async function handler(req, res) {
              } catch (err) { console.error("Error deleting final from R2", err); }
           }
           
+          if (status === 'Approved' && record.start_date) {
+            try {
+              const dates = parseFormattedDates(record.start_date);
+              for (const dateStr of dates) {
+                await turso.execute({
+                  sql: `INSERT INTO Personal_Calendar (user_email, title, event_type, start_date, end_date, description) VALUES (?, ?, ?, ?, ?, ?)`,
+                  args: [
+                    record.user_email,
+                    `Approved Leave: ${record.leave_type}`,
+                    'Leave',
+                    dateStr,
+                    dateStr,
+                    `Leave ID: ${record.id}`
+                  ]
+                });
+              }
+            } catch (calErr) { console.error("Error adding to calendar", calErr); }
+          }
+
         } else {
           await turso.execute({
             sql: "UPDATE Leave_History SET status = ? WHERE id = ?",

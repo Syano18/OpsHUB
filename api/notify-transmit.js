@@ -92,9 +92,10 @@ export default async function handler(req, res) {
       throw new Error("SMTP credentials not set");
     }
 
+    const ccParam = ccEmails.length > 0 ? `&cc=${encodeURIComponent(ccEmails.join(','))}` : '';
     const mailOptions = {
       from: {
-        name: 'OpsHUB Notifier',
+        name: 'OpsHUB Notification',
         address: process.env.VITE_SMTP_USER || 'kalinga@psa.gov.ph'
       },
       to: toEmails.join(', '),
@@ -120,7 +121,7 @@ export default async function handler(req, res) {
           ${!isCSS ? '<p>Please review the application in the OpsHUB system.</p>' : ''}
           <div style="margin-top: 25px; margin-bottom: 25px;">
             ${!isCSS ? `<a href="https://operations-hub-iota.vercel.app" style="display: inline-block; padding: 10px 20px; background-color: #0f172a; color: #ffffff; text-decoration: none; border-radius: 6px; font-weight: 500;">Go to OpsHUB</a>` : ''}
-            ${isCSS ? `<a href="mailto:${leaveRecord.user_email}?subject=Signed%20Leave%20Application%20-%20${encodeURIComponent(leaveRecord.leave_type || 'Leave')}" style="display: inline-block; padding: 10px 20px; background-color: #16a34a; color: #ffffff; text-decoration: none; border-radius: 6px; font-weight: 500;">Email Signed Leave to Applicant</a>` : ''}
+            ${isCSS ? `<a href="mailto:${leaveRecord.user_email}?subject=Signed%20Leave%20Application%20-%20${encodeURIComponent(leaveRecord.leave_type || 'Leave')}${ccParam}" style="display: inline-block; padding: 10px 20px; background-color: #16a34a; color: #ffffff; text-decoration: none; border-radius: 6px; font-weight: 500;">Email Signed Leave to Applicant</a>` : ''}
           </div>
           <hr style="border: none; border-top: 1px solid #e2e8f0; margin: 20px 0;" />
           <p style="font-size: 12px; color: #64748b; margin-bottom: 4px;"><strong>Please do not reply to this email.</strong></p>
