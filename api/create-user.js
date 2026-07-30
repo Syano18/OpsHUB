@@ -26,7 +26,7 @@ export default async function handler(req, res) {
       throw new Error("Unauthorized: Invalid token");
     }
 
-    const { email, firstName, lastName, middleName, suffix, role, empStat } = req.body;
+    const { email, firstName, lastName, middleName, suffix, role, empStat, position, isRegional } = req.body;
 
     const clerkClient = createClerkClient({ secretKey: process.env.CLERK_SECRET_KEY });
     const turso = createClient({ url: process.env.VITE_TURSO_DB_URL, authToken: process.env.VITE_TURSO_DB_AUTH_TOKEN });
@@ -43,50 +43,61 @@ export default async function handler(req, res) {
     // 2. Generate Password
     const tempPassword = crypto.randomBytes(6).toString('hex') + 'A1!';
 
-    // 3. Create Clerk User
-    const clerkUser = await clerkClient.users.createUser({
-      emailAddress: [email],
-      password: tempPassword,
-      firstName,
-      lastName,
-      skipPasswordRequirement: true
-    });
+    let clerkUser = null;
+    if (role !== 'External Signatory') {
+      // 3. Create Clerk User
+      clerkUser = await clerkClient.users.createUser({
+        emailAddress: [email],
+        password: tempPassword,
+        firstName,
+        lastName,
+        skipPasswordRequirement: true
+      });
+    }
 
     // 4. Save to Turso
     await turso.execute({
-      sql: `INSERT INTO User_Permissions (Email, First_Name, Last_Name, Middle_Name, Suffix, Role, emp_stat) VALUES (?, ?, ?, ?, ?, ?, ?)`,
-      args: [email, firstName, lastName, middleName || '', suffix || '', role, empStat || '']
+      sql: `INSERT INTO User_Permissions (Email, First_Name, Last_Name, Middle_Name, Suffix, Role, emp_stat, Position, is_regional) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      args: [email, firstName, lastName, middleName || '', suffix || '', role, empStat || '', position || '', isRegional ? 1 : 0]
     });
 
-    // 5. Send Email
-    const transporter = nodemailer.createTransport({
-      host: process.env.VITE_SMTP_HOST,
-      port: parseInt(process.env.VITE_SMTP_PORT || '587'),
-      secure: process.env.VITE_SMTP_PORT === '465',
-      auth: { user: process.env.VITE_SMTP_USER, pass: process.env.VITE_SMTP_PASS },
-    });
+    // 5. Send Email (Skip for External Signatories)
+    if (role !== 'External Signatory') {
+      const transporter = nodemailer.createTransport({
+        host: process.env.VITE_SMTP_HOST,
+        port: parseInt(process.env.VITE_SMTP_PORT || '587'),
+        secure: process.env.VITE_SMTP_PORT === '465',
+        auth: { user: process.env.VITE_SMTP_USER, pass: process.env.VITE_SMTP_PASS },
+      });
 
-    const mailOptions = {
-      from: process.env.VITE_SMTP_FROM || '"OpsHUB" <noreply@opshub.local>',
-      to: email,
-      subject: 'Welcome to OpsHUB - Your Account Details',
-      html: `
-        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
-          <h2 style="color: #0d9488;">Welcome to OpsHUB!</h2>
-          <p>Hello ${firstName} ${lastName},</p>
-          <p>An administrator has created an account for you with the role of <strong>${role}</strong>.</p>
-          <div style="background-color: #f8fafc; padding: 15px; border-radius: 8px; margin: 20px 0;">
-            <p style="margin: 0 0 10px 0;"><strong>Your Login Email:</strong> ${email}</p>
-            <p style="margin: 0;"><strong>Your Temporary Password:</strong> <span style="font-family: monospace; background: #e2e8f0; padding: 2px 6px; border-radius: 4px;">${tempPassword}</span></p>
+      const mailOptions = {
+        from: process.env.VITE_SMTP_FROM || '"OpsHUB" <noreply@opshub.local>',
+        to: email,
+        subject: 'Welcome to OpsHUB - Your Account Details',
+        html: `
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+            <h2 style="color: #0d9488;">Welcome to OpsHUB!</h2>
+            <p>Hello ${firstName} ${lastName},</p>
+            <p>An administrator has created an account for you with the role of <strong>${role}</strong>.</p>
+            <div style="background-color: #f8fafc; padding: 15px; border-radius: 8px; margin: 20px 0;">
+              <p style="margin: 0 0 10px 0;"><strong>Your Login Email:</strong> ${email}</p>
+              <p style="margin: 0;"><strong>Your Temporary Password:</strong> <span style="font-family: monospace; background: #e2e8f0; padding: 2px 6px; border-radius: 4px;">${tempPassword}</span></p>
+            </div>
+            <p>Please log in and change your password as soon as possible.</p>
+            <p>Best regards,<br>The OpsHUB Admin</p>
+            <div style="margin-top: 25px; margin-bottom: 25px;">
+              <a href="https://operations-hub-iota.vercel.app" style="display: inline-block; padding: 10px 20px; background-color: #0f172a; color: #ffffff; text-decoration: none; border-radius: 6px; font-weight: 500;">Go to OpsHUB</a>
+            </div>
+            <hr style="border: none; border-top: 1px solid #e2e8f0; margin: 20px 0;" />
+            <p style="font-size: 12px; color: #64748b; margin-bottom: 4px;"><strong>Please do not reply to this email.</strong></p>
+            <p style="font-size: 12px; color: #64748b;">This is an automated notification from OpsHUB.</p>
           </div>
-          <p>Please log in and change your password as soon as possible.</p>
-          <p>Best regards,<br>The OpsHUB Admin</p>
-        </div>
-      `,
-    };
-    await transporter.sendMail(mailOptions);
+        `,
+      };
+      await transporter.sendMail(mailOptions);
+    }
 
-    res.status(200).json({ success: true, clerkUserId: clerkUser.id });
+    res.status(200).json({ success: true, clerkUserId: clerkUser ? clerkUser.id : null });
   } catch (err) {
     console.error("Create User Error:", err);
     res.status(500).json({ success: false, error: err.errors?.[0]?.message || err.message });

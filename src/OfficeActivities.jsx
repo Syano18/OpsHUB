@@ -1,12 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { useOutletContext } from 'react-router-dom';
-import { UserButton, useUser } from '@clerk/clerk-react';
-import { turso } from './db';
+import { UserButton, useUser, useAuth } from '@clerk/clerk-react';
 import Alert from './Alert';
 
 export default function OfficeActivities() {
   const { setIsSidebarOpen } = useOutletContext();
   const { user } = useUser();
+  const { getToken } = useAuth();
   const [activities, setActivities] = useState([]);
   const [employees, setEmployees] = useState([]);
   const [userRole, setUserRole] = useState(null);
@@ -36,89 +36,30 @@ export default function OfficeActivities() {
 
   useEffect(() => {
     const initAndFetch = async () => {
-      if (!turso) {
-        setError("Database connection not initialized.");
-        setLoading(false);
-        return;
-      }
       if (!user?.primaryEmailAddress?.emailAddress) return;
-
       const email = user.primaryEmailAddress.emailAddress;
-
       try {
         setLoading(true);
-
-        // 1. Fetch User Role & Name
-        let role = null;
-        let displayName = '';
-        let currentIsAdmin = false;
-
-        const roleRes = await turso.execute({
-          sql: "SELECT Role, First_Name, Middle_Name, Last_Name FROM User_Permissions WHERE Email = ?",
-          args: [email]
+        const token = await getToken();
+        const res = await fetch(`/api/activities?email=${encodeURIComponent(email)}`, {
+          headers: { 'Authorization': `Bearer ${token}` }
         });
-
-        if (roleRes.rows.length > 0) {
-          const u = roleRes.rows[0];
-          role = u.Role;
+        if (!res.ok) throw new Error("Failed to fetch activities data");
+        const data = await res.json();
+        
+        if (data.user) {
+          const u = data.user;
+          const role = u.Role;
           setUserRole(role);
-          currentIsAdmin = role === 'Admin' || role === 'Super Admin';
+          const currentIsAdmin = role === 'Admin' || role === 'Super Admin';
           setIsAdmin(currentIsAdmin);
-
           if (u.First_Name && u.Last_Name) {
-            displayName = `${u.First_Name} ${u.Middle_Name ? u.Middle_Name.charAt(0) + '. ' : ''}${u.Last_Name}`.trim();
-            setCurrentUserDisplayName(displayName);
+            setCurrentUserDisplayName(`${u.First_Name} ${u.Middle_Name ? u.Middle_Name.charAt(0) + '. ' : ''}${u.Last_Name}`.trim());
           }
         }
-
-        // 2. Create Tables
-        await turso.execute(`
-          CREATE TABLE IF NOT EXISTS Office_Activities (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            title TEXT NOT NULL,
-            description TEXT,
-            start_date TEXT NOT NULL,
-            end_date TEXT NOT NULL,
-            assigned_to TEXT NOT NULL,
-            created_by TEXT NOT NULL,
-            status TEXT DEFAULT 'Pending',
-            created_at TEXT DEFAULT CURRENT_TIMESTAMP
-          )
-        `);
-
-        await turso.execute(`
-          CREATE TABLE IF NOT EXISTS Personal_Calendar (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            user_email TEXT NOT NULL,
-            title TEXT NOT NULL,
-            event_type TEXT NOT NULL,
-            start_date TEXT NOT NULL,
-            end_date TEXT NOT NULL,
-            description TEXT,
-            created_at TEXT DEFAULT CURRENT_TIMESTAMP
-          )
-        `);
-
-        // Attempt migrations if table already existed with old schema
-        try { await turso.execute("ALTER TABLE Office_Activities RENAME COLUMN activity_date TO start_date"); } catch (e) { }
-        try { await turso.execute("ALTER TABLE Office_Activities ADD COLUMN end_date TEXT DEFAULT ''"); } catch (e) { }
-
-        // 3. Fetch Employees for Dropdown
-        const empRes = await turso.execute("SELECT First_Name, Middle_Name, Last_Name FROM User_Permissions WHERE LOWER(Status) != 'inactive' OR Status IS NULL ORDER BY First_Name ASC");
-        const uniqueEmps = new Set();
-        empRes.rows.forEach(row => {
-          if (row.First_Name && row.Last_Name) {
-            const name = `${row.First_Name} ${row.Middle_Name ? row.Middle_Name.charAt(0) + '. ' : ''}${row.Last_Name}`.trim();
-            uniqueEmps.add(name);
-          }
-        });
-        setEmployees(Array.from(uniqueEmps));
-
-        // 4. Fetch Activities
-        const actRes = await turso.execute("SELECT * FROM Office_Activities ORDER BY start_date DESC, created_at DESC");
-
-        setActivities(actRes.rows);
-
+        
+        setEmployees(data.employees || []);
+        setActivities(data.activities || []);
       } catch (err) {
         console.error("Error setting up Office Activities:", err);
         setError("Failed to load Office Activities.");
@@ -134,123 +75,40 @@ export default function OfficeActivities() {
     e.preventDefault();
     setIsSaving(true);
     try {
-      // Store assigned_to as JSON string array
-      const assignedJson = JSON.stringify(formData.assigned_to);
       const email = user.primaryEmailAddress.emailAddress;
-
+      const token = await getToken();
+      
+      let res;
       if (editingActivityId) {
-        await turso.execute({
-          sql: "UPDATE Office_Activities SET title = ?, description = ?, start_date = ?, end_date = ?, assigned_to = ?, status = ? WHERE id = ?",
-          args: [formData.title, formData.description, formData.start_date, formData.end_date, assignedJson, formData.status, editingActivityId]
+        res = await fetch('/api/activities', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+          body: JSON.stringify({ action: 'updateActivity', id: editingActivityId, formData })
         });
-
-        // Refetch
-        const actRes = await turso.execute("SELECT * FROM Office_Activities ORDER BY start_date DESC, created_at DESC");
-        setActivities(actRes.rows);
       } else {
-        await turso.execute({
-          sql: `INSERT INTO Office_Activities (title, description, start_date, end_date, assigned_to, created_by, status) 
-                VALUES (?, ?, ?, ?, ?, ?, ?)`,
-          args: [formData.title, formData.description, formData.start_date, formData.end_date, assignedJson, email, formData.status]
+        res = await fetch('/api/activities', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+          body: JSON.stringify({ email, formData })
         });
-
-        // Refetch
-        const actRes = await turso.execute("SELECT * FROM Office_Activities ORDER BY start_date DESC, created_at DESC");
-        setActivities(actRes.rows);
-
-        // --- EMAIL NOTIFICATION LOGIC ---
-        try {
-          const assignedNames = formData.assigned_to;
-          let emails = [];
-
-          if (assignedNames.includes('All')) {
-            const allRes = await turso.execute("SELECT Email FROM User_Permissions WHERE LOWER(Status) != 'inactive' OR Status IS NULL");
-            emails = allRes.rows.map(r => r.Email).filter(Boolean);
-          } else {
-            const allRes = await turso.execute("SELECT Email, First_Name, Middle_Name, Last_Name FROM User_Permissions WHERE LOWER(Status) != 'inactive' OR Status IS NULL");
-            emails = allRes.rows.filter(r => {
-              const fullName = `${r.First_Name} ${r.Middle_Name ? r.Middle_Name.charAt(0) + '. ' : ''}${r.Last_Name}`.trim();
-              return assignedNames.includes(fullName);
-            }).map(r => r.Email).filter(Boolean);
-          }
-
-          if (emails.length > 0) {
-            // --- ADD TO PERSONAL CALENDARS ---
-            for (const assigneeEmail of emails) {
-              try {
-                await turso.execute({
-                  sql: `INSERT INTO Personal_Calendar (user_email, title, event_type, start_date, end_date, description)
-                        VALUES (?, ?, ?, ?, ?, ?)`,
-                  args: [
-                    assigneeEmail,
-                    formData.title,
-                    'Office Activity',
-                    formData.start_date,
-                    formData.end_date || formData.start_date,
-                    formData.description
-                  ]
-                });
-              } catch (calErr) {
-                console.error("Failed to add to personal calendar for", assigneeEmail, calErr);
-              }
-            }
-            // ---------------------------------
-
-            setEmailProgress({ current: 0, total: emails.length });
-            let sentCount = 0;
-            let failedCount = 0;
-
-            for (const email of emails) {
-              try {
-                const emailRes = await fetch('/api/send-email', {
-                  method: 'POST',
-                  headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify({
-                    to: email, // Sending to single email per iteration to track progress
-                    subject: `New Activity Assigned: ${formData.title}`,
-                    text: `You have been assigned to a new activity: ${formData.title}\nDates: ${formData.start_date} to ${formData.end_date || formData.start_date}\n\nDescription: ${formData.description}\n\n---\nPlease do not reply to this message. This is an automated notification from OpsHUB.`,
-                    html: `
-                      <div style="font-family: sans-serif; padding: 20px;">
-                        <h2 style="color: #0f766e;">New Activity Assigned</h2>
-                        <p><strong>Title:</strong> ${formData.title}</p>
-                        <p><strong>Dates:</strong> ${formData.start_date} to ${formData.end_date || formData.start_date}</p>
-                        <p><strong>Description:</strong></p>
-                        <p style="white-space: pre-wrap;">${formData.description || 'No description provided.'}</p>
-                        <hr style="border: none; border-top: 1px solid #e2e8f0; margin: 20px 0;" />
-                        <p style="font-size: 12px; color: #64748b; margin-bottom: 4px;"><strong>Please do not reply to this email.</strong></p>
-                        <p style="font-size: 12px; color: #64748b;">This is an automated notification from OpsHUB.</p>
-                      </div>
-                    `
-                  })
-                });
-                const emailData = await emailRes.json();
-                if (emailData.success) {
-                  sentCount++;
-                } else {
-                  failedCount++;
-                }
-              } catch (err) {
-                console.error("Failed to send email notification to:", email, err);
-                failedCount++;
-              }
-              // Update progress state after each attempt
-              setEmailProgress({ current: sentCount + failedCount, total: emails.length });
-            }
-
-            if (failedCount > 0) {
-              setAlertConfig({ message: `Activity saved, but failed to send ${failedCount} out of ${emails.length} email notifications.`, type: 'info' });
-            } else {
-              setAlertConfig({ message: 'Activity saved successfully!', type: 'success' });
-            }
+      }
+      
+      const data = await res.json();
+      if (data.success) {
+        setActivities(data.activities || []);
+        
+        if (!editingActivityId) {
+          if (data.failedEmails && data.failedEmails > 0) {
+            setAlertConfig({ message: `Activity saved, but failed to send ${data.failedEmails} email notifications.`, type: 'info' });
           } else {
             setAlertConfig({ message: 'Activity saved successfully!', type: 'success' });
           }
-        } catch (emailErr) {
-          console.error("Error triggering email notification:", emailErr);
+        } else {
+          setAlertConfig({ message: 'Activity updated successfully!', type: 'success' });
         }
-        // ---------------------------------
+      } else {
+        throw new Error(data.error || "API Error");
       }
-
       handleCloseModal();
     } catch (err) {
       console.error("Error saving activity:", err);
@@ -286,9 +144,11 @@ export default function OfficeActivities() {
 
   const handleUpdateStatus = async (id, newStatus) => {
     try {
-      await turso.execute({
-        sql: "UPDATE Office_Activities SET status = ? WHERE id = ?",
-        args: [newStatus, id]
+      const token = await getToken();
+      await fetch('/api/activities', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        body: JSON.stringify({ action: 'updateStatus', id, status: newStatus })
       });
       setActivities(prev => prev.map(act => act.id === id ? { ...act, status: newStatus } : act));
     } catch (err) {
@@ -300,16 +160,12 @@ export default function OfficeActivities() {
   const executeDeleteActivity = async () => {
     if (!activityToDelete) return;
     try {
-      await turso.execute({
-        sql: "DELETE FROM Office_Activities WHERE id = ?",
-        args: [activityToDelete.id]
+      const token = await getToken();
+      await fetch(`/api/activities?id=${activityToDelete.id}&title=${encodeURIComponent(activityToDelete.title)}&start_date=${encodeURIComponent(activityToDelete.start_date)}`, {
+        method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${token}` }
       });
-
-      await turso.execute({
-        sql: "DELETE FROM Personal_Calendar WHERE title = ? AND event_type = 'Office Activity' AND start_date = ?",
-        args: [activityToDelete.title, activityToDelete.start_date]
-      });
-
+      
       setActivities(prev => prev.filter(act => act.id !== activityToDelete.id));
       setActivityToDelete(null);
       setAlertConfig({ message: 'Activity deleted successfully!', type: 'success' });

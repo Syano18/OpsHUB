@@ -1,12 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { useOutletContext } from 'react-router-dom';
-import { UserButton, useUser } from '@clerk/clerk-react';
-import { turso } from './db';
+import { UserButton, useUser, useAuth } from '@clerk/clerk-react';
 import Alert from './Alert';
 
 export default function DailyTimeRecord() {
     const { setIsSidebarOpen } = useOutletContext();
 const { user } = useUser();
+  const { getToken } = useAuth();
   const [attendance, setAttendance] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -24,93 +24,25 @@ const { user } = useUser();
 
   useEffect(() => {
     const fetchRecords = async () => {
-      if (!turso) {
-        setError("Database connection not initialized.");
+      if (!user?.firstName || !user?.lastName || !user?.primaryEmailAddress?.emailAddress) {
+        setError("Your user profile is missing essential details (name/email). Cannot extract records.");
         setLoading(false);
         return;
       }
-
-      if (!user?.firstName || !user?.lastName) {
-        setError("Your user profile is missing a first or last name. Cannot extract records.");
-        setLoading(false);
-        return;
-      }
-
       try {
         setLoading(true);
-
-        // 1. Fetch User Role
-        let role = null;
-        const email = user?.primaryEmailAddress?.emailAddress;
-        if (email) {
-          const roleRes = await turso.execute({
-            sql: "SELECT Role, First_Name, Middle_Name, Last_Name FROM User_Permissions WHERE Email = ?",
-            args: [email]
-          });
-          if (roleRes.rows.length > 0) {
-            const u = roleRes.rows[0];
-            role = u.Role;
-            setUserRole(role);
-            if (u.First_Name && u.Last_Name) {
-              const currentUserDisplayName = `${u.First_Name} ${u.Middle_Name ? u.Middle_Name.charAt(0) + '. ' : ''}${u.Last_Name}`.trim();
-              setSelectedEmployee(currentUserDisplayName);
-            }
-          }
-        }
-
-        const isAdmin = role === 'Admin' || role === 'Super Admin';
-
-        // 2. Fetch Records based on Role
-        const firstInitial = user.firstName.charAt(0);
-        const lastName = user.lastName;
-        const searchPattern = `${firstInitial}.%${lastName}`;
-
-        let querySql = `
-          SELECT 
-            a.id, 
-            a.employee_id, 
-            a.full_name,
-            a.date, 
-            a.time_in_am, 
-            a.time_out_am, 
-            a.time_in_pm, 
-            a.time_out_pm, 
-            a.remarks,
-            p.error_message,
-            u.First_Name,
-            u.Last_Name,
-            u.Middle_Name
-          FROM attendance a
-          LEFT JOIN punch_errors p 
-            ON a.employee_id = p.employee_id AND a.date = p.scan_date
-          LEFT JOIN User_Permissions u
-            ON REPLACE(a.full_name, ' ', '') = SUBSTR(u.First_Name, 1, 1) || '.' || REPLACE(u.Last_Name, ' ', '')
-        `;
-        let queryArgs = [];
-
-        if (!isAdmin) {
-          querySql += ` WHERE a.employee_id LIKE ? OR a.full_name LIKE ? `;
-          queryArgs.push(searchPattern, searchPattern);
-        }
-
-        querySql += ` ORDER BY a.date DESC LIMIT 2000 `;
-
-        const attendanceRes = await turso.execute({
-          sql: querySql,
-          args: queryArgs
+        const token = await getToken();
+        const res = await fetch(`/api/dtr?email=${encodeURIComponent(user.primaryEmailAddress.emailAddress)}&firstName=${encodeURIComponent(user.firstName)}&lastName=${encodeURIComponent(user.lastName)}`, {
+          headers: { 'Authorization': `Bearer ${token}` }
         });
-
-        // Map rows to include a calculated display_name
-        const mappedRows = attendanceRes.rows.map(row => {
-          let displayName = row.full_name || row.employee_id;
-          if (row.First_Name && row.Last_Name) {
-            displayName = `${row.First_Name} ${row.Middle_Name ? row.Middle_Name.charAt(0) + '. ' : ''}${row.Last_Name}`.trim();
-          }
-          return { ...row, display_name: displayName };
-        });
-
-        setAttendance(mappedRows);
-
+        
+        if (!res.ok) throw new Error("Failed to fetch DTR data");
+        const data = await res.json();
+        
+        if (data.role) setUserRole(data.role);
+        if (data.currentUserDisplayName) setSelectedEmployee(data.currentUserDisplayName);
+        
+        setAttendance(data.attendance || []);
       } catch (err) {
         console.error("Error fetching DTR records:", err);
         setError("Failed to load records from database. The tables may not exist yet.");
@@ -147,11 +79,15 @@ const { user } = useUser();
     if (!selectedRecord) return;
     setIsSaving(true);
     try {
-      await turso.execute({
-        sql: "UPDATE attendance SET remarks = ?, updated_at = strftime('%Y-%m-%d %H:%M:%S', unixepoch('now') + 28800, 'unixepoch') WHERE id = ?",
-        args: [editRemarks, selectedRecord.id]
+      const token = await getToken();
+      const res = await fetch('/api/dtr', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        body: JSON.stringify({ id: selectedRecord.id, remarks: editRemarks })
       });
-
+      
+      if (!res.ok) throw new Error("Failed to save remarks");
+      
       // Update local state to reflect changes instantly
       setAttendance(prev => prev.map(row =>
         row.id === selectedRecord.id ? { ...row, remarks: editRemarks } : row

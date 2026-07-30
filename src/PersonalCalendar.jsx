@@ -1,12 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { useOutletContext } from 'react-router-dom';
-import { UserButton, useUser } from '@clerk/clerk-react';
-import { turso } from './db';
+import { UserButton, useUser, useAuth } from '@clerk/clerk-react';
 import Alert from './Alert';
 
 export default function PersonalCalendar() {
     const { setIsSidebarOpen } = useOutletContext();
 const { user } = useUser();
+  const { getToken } = useAuth();
   const [currentDate, setCurrentDate] = useState(new Date());
   const [events, setEvents] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -33,42 +33,20 @@ const { user } = useUser();
   // Initialize DB and fetch
   useEffect(() => {
     const initAndFetch = async () => {
-      if (!turso) {
-        setError("Database connection not initialized.");
-        setLoading(false);
-        return;
-      }
-
       if (!user?.primaryEmailAddress?.emailAddress) {
         setLoading(false);
         return;
       }
-
       const email = user.primaryEmailAddress.emailAddress;
-
       try {
         setLoading(true);
-        // Create table if it doesn't exist
-        await turso.execute(`
-          CREATE TABLE IF NOT EXISTS Personal_Calendar (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            user_email TEXT NOT NULL,
-            title TEXT NOT NULL,
-            event_type TEXT NOT NULL,
-            start_date TEXT NOT NULL,
-            end_date TEXT NOT NULL,
-            description TEXT,
-            created_at TEXT DEFAULT CURRENT_TIMESTAMP
-          )
-        `);
-
-        // Fetch events for this user
-        const res = await turso.execute({
-          sql: "SELECT * FROM Personal_Calendar WHERE user_email = ? ORDER BY start_date ASC",
-          args: [email]
+        const token = await getToken();
+        const res = await fetch(`/api/calendar?email=${encodeURIComponent(email)}`, {
+          headers: { 'Authorization': `Bearer ${token}` }
         });
-
-        setEvents(res.rows);
+        if (!res.ok) throw new Error("Failed to fetch calendar data");
+        const data = await res.json();
+        setEvents(data.events || []);
       } catch (err) {
         console.error("Calendar DB Error:", err);
         setError("Failed to initialize or fetch calendar data.");
@@ -121,31 +99,40 @@ const { user } = useUser();
   const handleSaveEvent = async (e) => {
     e.preventDefault();
     setIsSaving(true);
-
     try {
       const email = user.primaryEmailAddress.emailAddress;
+      const token = await getToken();
+      
+      const payload = {
+        email,
+        title: formData.title,
+        event_type: formData.event_type,
+        start_date: formData.start_date,
+        end_date: formData.end_date,
+        description: formData.description
+      };
+      
       if (editingEventId) {
-        await turso.execute({
-          sql: `UPDATE Personal_Calendar 
-                SET title = ?, event_type = ?, start_date = ?, end_date = ?, description = ?
-                WHERE id = ? AND user_email = ?`,
-          args: [formData.title, formData.event_type, formData.start_date, formData.end_date, formData.description, editingEventId, email]
+        payload.id = editingEventId;
+        await fetch('/api/calendar', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+          body: JSON.stringify(payload)
         });
       } else {
-        await turso.execute({
-          sql: `INSERT INTO Personal_Calendar (user_email, title, event_type, start_date, end_date, description) 
-                VALUES (?, ?, ?, ?, ?, ?)`,
-          args: [email, formData.title, formData.event_type, formData.start_date, formData.end_date, formData.description]
+        await fetch('/api/calendar', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+          body: JSON.stringify(payload)
         });
       }
 
       // Refetch
-      const res = await turso.execute({
-        sql: "SELECT * FROM Personal_Calendar WHERE user_email = ? ORDER BY start_date ASC",
-        args: [email]
+      const fetchRes = await fetch(`/api/calendar?email=${encodeURIComponent(email)}`, {
+        headers: { 'Authorization': `Bearer ${token}` }
       });
-      setEvents(res.rows);
-
+      const data = await fetchRes.json();
+      setEvents(data.events || []);
       setIsAddModalOpen(false);
       setEditingEventId(null);
       setFormData({ title: '', event_type: '', start_date: '', end_date: '', description: '' });
@@ -173,11 +160,11 @@ const { user } = useUser();
 
   const executeDeleteEvent = async () => {
     if (!eventToDelete) return;
-
     try {
-      await turso.execute({
-        sql: "DELETE FROM Personal_Calendar WHERE id = ?",
-        args: [eventToDelete.id]
+      const token = await getToken();
+      await fetch(`/api/calendar?id=${eventToDelete.id}&email=${encodeURIComponent(user.primaryEmailAddress.emailAddress)}`, {
+        method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${token}` }
       });
       setEvents(prev => prev.filter(e => e.id !== eventToDelete.id));
       setEventToDelete(null);

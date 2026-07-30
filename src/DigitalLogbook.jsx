@@ -1,12 +1,12 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useOutletContext } from 'react-router-dom';
-import { UserButton, useUser } from '@clerk/clerk-react';
-import { turso } from './db';
+import { UserButton, useUser, useAuth } from '@clerk/clerk-react';
 import Alert from './Alert';
 
 export default function DigitalLogbook() {
     const { setIsSidebarOpen } = useOutletContext();
 const { user } = useUser();
+  const { getToken } = useAuth();
   const [entries, setEntries] = useState([]);
   const [sectionsList, setSectionsList] = useState([]);
   const [addresseesList, setAddresseesList] = useState([]);
@@ -49,35 +49,24 @@ const { user } = useUser();
   });
 
   const fetchEntries = async () => {
-    if (!turso) {
-      setError("Turso database is not connected. Please check your credentials.");
-      setLoading(false);
-      return;
-    }
-
     try {
-      const [logbookResult, sectionsResult, addresseesResult, transmittalResult] = await Promise.all([
-        turso.execute({
-          sql: "SELECT * FROM Digital_Logbook ORDER BY CAST(SUBSTR(REFERENCE_NUMBER, INSTR(REFERENCE_NUMBER, '-') + 1) AS INTEGER) DESC, REFERENCE_NUMBER DESC",
-          args: []
-        }),
-        turso.execute({
-          sql: "SELECT * FROM Sections ORDER BY name ASC",
-          args: []
-        }),
-        turso.execute({
-          sql: "SELECT * FROM Addressees ORDER BY name ASC",
-          args: []
-        }),
-        turso.execute({
-          sql: "SELECT * FROM TransmittalModes ORDER BY name ASC",
-          args: []
-        })
-      ]);
-      setEntries(logbookResult.rows);
-      setSectionsList(sectionsResult.rows);
-      setAddresseesList(addresseesResult.rows);
-      setTransmittalModesList(transmittalResult.rows);
+      const token = await getToken();
+      const emailQuery = user?.primaryEmailAddress?.emailAddress ? `&email=${encodeURIComponent(user.primaryEmailAddress.emailAddress)}` : '';
+      const res = await fetch(`/api/logbook?action=fetch${emailQuery}`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (!res.ok) throw new Error("Failed to fetch logbook entries");
+      
+      const data = await res.json();
+      
+      setEntries(data.entries || []);
+      setSectionsList(data.sectionsList || []);
+      setAddresseesList(data.addresseesList || []);
+      setTransmittalModesList(data.transmittalModesList || []);
+      
+      if (data.transmitterName) setTransmitterName(data.transmitterName);
+      if (data.userRole) setUserRole(data.userRole);
+      
       setError("");
     } catch (err) {
       console.error(err);
@@ -88,39 +77,10 @@ const { user } = useUser();
   };
 
   useEffect(() => {
-    fetchEntries();
-  }, []);
-
-  useEffect(() => {
-    const fetchTransmitter = async () => {
-      if (!turso || !user || !user.primaryEmailAddress?.emailAddress) {
-        if (user) setTransmitterName(user.fullName || "Unknown");
-        return;
-      }
-      try {
-        const userResult = await turso.execute({
-          sql: `SELECT First_Name, Middle_Name, Last_Name, Suffix, Role FROM User_Permissions WHERE LOWER(Email) = LOWER(?)`,
-          args: [user.primaryEmailAddress.emailAddress]
-        });
-        if (userResult.rows.length > 0) {
-          const row = userResult.rows[0];
-          const fn = row.First_Name || "";
-          const mn = row.Middle_Name ? ` ${row.Middle_Name.charAt(0).toUpperCase()}.` : "";
-          const ln = row.Last_Name ? ` ${row.Last_Name}` : "";
-          const sx = row.Suffix ? ` ${row.Suffix}` : "";
-          setTransmitterName(`${fn}${mn}${ln}${sx}`.trim());
-          setUserRole(row.Role);
-        } else {
-          setTransmitterName(user.fullName || "Unknown");
-          setUserRole(null);
-        }
-      } catch (err) {
-        console.error("Failed to fetch transmitter name:", err);
-        setTransmitterName(user.fullName || "Unknown");
-      }
-    };
-    fetchTransmitter();
+    if (user) fetchEntries();
   }, [user]);
+
+  
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -205,121 +165,43 @@ const { user } = useUser();
   };
 
   const handleConfirmSave = async () => {
-    if (!turso || !user) return;
+    if (!user) return;
     setIsSubmitting(true);
-
     try {
       const encodedBy = user.primaryEmailAddress?.emailAddress || user.fullName || user.id;
-      let generatedRef = "";
+      const token = await getToken();
+      
+      const payload = {
+        particulars: formData.particulars,
+        addresse: formData.addresse,
+        transmitterName,
+        section: formData.section,
+        modeOfTransmittal: formData.modeOfTransmittal,
+        remarks: formData.remarks,
+        encodedBy
+      };
 
+      let res;
       if (editingId) {
-        await turso.execute({
-          sql: `UPDATE Digital_Logbook SET 
-                  PARTICULARS = ?, ADDRESSE = ?, TRANSMITTER = ?, 
-                  SECTION = ?, MODE_OF_TRANSMITTAL = ?, REMARKS = ?, ENCODED_BY = ?
-                WHERE id = ?`,
-          args: [
-            formData.particulars,
-            formData.addresse,
-            transmitterName,
-            formData.section,
-            formData.modeOfTransmittal,
-            formData.remarks,
-            encodedBy,
-            editingId
-          ]
+        payload.id = editingId;
+        res = await fetch('/api/logbook', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+          body: JSON.stringify(payload)
         });
-
-        const refResult = await turso.execute({
-          sql: `SELECT REFERENCE_NUMBER FROM Digital_Logbook WHERE id = ?`,
-          args: [editingId]
-        });
-        generatedRef = refResult.rows[0].REFERENCE_NUMBER;
-      } else if (referenceOverride) {
-        if (timestampOverride) {
-          await turso.execute({
-            sql: `INSERT INTO Digital_Logbook (
-                    REFERENCE_NUMBER, Timestamp, PARTICULARS, ADDRESSE, 
-                    TRANSMITTER, SECTION, MODE_OF_TRANSMITTAL, 
-                    REMARKS, ENCODED_BY
-                  ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-            args: [
-              referenceOverride,
-              timestampOverride,
-              formData.particulars,
-              formData.addresse,
-              transmitterName,
-              formData.section,
-              formData.modeOfTransmittal,
-              formData.remarks,
-              encodedBy
-            ]
-          });
-        } else {
-          await turso.execute({
-            sql: `INSERT INTO Digital_Logbook (
-                    REFERENCE_NUMBER, PARTICULARS, ADDRESSE, 
-                    TRANSMITTER, SECTION, MODE_OF_TRANSMITTAL, 
-                    REMARKS, ENCODED_BY
-                  ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-            args: [
-              referenceOverride,
-              formData.particulars,
-              formData.addresse,
-              transmitterName,
-              formData.section,
-              formData.modeOfTransmittal,
-              formData.remarks,
-              encodedBy
-            ]
-          });
-        }
-        generatedRef = referenceOverride;
       } else {
-        const insertResult = await turso.execute({
-          sql: `INSERT INTO Digital_Logbook (
-                  PARTICULARS, ADDRESSE, 
-                  TRANSMITTER, SECTION, MODE_OF_TRANSMITTAL, 
-                  REMARKS, ENCODED_BY
-                ) VALUES (?, ?, ?, ?, ?, ?, ?)`,
-          args: [
-            formData.particulars,
-            formData.addresse,
-            transmitterName,
-            formData.section,
-            formData.modeOfTransmittal,
-            formData.remarks,
-            encodedBy
-          ]
-        });
-
-        const refResult = await turso.execute({
-          sql: `SELECT REFERENCE_NUMBER FROM Digital_Logbook WHERE id = ?`,
-          args: [Number(insertResult.lastInsertRowid)]
-        });
-        generatedRef = refResult.rows[0].REFERENCE_NUMBER;
-      }
-
-      if (formData.section && formData.section.trim() !== '') {
-        await turso.execute({
-          sql: `INSERT OR IGNORE INTO Sections (name) VALUES (?)`,
-          args: [formData.section.trim()]
+        payload.referenceOverride = referenceOverride;
+        payload.timestampOverride = timestampOverride;
+        res = await fetch('/api/logbook', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+          body: JSON.stringify(payload)
         });
       }
 
-      if (formData.addresse && formData.addresse.trim() !== '') {
-        await turso.execute({
-          sql: `INSERT OR IGNORE INTO Addressees (name) VALUES (?)`,
-          args: [formData.addresse.trim()]
-        });
-      }
-
-      if (formData.modeOfTransmittal && formData.modeOfTransmittal.trim() !== '') {
-        await turso.execute({
-          sql: `INSERT OR IGNORE INTO TransmittalModes (name) VALUES (?)`,
-          args: [formData.modeOfTransmittal.trim()]
-        });
-      }
+      if (!res.ok) throw new Error("Failed to save logbook entry");
+      const data = await res.json();
+      const generatedRef = data.generatedRef;
 
       // Clear form on success
       setFormData({
@@ -361,12 +243,12 @@ const { user } = useUser();
     const baseRef = entry.REFERENCE_NUMBER.replace(/[A-Z]$/, '');
 
     try {
-      const res = await turso.execute({
-        sql: `SELECT REFERENCE_NUMBER FROM Digital_Logbook WHERE REFERENCE_NUMBER LIKE ?`,
-        args: [`${baseRef}%`]
+      const token = await getToken();
+      const res = await fetch(`/api/logbook?action=checkRef&baseRef=${encodeURIComponent(baseRef)}`, {
+        headers: { 'Authorization': `Bearer ${token}` }
       });
-
-      const existing = res.rows.map(r => r.REFERENCE_NUMBER);
+      const data = await res.json();
+      const existing = data.references || [];
       const suffixes = existing
         .map(ref => ref.replace(baseRef, ''))
         .filter(s => s.length === 1 && s >= 'A' && s <= 'Z')
@@ -620,7 +502,7 @@ const { user } = useUser();
                     <button
                       type="button"
                       onClick={handleConfirmSave}
-                      disabled={!turso || isSubmitting}
+                      disabled={isSubmitting}
                       className="px-6 py-2.5 bg-teal-600 text-white font-medium rounded-lg hover:bg-teal-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                     >
                       {isSubmitting ? 'Saving...' : 'Confirm & Save'}

@@ -82,6 +82,9 @@ export default async function handler(req, res) {
               <p><strong>Dates:</strong> ${activity.start_date} to ${activity.end_date || activity.start_date}</p>
               <p><strong>Description:</strong></p>
               <p style="white-space: pre-wrap;">${activity.description || 'No description provided.'}</p>
+              <div style="margin-top: 25px; margin-bottom: 25px;">
+                <a href="https://operations-hub-iota.vercel.app" style="display: inline-block; padding: 10px 20px; background-color: #0f172a; color: #ffffff; text-decoration: none; border-radius: 6px; font-weight: 500;">Go to OpsHUB</a>
+              </div>
               <hr style="border: none; border-top: 1px solid #e2e8f0; margin: 20px 0;" />
               <p style="font-size: 12px; color: #64748b; margin-bottom: 4px;"><strong>Please do not reply to this email.</strong></p>
               <p style="font-size: 12px; color: #64748b;">This is an automated notification from OpsHUB.</p>

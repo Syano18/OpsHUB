@@ -1,12 +1,12 @@
 import React, { useEffect, useState } from 'react';
 import { Outlet } from 'react-router-dom';
-import { useUser, useClerk } from '@clerk/clerk-react';
-import { turso } from './db';
+import { useUser, useClerk, useAuth } from '@clerk/clerk-react';
 import Sidebar from './Sidebar';
 
 export default function Layout() {
   const { user } = useUser();
   const { signOut } = useClerk();
+  const { getToken } = useAuth();
   const [isChecking, setIsChecking] = useState(true);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
@@ -17,17 +17,16 @@ export default function Layout() {
         return;
       }
       try {
-        const res = await turso.execute({
-          sql: "SELECT Status FROM User_Permissions WHERE LOWER(Email) = LOWER(?)",
-          args: [user.primaryEmailAddress.emailAddress]
+        const res = await fetch('/api/check-user-status', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email: user.primaryEmailAddress.emailAddress })
         });
-        if (res.rows.length > 0) {
-          const status = res.rows[0].Status;
-          if (status && status.toLowerCase() === 'inactive') {
-            await signOut();
-            window.location.href = "/?error=Your+account+is+inactive.+Please+contact+your+administrator.";
-            return;
-          }
+        const data = await res.json();
+        if (data.success && data.status && data.status.toLowerCase() === 'inactive') {
+          await signOut();
+          window.location.href = "/?error=Your+account+is+inactive.+Please+contact+your+administrator.";
+          return;
         }
       } catch(e) {
         console.error("Error checking user status:", e);

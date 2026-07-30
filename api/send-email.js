@@ -23,7 +23,10 @@ export default async function handler(req, res) {
     }
 
     const info = await transporter.sendMail({
-      from: process.env.VITE_SMTP_FROM || '"OpsHUB" <noreply@opshub.local>',
+      from: {
+        name: 'OpsHUB Notifier',
+        address: process.env.VITE_SMTP_USER || 'kalinga@psa.gov.ph'
+      },
       to: Array.isArray(to) ? to.join(', ') : to,
       subject: subject,
       text: text,

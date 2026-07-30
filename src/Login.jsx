@@ -21,7 +21,7 @@ export default function Login() {
       console.log("Checking URL for OAuth errors:", href);
 
       let params = new URLSearchParams(window.location.search);
-      
+
       // Robustly parse the hash if the error is hidden there
       if (!params.get('error') && window.location.hash.includes('error=')) {
          const hashStr = window.location.hash;
@@ -52,11 +52,11 @@ export default function Login() {
    const handleSubmit = async (e) => {
       e.preventDefault();
       if (!isLoaded) return;
-      
+
       setError('');
       setIsLoading(true);
       setLoadingAction('manual');
-      
+
       try {
          // Check if user is active in DB before authenticating using the backend endpoint
          const statusRes = await fetch('/api/check-user-status', {
@@ -107,7 +107,7 @@ export default function Login() {
    const handleGoogleSignIn = async (e) => {
       e.preventDefault();
       if (!isLoaded) return;
-      
+
       setIsLoading(true);
       setLoadingAction('google');
 
@@ -121,60 +121,60 @@ export default function Login() {
          console.error("Google Sign In Error:", err);
          setError(err.errors?.[0]?.longMessage || err.message || "Failed to initialize Google Sign In.");
          setIsLoading(false);
-          setLoadingAction(null);
-       }
-    };
+         setLoadingAction(null);
+      }
+   };
 
-    const handleForgotPassword = async (e) => {
-       e.preventDefault();
-       if (!email) {
-          setError('Please enter your email address first.');
-          return;
-       }
-       setError('');
-       setIsLoading(true);
-       setLoadingAction('reset');
+   const handleForgotPassword = async (e) => {
+      e.preventDefault();
+      if (!email) {
+         setError('Please enter your email address first.');
+         return;
+      }
+      setError('');
+      setIsLoading(true);
+      setLoadingAction('reset');
 
-       try {
-          await signIn.create({
-             strategy: 'reset_password_email_code',
-             identifier: email,
-          });
-          setResetState('email_sent');
-       } catch (err) {
-          setError(err.errors?.[0]?.longMessage || 'Failed to send password reset email.');
-       } finally {
-          setIsLoading(false);
-          setLoadingAction(null);
-       }
-    };
+      try {
+         await signIn.create({
+            strategy: 'reset_password_email_code',
+            identifier: email,
+         });
+         setResetState('email_sent');
+      } catch (err) {
+         setError(err.errors?.[0]?.longMessage || 'Failed to send password reset email.');
+      } finally {
+         setIsLoading(false);
+         setLoadingAction(null);
+      }
+   };
 
-    const handleResetPassword = async (e) => {
-       e.preventDefault();
-       setError('');
-       setIsLoading(true);
-       setLoadingAction('reset_submit');
+   const handleResetPassword = async (e) => {
+      e.preventDefault();
+      setError('');
+      setIsLoading(true);
+      setLoadingAction('reset_submit');
 
-       try {
-          const result = await signIn.attemptFirstFactor({
-             strategy: 'reset_password_email_code',
-             code: resetCode,
-             password: newPassword,
-          });
+      try {
+         const result = await signIn.attemptFirstFactor({
+            strategy: 'reset_password_email_code',
+            code: resetCode,
+            password: newPassword,
+         });
 
-          if (result.status === 'complete') {
-             await setActive({ session: result.createdSessionId });
-             setResetState('success');
-          } else {
-             setError('Something went wrong. Please try again.');
-          }
-       } catch (err) {
-          setError(err.errors?.[0]?.longMessage || 'Failed to reset password. Please check your code.');
-       } finally {
-          setIsLoading(false);
-          setLoadingAction(null);
-       }
-    };
+         if (result.status === 'complete') {
+            await setActive({ session: result.createdSessionId });
+            setResetState('success');
+         } else {
+            setError('Something went wrong. Please try again.');
+         }
+      } catch (err) {
+         setError(err.errors?.[0]?.longMessage || 'Failed to reset password. Please check your code.');
+      } finally {
+         setIsLoading(false);
+         setLoadingAction(null);
+      }
+   };
 
    return (
       // Main container centering the form vertically and horizontally
@@ -235,7 +235,7 @@ export default function Login() {
                   <>
                      {/* Login Form */}
                      <form className="space-y-6 mt-6" onSubmit={handleSubmit}>
-                        
+
                         {/* Error Message */}
                         <Alert message={error} onClose={() => setError('')} />
 
@@ -328,9 +328,8 @@ export default function Login() {
                         {/* Submit Button */}
                         <button type="submit"
                            disabled={isLoading}
-                           className={`w-full py-2 px-3.5 text-sm rounded-md font-semibold tracking-wide text-white border border-teal-600 bg-teal-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-500 flex items-center justify-center gap-2 ${
-                              isLoading ? "opacity-70 cursor-not-allowed scale-[0.98]" : "hover:bg-teal-700 transition-all cursor-pointer"
-                           }`}>
+                           className={`w-full py-2 px-3.5 text-sm rounded-md font-semibold tracking-wide text-white border border-teal-600 bg-teal-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-500 flex items-center justify-center gap-2 ${isLoading ? "opacity-70 cursor-not-allowed scale-[0.98]" : "hover:bg-teal-700 transition-all cursor-pointer"
+                              }`}>
                            {isLoading && loadingAction === 'manual' ? (
                               <svg className="animate-spin h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
@@ -356,35 +355,34 @@ export default function Login() {
                      onClick={handleGoogleSignIn}
                      type="button"
                      disabled={isLoading}
-                     className={`w-full flex items-center justify-center gap-2.5 py-2 px-3.5 text-sm rounded-md font-semibold text-slate-900 border border-slate-300 bg-white focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-500 ${
-                        isLoading ? "opacity-70 cursor-not-allowed scale-[0.98]" : "hover:bg-gray-50 transition-all cursor-pointer"
-                     }`}>
+                     className={`w-full flex items-center justify-center gap-2.5 py-2 px-3.5 text-sm rounded-md font-semibold text-slate-900 border border-slate-300 bg-white focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-500 ${isLoading ? "opacity-70 cursor-not-allowed scale-[0.98]" : "hover:bg-gray-50 transition-all cursor-pointer"
+                        }`}>
                      {isLoading && loadingAction === 'google' ? (
                         <svg className="animate-spin h-4 w-4 text-slate-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                         </svg>
                      ) : (
-                     <svg xmlns="http://www.w3.org/2000/svg" className="size-[18px]" viewBox="0 0 512 512" aria-hidden="true">
-                        <path fill="#fbbd00"
-                           d="M120 256c0-25.367 6.989-49.13 19.131-69.477v-86.308H52.823C18.568 144.703 0 198.922 0 256s18.568 111.297 52.823 155.785h86.308v-86.308C126.989 305.13 120 281.367 120 256z"
-                           data-original="#fbbd00" />
-                        <path fill="#0f9d58"
-                           d="m256 392-60 60 60 60c57.079 0 111.297-18.568 155.785-52.823v-86.216h-86.216C305.044 385.147 281.181 392 256 392z"
-                           data-original="#0f9d58" />
-                        <path fill="#31aa52"
-                           d="m139.131 325.477-86.308 86.308a260.085 260.085 0 0 0 22.158 25.235C123.333 485.371 187.62 512 256 512V392c-49.624 0-93.117-26.72-116.869-66.523z"
-                           data-original="#31aa52" />
-                        <path fill="#3c79e6"
-                           d="M512 256a258.24 258.24 0 0 0-4.192-46.377l-2.251-12.299H256v120h121.452a135.385 135.385 0 0 1-51.884 55.638l86.216 86.216a260.085 260.085 0 0 0 25.235-22.158C485.371 388.667 512 324.38 512 256z"
-                           data-original="#3c79e6" />
-                        <path fill="#cf2d48"
-                           d="m352.167 159.833 10.606 10.606 84.853-84.852-10.606-10.606C388.668 26.629 324.381 0 256 0l-60 60 60 60c36.326 0 70.479 14.146 96.167 39.833z"
-                           data-original="#cf2d48" />
-                        <path fill="#eb4132"
-                           d="M256 120V0C187.62 0 123.333 26.629 74.98 74.98a259.849 259.849 0 0 0-22.158 25.235l86.308 86.308C162.883 146.72 206.376 120 256 120z"
-                           data-original="#eb4132" />
-                     </svg>
+                        <svg xmlns="http://www.w3.org/2000/svg" className="size-[18px]" viewBox="0 0 512 512" aria-hidden="true">
+                           <path fill="#fbbd00"
+                              d="M120 256c0-25.367 6.989-49.13 19.131-69.477v-86.308H52.823C18.568 144.703 0 198.922 0 256s18.568 111.297 52.823 155.785h86.308v-86.308C126.989 305.13 120 281.367 120 256z"
+                              data-original="#fbbd00" />
+                           <path fill="#0f9d58"
+                              d="m256 392-60 60 60 60c57.079 0 111.297-18.568 155.785-52.823v-86.216h-86.216C305.044 385.147 281.181 392 256 392z"
+                              data-original="#0f9d58" />
+                           <path fill="#31aa52"
+                              d="m139.131 325.477-86.308 86.308a260.085 260.085 0 0 0 22.158 25.235C123.333 485.371 187.62 512 256 512V392c-49.624 0-93.117-26.72-116.869-66.523z"
+                              data-original="#31aa52" />
+                           <path fill="#3c79e6"
+                              d="M512 256a258.24 258.24 0 0 0-4.192-46.377l-2.251-12.299H256v120h121.452a135.385 135.385 0 0 1-51.884 55.638l86.216 86.216a260.085 260.085 0 0 0 25.235-22.158C485.371 388.667 512 324.38 512 256z"
+                              data-original="#3c79e6" />
+                           <path fill="#cf2d48"
+                              d="m352.167 159.833 10.606 10.606 84.853-84.852-10.606-10.606C388.668 26.629 324.381 0 256 0l-60 60 60 60c36.326 0 70.479 14.146 96.167 39.833z"
+                              data-original="#cf2d48" />
+                           <path fill="#eb4132"
+                              d="M256 120V0C187.62 0 123.333 26.629 74.98 74.98a259.849 259.849 0 0 0-22.158 25.235l86.308 86.308C162.883 146.72 206.376 120 256 120z"
+                              data-original="#eb4132" />
+                        </svg>
                      )}
                      {isLoading && loadingAction === 'google' ? "Signing in..." : "Sign in with Google"}
                   </button>
@@ -395,7 +393,7 @@ export default function Login() {
             {/* App Footer */}
             <footer className="mt-2 flex justify-between text-slate-500 text-sm font-medium px-2">
                <span>TechCraft by Chano</span>
-               <span>v1.0</span>
+               <span>v1.1</span>
             </footer>
          </div>
       </main>
