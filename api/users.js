@@ -82,7 +82,7 @@ export default async function handler(req, res) {
       
     } else if (req.method === 'PATCH') {
       // Admin updating a user's role and details
-      const { adminEmail, targetEmail, targetRole, firstName, lastName, middleName, suffix, position, isRegional, emp_stat } = req.body;
+      const { adminEmail, targetEmail, targetRole, firstName, lastName, middleName, suffix, position, salary, salaryGrade, isRegional, emp_stat } = req.body;
       if (!adminEmail || !targetEmail || !targetRole) {
         return res.status(400).json({ error: 'Missing required fields' });
       }
@@ -98,7 +98,7 @@ export default async function handler(req, res) {
       
       await turso.execute({
         sql: `UPDATE User_Permissions SET 
-                Role = ?, First_Name = ?, Last_Name = ?, Middle_Name = ?, Suffix = ?, Position = ?, is_regional = ?, emp_stat = ? 
+                Role = ?, First_Name = ?, Last_Name = ?, Middle_Name = ?, Suffix = ?, Position = ?, Salary = ?, Salary_Grade = ?, is_regional = ?, emp_stat = ? 
               WHERE LOWER(Email) = LOWER(?)`,
         args: [
           targetRole, 
@@ -107,6 +107,8 @@ export default async function handler(req, res) {
           middleName || '', 
           suffix || '', 
           position || '', 
+          salary ? parseFloat(salary) : null,
+          salaryGrade ? parseInt(salaryGrade) : null,
           isRegional ? 1 : 0, 
           emp_stat || '',
           targetEmail

@@ -30,6 +30,8 @@ export default function Profile() {
   const [selectedUserMiddleName, setSelectedUserMiddleName] = useState('');
   const [selectedUserSuffix, setSelectedUserSuffix] = useState('');
   const [selectedUserPosition, setSelectedUserPosition] = useState('');
+  const [selectedUserSalary, setSelectedUserSalary] = useState('');
+  const [selectedUserSalaryGrade, setSelectedUserSalaryGrade] = useState('');
   const [selectedUserIsRegional, setSelectedUserIsRegional] = useState(false);
   const [selectedUserEmpStat, setSelectedUserEmpStat] = useState('');
   const [isSelectedUserEmpStatDropdownOpen, setIsSelectedUserEmpStatDropdownOpen] = useState(false);
@@ -176,6 +178,8 @@ export default function Profile() {
           middleName: selectedUserMiddleName,
           suffix: selectedUserSuffix,
           position: selectedUserPosition,
+          salary: selectedUserSalary,
+          salaryGrade: selectedUserSalaryGrade,
           isRegional: selectedUserIsRegional,
           emp_stat: selectedUserEmpStat
         })
@@ -193,6 +197,8 @@ export default function Profile() {
         Middle_Name: selectedUserMiddleName,
         Suffix: selectedUserSuffix,
         Position: selectedUserPosition,
+        Salary: selectedUserSalary,
+        Salary_Grade: selectedUserSalaryGrade,
         is_regional: selectedUserIsRegional ? 1 : 0,
         emp_stat: selectedUserEmpStat
       } : u));
@@ -217,6 +223,8 @@ export default function Profile() {
       setSelectedUserMiddleName('');
       setSelectedUserSuffix('');
       setSelectedUserPosition('');
+      setSelectedUserSalary('');
+      setSelectedUserSalaryGrade('');
       setSelectedUserIsRegional(false);
     } catch (err) {
       console.error(err);
@@ -723,6 +731,8 @@ export default function Profile() {
                                           setSelectedUserMiddleName(u.Middle_Name || '');
                                           setSelectedUserSuffix(u.Suffix || '');
                                           setSelectedUserPosition(u.Position || '');
+                                          setSelectedUserSalary(u.Salary || '');
+                                          setSelectedUserSalaryGrade(u.Salary_Grade || '');
                                           setSelectedUserIsRegional(u.is_regional === 1);
                                           setSelectedUserEmpStat(u.emp_stat || '');
                                           setIsUserDropdownOpen(false);
@@ -763,6 +773,16 @@ export default function Profile() {
                               <div>
                                 <label className="text-xs text-slate-500 mb-1 block">Position</label>
                                 <input type="text" value={selectedUserPosition} onChange={e => setSelectedUserPosition(e.target.value)} placeholder="Position" className="w-full px-3 py-1.5 border border-slate-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 bg-white text-slate-900" />
+                              </div>
+                              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                <div>
+                                  <label className="text-xs text-slate-500 mb-1 block">Salary Grade</label>
+                                  <input type="number" value={selectedUserSalaryGrade} onChange={e => setSelectedUserSalaryGrade(e.target.value)} placeholder="Salary Grade" className="w-full px-3 py-1.5 border border-slate-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 bg-white text-slate-900" />
+                                </div>
+                                <div>
+                                  <label className="text-xs text-slate-500 mb-1 block">Salary</label>
+                                  <input type="number" step="0.01" value={selectedUserSalary} onChange={e => setSelectedUserSalary(e.target.value)} placeholder="Salary" className="w-full px-3 py-1.5 border border-slate-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 bg-white text-slate-900" />
+                                </div>
                               </div>
                               <div className="flex items-center gap-2 mt-1 mb-2">
                                 <input type="checkbox" id="updateIsRegional" checked={selectedUserIsRegional} onChange={e => {
@@ -873,6 +893,8 @@ export default function Profile() {
                                     setSelectedUserLastName('');
                                     setSelectedUserSuffix('');
                                     setSelectedUserPosition('');
+                                    setSelectedUserSalary('');
+                                    setSelectedUserSalaryGrade('');
                                     setSelectedUserIsRegional(false);
                                     setSelectedUserEmpStat('');
                                     setSelectedUserRole('');
