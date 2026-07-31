@@ -329,7 +329,7 @@ export default function OfficeActivities() {
 
     const isCreator = act.created_by === currentUserDisplayName || act.created_by === user?.primaryEmailAddress?.emailAddress || act.created_by === user?.fullName;
     const canEditOrDelete = act.status !== 'Completed' && isCreator;
-    const canUpdateStatus = isAdmin || isCreator;
+    const canUpdateStatus = (isAdmin || isCreator) && act.status !== 'Completed';
 
     return (
       <div key={act.id} className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden flex flex-col group hover:shadow-md transition-shadow">

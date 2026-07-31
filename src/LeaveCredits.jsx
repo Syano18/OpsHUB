@@ -115,18 +115,9 @@ export default function LeaveCredits() {
     chief: { name: '', position: 'Chief Statistical Specialist' }
   });
 
-  const [isApplicationsOpen, setIsApplicationsOpen] = useState(false);
-  const [isBalancesOpen, setIsBalancesOpen] = useState(false);
+  const [activeAdminTab, setActiveAdminTab] = useState('applications');
   const applicationsRef = useRef(null);
   const balancesRef = useRef(null);
-
-  const toggleApplications = () => {
-    setIsApplicationsOpen(!isApplicationsOpen);
-  };
-
-  const toggleBalances = () => {
-    setIsBalancesOpen(!isBalancesOpen);
-  };
 
   const leaveOptions = empStat === 'COSW'
     ? ['Wellness Leave']
@@ -503,9 +494,9 @@ export default function LeaveCredits() {
     e.preventDefault();
 
     if (!userPosition || !userSalary || !userSalaryGrade) {
-      setAlertConfig({ 
-        message: 'You cannot file a leave because your employee information is incomplete. Please ensure your Position, Salary, and Salary Grade are updated in your Profile.', 
-        type: 'error' 
+      setAlertConfig({
+        message: 'You cannot file a leave because your employee information is incomplete. Please ensure your Position, Salary, and Salary Grade are updated in your Profile.',
+        type: 'error'
       });
       return;
     }
@@ -672,35 +663,35 @@ export default function LeaveCredits() {
       let hrSig = { name: '', position: 'HR Designate' };
       let supSig = { name: '', position: 'Supervising Statistical Specialist' };
       let chiefSig = { name: '', position: 'Chief Statistical Specialist' };
-      
+
       let regionalHrSig = null;
       let regionalDirectorSig = null;
 
       (sigData.signatories || []).forEach(r => {
         const pos = r.Position || '';
         if (r.is_regional === 1) {
-           if (pos.toLowerCase().includes('director') || pos.toLowerCase().includes('rd')) {
-              regionalDirectorSig = { name: formatSigName(r), position: pos };
-           } else {
-              regionalHrSig = { name: formatSigName(r), position: pos };
-           }
+          if (pos.toLowerCase().includes('director') || pos.toLowerCase().includes('rd')) {
+            regionalDirectorSig = { name: formatSigName(r), position: pos };
+          } else {
+            regionalHrSig = { name: formatSigName(r), position: pos };
+          }
         } else {
-           if (pos.includes('HR Designate')) {
-             hrSig = { name: formatSigName(r), position: pos };
-           } else if (pos.includes('Supervising Statistical Specialist')) {
-             supSig = { name: formatSigName(r), position: pos };
-           } else if (pos.includes('Chief Statistical Specialist')) {
-             chiefSig = { name: formatSigName(r), position: pos };
-           }
+          if (pos.includes('HR Designate')) {
+            hrSig = { name: formatSigName(r), position: pos };
+          } else if (pos.includes('Supervising Statistical Specialist')) {
+            supSig = { name: formatSigName(r), position: pos };
+          } else if (pos.includes('Chief Statistical Specialist')) {
+            chiefSig = { name: formatSigName(r), position: pos };
+          }
         }
       });
-      
+
       const isCurrentCSS = (creditsData.user?.Position || '').includes('Chief Statistical Specialist');
-      
+
       if (isCurrentCSS) {
-         if (regionalHrSig) hrSig = regionalHrSig;
-         supSig = { name: ' ', position: ' ' };
-         if (regionalDirectorSig) chiefSig = regionalDirectorSig;
+        if (regionalHrSig) hrSig = regionalHrSig;
+        supSig = { name: ' ', position: ' ' };
+        if (regionalDirectorSig) chiefSig = regionalDirectorSig;
       }
 
       setSignatories({ hr: hrSig, supervisor: supSig, chief: chiefSig });
@@ -987,171 +978,157 @@ export default function LeaveCredits() {
         {/* Admin Management Table */}
         {isAdmin && (
           <div className="mt-8">
-            {/* Leave Applications Management */}
-            <div ref={applicationsRef} className="scroll-mt-8">
-              <div 
-                className="flex items-center justify-between cursor-pointer mb-4 group"
-                onClick={toggleApplications}
+            <div className="flex gap-4 mb-6">
+              <button
+                onClick={() => setActiveAdminTab('applications')}
+                className={`px-4 py-2 rounded-lg font-medium transition-colors ${activeAdminTab === 'applications' ? 'bg-indigo-600 text-white shadow-sm' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}
               >
-              <div>
-                <h2 className="text-2xl font-bold text-slate-800 tracking-tight">Leave Applications Management</h2>
-                <p className="text-xs text-slate-500 mt-0.5 group-hover:text-slate-700 transition-colors">Click to {isApplicationsOpen ? 'collapse' : 'expand'} content</p>
-              </div>
-              <button className="p-1 rounded-full hover:bg-slate-200 transition-colors">
-                <svg className={`w-6 h-6 text-slate-500 transition-transform duration-200 ${isApplicationsOpen ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
-                </svg>
+                Leave Applications Management
               </button>
-            </div>
-            {isApplicationsOpen && (
-              <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-x-auto">
-              <table className="w-full text-left border-collapse min-w-[1000px]">
-                <thead>
-                  <tr className="bg-slate-50 border-b border-slate-200 text-sm uppercase tracking-wider text-slate-500">
-                    <th className="px-6 py-4 font-semibold sticky left-0 bg-slate-50 z-10 shadow-[1px_0_0_0_#e2e8f0]">Employee</th>
-                    <th className="px-6 py-4 font-semibold">Leave Type</th>
-                    <th className="px-6 py-4 font-semibold">Dates</th>
-                    <th className="px-6 py-4 font-semibold">Days</th>
-                    <th className="px-6 py-4 font-semibold">Processing</th>
-                    <th className="px-6 py-4 font-semibold">Status</th>
-                    <th className="px-6 py-4 font-semibold text-right">Actions</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100">
-                  {allFiledLeaves.map((leave, idx) => (
-                    <tr key={idx} className="hover:bg-slate-50 transition-colors group">
-                      <td className="px-6 py-4 sticky left-0 bg-white group-hover:bg-slate-50 z-10 shadow-[1px_0_0_0_#e2e8f0]">
-                        <div className="font-semibold text-slate-800">{leave.First_Name} {leave.Last_Name}</div>
-                        <div className="text-sm text-slate-500">{leave.user_email}</div>
-                      </td>
-                      <td className="px-6 py-4 text-slate-700">
-                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                          {leave.leave_type}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 text-slate-700 text-sm whitespace-pre-wrap">{leave.start_date}</td>
-                      <td className="px-6 py-4 text-slate-700 font-medium">{leave.days_applied}</td>
-                      <td className="px-6 py-4">
-                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${leave.has_document === 1 ? 'bg-purple-100 text-purple-800' : 'bg-orange-100 text-orange-800'}`}>
-                          {leave.has_document === 1 ? 'Digital' : 'Manual'}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4">
-                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${leave.status === 'Approved' ? 'bg-emerald-100 text-emerald-800' :
-                            leave.status === 'Disapproved' ? 'bg-red-100 text-red-800' :
-                              leave.status === 'Transmitted' ? 'bg-amber-100 text-amber-800' :
-                                'bg-slate-100 text-slate-800'
-                          }`}>
-                          {leave.status || 'Pending'}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 text-right">
-                        <button
-                          onClick={() => setSelectedApplication(leave)}
-                          className="p-2 rounded-lg text-indigo-600 hover:bg-indigo-50 transition-colors inline-flex"
-                          title="View Application Details"
-                        >
-                          <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                          </svg>
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-                  {isAllFiledLeavesLoading && [...Array(3)].map((_, i) => (
-                    <tr key={`loading-${i}`} className="animate-pulse bg-white border-b border-slate-100">
-                      <td className="px-6 py-4 sticky left-0 bg-white z-10 shadow-[1px_0_0_0_#e2e8f0]">
-                        <div className="h-5 bg-slate-200 rounded w-32 mb-2"></div>
-                        <div className="h-4 bg-slate-200 rounded w-48"></div>
-                      </td>
-                      <td className="px-6 py-4"><div className="h-6 bg-slate-200 rounded-full w-20"></div></td>
-                      <td className="px-6 py-4"><div className="h-4 bg-slate-200 rounded w-24"></div></td>
-                      <td className="px-6 py-4"><div className="h-4 bg-slate-200 rounded w-8"></div></td>
-                      <td className="px-6 py-4"><div className="h-6 bg-slate-200 rounded-full w-16"></div></td>
-                      <td className="px-6 py-4"><div className="h-8 bg-slate-200 rounded-lg w-20"></div></td>
-                      <td className="px-6 py-4"><div className="h-5 bg-slate-200 rounded-full w-24"></div></td>
-                      <td className="px-6 py-4 text-right">
-                        <div className="h-8 bg-slate-200 rounded w-8 inline-block"></div>
-                      </td>
-                    </tr>
-                  ))}
-                  {!isAllFiledLeavesLoading && allFiledLeaves.length === 0 && (
-                    <tr>
-                      <td colSpan="8" className="px-6 py-8 text-center text-slate-500">No leave applications found.</td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
-            )}
-            </div>
-            
-            {/* Leave Balances Management */}
-            <div ref={balancesRef} className="scroll-mt-8">
-              <div 
-                className="flex items-center justify-between cursor-pointer mt-12 mb-4 group"
-                onClick={toggleBalances}
+              <button
+                onClick={() => setActiveAdminTab('balances')}
+                className={`px-4 py-2 rounded-lg font-medium transition-colors ${activeAdminTab === 'balances' ? 'bg-indigo-600 text-white shadow-sm' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}
               >
-              <div>
-                <h2 className="text-2xl font-bold text-slate-800 tracking-tight">Leave Balances Management</h2>
-                <p className="text-xs text-slate-500 mt-0.5 group-hover:text-slate-700 transition-colors">Click to {isBalancesOpen ? 'collapse' : 'expand'} content</p>
-              </div>
-              <button className="p-1 rounded-full hover:bg-slate-200 transition-colors">
-                <svg className={`w-6 h-6 text-slate-500 transition-transform duration-200 ${isBalancesOpen ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
-                </svg>
+                Leave Balances Management
               </button>
             </div>
 
-            {isBalancesOpen && (
-              <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-x-auto">
-              <table className="w-full text-left border-collapse min-w-[800px]">
-                <thead>
-                  <tr className="bg-slate-50 border-b border-slate-200 text-sm uppercase tracking-wider text-slate-500">
-                    <th className="px-6 py-4 font-semibold sticky left-0 bg-slate-50 z-10 shadow-[1px_0_0_0_#e2e8f0]">Employee</th>
-                    <th className="px-6 py-4 font-semibold">VL</th>
-                    <th className="px-6 py-4 font-semibold">SL</th>
-                    <th className="px-6 py-4 font-semibold">FL</th>
-                    <th className="px-6 py-4 font-semibold">WL</th>
-                    <th className="px-6 py-4 font-semibold">USE</th>
-                    <th className="px-6 py-4 font-semibold">SPL</th>
-                    <th className="px-6 py-4 font-semibold text-right">Actions</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100">
-                  {allUsers.map((u, idx) => (
-                    <tr key={idx} className="hover:bg-slate-50 transition-colors group">
-                      <td className="px-6 py-4 sticky left-0 bg-white group-hover:bg-slate-50 z-10 shadow-[1px_0_0_0_#e2e8f0]">
-                        <div className="font-semibold text-slate-800">{u.Name}</div>
-                        <div className="text-sm text-slate-500">{u.Email}</div>
-                      </td>
-                      <td className="px-6 py-4 text-slate-700">{u.emp_stat === 'COSW' ? '-' : u.credits.vl_balance.toFixed(2)}</td>
-                      <td className="px-6 py-4 text-slate-700">{u.emp_stat === 'COSW' ? '-' : u.credits.sl_balance.toFixed(2)}</td>
-                      <td className="px-6 py-4 text-slate-700">{u.emp_stat === 'COSW' ? '-' : u.credits.fl_balance.toFixed(2)}</td>
-                      <td className="px-6 py-4 text-slate-700">{u.credits.wl_balance.toFixed(2)}</td>
-                      <td className="px-6 py-4 text-slate-700">{u.emp_stat === 'COSW' ? '-' : u.credits.use_balance.toFixed(2)}</td>
-                      <td className="px-6 py-4 text-slate-700">{u.emp_stat === 'COSW' ? '-' : u.credits.spl_balance.toFixed(2)}</td>
-                      <td className="px-6 py-4 text-right">
-                        <button
-                          onClick={() => setEditingUser(u)}
-                          className="text-sm text-indigo-600 font-medium hover:text-indigo-800 px-3 py-1.5 rounded-lg hover:bg-indigo-50 transition-colors"
-                        >
-                          Edit Balances
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-                  {allUsers.length === 0 && (
-                    <tr>
-                      <td colSpan="8" className="px-6 py-8 text-center text-slate-500">No employees found.</td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
+            {/* Leave Applications Management */}
+            {activeAdminTab === 'applications' && (
+              <div ref={applicationsRef} className="scroll-mt-8">
+                <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-x-auto">
+                  <table className="w-full text-left border-collapse min-w-[1000px]">
+                    <thead>
+                      <tr className="bg-slate-50 border-b border-slate-200 text-sm uppercase tracking-wider text-slate-500">
+                        <th className="px-6 py-4 font-semibold sticky left-0 bg-slate-50 z-10 shadow-[1px_0_0_0_#e2e8f0]">Employee</th>
+                        <th className="px-6 py-4 font-semibold">Leave Type</th>
+                        <th className="px-6 py-4 font-semibold">Dates</th>
+                        <th className="px-6 py-4 font-semibold">Days</th>
+                        <th className="px-6 py-4 font-semibold">Processing</th>
+                        <th className="px-6 py-4 font-semibold">Status</th>
+                        <th className="px-6 py-4 font-semibold text-right">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100">
+                      {allFiledLeaves.map((leave, idx) => (
+                        <tr key={idx} className="hover:bg-slate-50 transition-colors group">
+                          <td className="px-6 py-4 sticky left-0 bg-white group-hover:bg-slate-50 z-10 shadow-[1px_0_0_0_#e2e8f0]">
+                            <div className="font-semibold text-slate-800">{leave.First_Name} {leave.Last_Name}</div>
+                            <div className="text-sm text-slate-500">{leave.user_email}</div>
+                          </td>
+                          <td className="px-6 py-4 text-slate-700">
+                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                              {leave.leave_type}
+                            </span>
+                          </td>
+                          <td className="px-6 py-4 text-slate-700 text-sm whitespace-pre-wrap">{leave.start_date}</td>
+                          <td className="px-6 py-4 text-slate-700 font-medium">{leave.days_applied}</td>
+                          <td className="px-6 py-4">
+                            <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${leave.has_document === 1 ? 'bg-purple-100 text-purple-800' : 'bg-orange-100 text-orange-800'}`}>
+                              {leave.has_document === 1 ? 'Digital' : 'Manual'}
+                            </span>
+                          </td>
+                          <td className="px-6 py-4">
+                            <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${leave.status === 'Approved' ? 'bg-emerald-100 text-emerald-800' :
+                              leave.status === 'Disapproved' ? 'bg-red-100 text-red-800' :
+                                leave.status === 'Transmitted' ? 'bg-amber-100 text-amber-800' :
+                                  'bg-slate-100 text-slate-800'
+                              }`}>
+                              {leave.status || 'Pending'}
+                            </span>
+                          </td>
+                          <td className="px-6 py-4 text-right">
+                            <button
+                              onClick={() => setSelectedApplication(leave)}
+                              className="p-2 rounded-lg text-indigo-600 hover:bg-indigo-50 transition-colors inline-flex"
+                              title="View Application Details"
+                            >
+                              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                              </svg>
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                      {isAllFiledLeavesLoading && [...Array(3)].map((_, i) => (
+                        <tr key={`loading-${i}`} className="animate-pulse bg-white border-b border-slate-100">
+                          <td className="px-6 py-4 sticky left-0 bg-white z-10 shadow-[1px_0_0_0_#e2e8f0]">
+                            <div className="h-5 bg-slate-200 rounded w-32 mb-2"></div>
+                            <div className="h-4 bg-slate-200 rounded w-48"></div>
+                          </td>
+                          <td className="px-6 py-4"><div className="h-6 bg-slate-200 rounded-full w-20"></div></td>
+                          <td className="px-6 py-4"><div className="h-4 bg-slate-200 rounded w-24"></div></td>
+                          <td className="px-6 py-4"><div className="h-4 bg-slate-200 rounded w-8"></div></td>
+                          <td className="px-6 py-4"><div className="h-6 bg-slate-200 rounded-full w-16"></div></td>
+                          <td className="px-6 py-4"><div className="h-8 bg-slate-200 rounded-lg w-20"></div></td>
+                          <td className="px-6 py-4"><div className="h-5 bg-slate-200 rounded-full w-24"></div></td>
+                          <td className="px-6 py-4 text-right">
+                            <div className="h-8 bg-slate-200 rounded w-8 inline-block"></div>
+                          </td>
+                        </tr>
+                      ))}
+                      {!isAllFiledLeavesLoading && allFiledLeaves.length === 0 && (
+                        <tr>
+                          <td colSpan="8" className="px-6 py-8 text-center text-slate-500">No leave applications found.</td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
             )}
-            </div>
+
+            {/* Leave Balances Management */}
+            {activeAdminTab === 'balances' && (
+              <div ref={balancesRef} className="scroll-mt-8">
+                <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-x-auto">
+                  <table className="w-full text-left border-collapse min-w-[800px]">
+                    <thead>
+                      <tr className="bg-slate-50 border-b border-slate-200 text-sm uppercase tracking-wider text-slate-500">
+                        <th className="px-6 py-4 font-semibold sticky left-0 bg-slate-50 z-10 shadow-[1px_0_0_0_#e2e8f0]">Employee</th>
+                        <th className="px-6 py-4 font-semibold">VL</th>
+                        <th className="px-6 py-4 font-semibold">SL</th>
+                        <th className="px-6 py-4 font-semibold">FL</th>
+                        <th className="px-6 py-4 font-semibold">WL</th>
+                        <th className="px-6 py-4 font-semibold">USE</th>
+                        <th className="px-6 py-4 font-semibold">SPL</th>
+                        <th className="px-6 py-4 font-semibold text-right">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100">
+                      {allUsers.map((u, idx) => (
+                        <tr key={idx} className="hover:bg-slate-50 transition-colors group">
+                          <td className="px-6 py-4 sticky left-0 bg-white group-hover:bg-slate-50 z-10 shadow-[1px_0_0_0_#e2e8f0]">
+                            <div className="font-semibold text-slate-800">{u.Name}</div>
+                            <div className="text-sm text-slate-500">{u.Email}</div>
+                          </td>
+                          <td className="px-6 py-4 text-slate-700">{u.emp_stat === 'COSW' ? '-' : u.credits.vl_balance.toFixed(2)}</td>
+                          <td className="px-6 py-4 text-slate-700">{u.emp_stat === 'COSW' ? '-' : u.credits.sl_balance.toFixed(2)}</td>
+                          <td className="px-6 py-4 text-slate-700">{u.emp_stat === 'COSW' ? '-' : u.credits.fl_balance.toFixed(2)}</td>
+                          <td className="px-6 py-4 text-slate-700">{u.credits.wl_balance.toFixed(2)}</td>
+                          <td className="px-6 py-4 text-slate-700">{u.emp_stat === 'COSW' ? '-' : u.credits.use_balance.toFixed(2)}</td>
+                          <td className="px-6 py-4 text-slate-700">{u.emp_stat === 'COSW' ? '-' : u.credits.spl_balance.toFixed(2)}</td>
+                          <td className="px-6 py-4 text-right">
+                            <button
+                              onClick={() => setEditingUser(u)}
+                              className="text-sm text-indigo-600 font-medium hover:text-indigo-800 px-3 py-1.5 rounded-lg hover:bg-indigo-50 transition-colors"
+                            >
+                              Edit Balances
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                      {allUsers.length === 0 && (
+                        <tr>
+                          <td colSpan="8" className="px-6 py-8 text-center text-slate-500">No employees found.</td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
           </div>
         )}
       </div>

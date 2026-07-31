@@ -380,11 +380,11 @@ const { user } = useUser();
         </div>
 
         {(entry.REMARKS || entry.ENCODED_BY) && (
-          <div className="mt-2 pt-3 border-t border-slate-200 flex justify-between items-end gap-4 text-xs">
-            <div className="text-slate-600 flex-1">
+          <div className="mt-2 pt-3 border-t border-slate-200 flex flex-col sm:flex-row justify-between items-start sm:items-end gap-2 sm:gap-4 text-xs">
+            <div className="text-slate-600 flex-1 break-words w-full">
               {entry.REMARKS && <><span className="font-medium text-slate-500">Remarks:</span> {entry.REMARKS}</>}
             </div>
-            <div className="text-slate-400 text-right shrink-0">
+            <div className="text-slate-400 sm:text-right shrink-0 mt-1 sm:mt-0">
               Encoded by: <span className="font-medium">{entry.ENCODED_BY}</span>
             </div>
           </div>
