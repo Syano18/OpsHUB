@@ -362,19 +362,24 @@ export default function OfficeActivities() {
             <p className="text-sm text-slate-600 mb-6 line-clamp-3 leading-relaxed">{act.description}</p>
           )}
 
-          <div className="mt-auto pt-4 border-t border-slate-100 flex items-center justify-between">
-            <div className="flex flex-col">
+          <div className="mt-auto pt-4 border-t border-slate-100 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+            <div className="flex flex-col min-w-0 group/assigned relative cursor-pointer sm:cursor-auto" tabIndex="0" onClick={() => {}}>
               <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1">Assigned To</span>
               <span 
-                className="text-xs font-semibold text-slate-700 bg-slate-100 px-2.5 py-1 rounded-md inline-block max-w-[200px] truncate cursor-help"
+                className="text-xs font-semibold text-slate-700 bg-slate-100 px-2.5 py-1 rounded-md inline-block max-w-full sm:max-w-[200px] truncate sm:cursor-help"
                 title={isAll ? "Everyone" : assignedArray.join(', ')}
               >
                 {isAll ? "Everyone" : assignedArray.join(', ')}
               </span>
+              {/* Mobile Tooltip on tap */}
+              <div className="absolute left-0 bottom-full mb-2 hidden group-focus/assigned:block sm:!hidden w-[85vw] max-w-[250px] p-3 bg-slate-800 text-white text-xs rounded-xl shadow-xl z-20 whitespace-normal break-words pointer-events-none">
+                <span className="font-bold text-slate-400 block mb-1 uppercase tracking-wider text-[10px]">Assigned To:</span>
+                {isAll ? "Everyone" : assignedArray.join(', ')}
+              </div>
             </div>
-            <div className="flex flex-col items-end">
+            <div className="flex flex-col items-start sm:items-end shrink-0 max-w-full sm:max-w-[200px]">
               <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1">Created By</span>
-              <span className="text-xs font-medium text-slate-500">{act.created_by}</span>
+              <span className="text-xs font-medium text-slate-500 truncate w-full sm:text-right">{act.created_by}</span>
             </div>
           </div>
         </div>
