@@ -81,6 +81,15 @@ export default async function handler(req, res) {
       const { id, email } = req.query;
       if (!id || !email) return res.status(400).json({ error: 'Missing id or email' });
       
+      const checkRes = await turso.execute({
+        sql: "SELECT event_type FROM Personal_Calendar WHERE id = ? AND LOWER(user_email) = LOWER(?)",
+        args: [id, email]
+      });
+      if (checkRes.rows.length === 0) return res.status(404).json({ error: 'Not found' });
+      if (checkRes.rows[0].event_type === 'Office Activity' || checkRes.rows[0].event_type === 'Leave') {
+        return res.status(403).json({ error: 'Cannot delete Office Activities or Leaves directly from the personal calendar.' });
+      }
+
       await turso.execute({
         sql: "DELETE FROM Personal_Calendar WHERE id = ? AND LOWER(user_email) = LOWER(?)",
         args: [id, email]
