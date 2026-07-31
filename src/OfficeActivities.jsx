@@ -540,7 +540,7 @@ export default function OfficeActivities() {
       {/* Add Activity Modal */}
       {isAddModalOpen && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden flex flex-col max-h-[90vh]">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden flex flex-col max-h-[100dvh] sm:max-h-[90vh]">
             <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/50 shrink-0">
               <h3 className="text-lg font-bold text-slate-800">Assign New Activity</h3>
               <button onClick={handleCloseModal} className="text-slate-400 hover:text-slate-600 p-1">
