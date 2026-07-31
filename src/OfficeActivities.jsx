@@ -366,7 +366,7 @@ export default function OfficeActivities() {
             <div className="flex flex-col min-w-0 group/assigned relative cursor-pointer sm:cursor-auto" tabIndex="0" onClick={() => {}}>
               <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1">Assigned To</span>
               <span 
-                className="text-xs font-semibold text-slate-700 bg-slate-100 px-2.5 py-1 rounded-md inline-block max-w-full sm:max-w-[200px] truncate sm:cursor-help"
+                className="text-xs font-semibold text-slate-700 bg-slate-100 px-2.5 py-1 rounded-md inline-block max-w-[200px] truncate sm:cursor-help"
                 title={isAll ? "Everyone" : assignedArray.join(', ')}
               >
                 {isAll ? "Everyone" : assignedArray.join(', ')}
