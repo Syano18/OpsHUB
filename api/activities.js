@@ -1,6 +1,20 @@
 import { createClient } from '@libsql/client';
 import { verifyToken } from '@clerk/backend';
 import nodemailer from 'nodemailer';
+import { S3Client, PutObjectCommand, DeleteObjectCommand } from '@aws-sdk/client-s3';
+
+let s3Client;
+const BUCKET_NAME = process.env.VITE_R2_BUCKET_NAME?.trim();
+if (BUCKET_NAME) {
+  s3Client = new S3Client({
+    region: 'auto',
+    endpoint: process.env.VITE_R2_ENDPOINT_URL?.trim(),
+    credentials: {
+      accessKeyId: process.env.VITE_R2_ACCESS_KEY_ID?.trim(),
+      secretAccessKey: process.env.VITE_R2_SECRET_ACCESS_KEY?.trim(),
+    }
+  });
+}
 
 export default async function handler(req, res) {
   try {
@@ -68,6 +82,35 @@ export default async function handler(req, res) {
         args: [formData.title, formData.description, formData.start_date, formData.end_date, assignedJson, email, formData.status]
       });
 
+      // Attachment Logic
+      let tempR2Key = null;
+      let emailAttachments = [];
+      
+      if (formData.attachment && s3Client) {
+        try {
+          const matches = formData.attachment.base64.match(/^data:([A-Za-z-+\/]+);base64,(.+)$/);
+          if (matches && matches.length === 3) {
+            const mimeType = matches[1];
+            const buffer = Buffer.from(matches[2], 'base64');
+            tempR2Key = `temp-activity-attachment-${Date.now()}-${formData.attachment.name.replace(/[^a-zA-Z0-9.-]/g, '_')}`;
+            
+            await s3Client.send(new PutObjectCommand({
+              Bucket: BUCKET_NAME,
+              Key: tempR2Key,
+              Body: buffer,
+              ContentType: mimeType
+            }));
+
+            emailAttachments.push({
+              filename: formData.attachment.name,
+              content: buffer
+            });
+          }
+        } catch (err) {
+          console.error("Error processing attachment to R2:", err);
+        }
+      }
+
       // We do NOT block on sending emails, but Vercel requires waiting for promises before returning if not using edge/background functions.
       // We will do it synchronously but fast.
       const assignedNames = formData.assigned_to;
@@ -124,7 +167,8 @@ export default async function handler(req, res) {
                 <p style="font-size: 12px; color: #64748b; margin-bottom: 4px;"><strong>Please do not reply to this email.</strong></p>
                 <p style="font-size: 12px; color: #64748b;">This is an automated notification from OpsHUB.</p>
               </div>
-            `
+            `,
+            attachments: emailAttachments
           }).catch(e => {
             console.error("Failed to email", targetEmail, e);
             failedCount++;
@@ -132,6 +176,18 @@ export default async function handler(req, res) {
         });
         
         await Promise.all(mailPromises);
+      }
+
+      // Cleanup R2 after emails attempt
+      if (tempR2Key && s3Client) {
+        try {
+          await s3Client.send(new DeleteObjectCommand({
+            Bucket: BUCKET_NAME,
+            Key: tempR2Key
+          }));
+        } catch (err) {
+          console.error("Failed to clean up attachment from R2:", err);
+        }
       }
 
       // Fetch fresh activities

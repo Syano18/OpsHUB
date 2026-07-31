@@ -39,10 +39,9 @@ export default async function handler(req, res) {
       }
 
       // Default GET: Fetch everything
-      const [logbookResult, sectionsResult, addresseesResult, transmittalResult] = await Promise.all([
+      const [logbookResult, sectionsResult, transmittalResult] = await Promise.all([
         turso.execute("SELECT * FROM Digital_Logbook ORDER BY CAST(SUBSTR(REFERENCE_NUMBER, INSTR(REFERENCE_NUMBER, '-') + 1) AS INTEGER) DESC, REFERENCE_NUMBER DESC"),
         turso.execute("SELECT * FROM Sections ORDER BY name ASC"),
-        turso.execute("SELECT * FROM Addressees ORDER BY name ASC"),
         turso.execute("SELECT * FROM TransmittalModes ORDER BY name ASC")
       ]);
 
@@ -68,7 +67,6 @@ export default async function handler(req, res) {
       return res.status(200).json({ 
         entries: logbookResult.rows,
         sectionsList: sectionsResult.rows,
-        addresseesList: addresseesResult.rows,
         transmittalModesList: transmittalResult.rows,
         transmitterName,
         userRole
@@ -133,9 +131,6 @@ export default async function handler(req, res) {
       if (section && section.trim() !== '') {
         await turso.execute({ sql: `INSERT OR IGNORE INTO Sections (name) VALUES (?)`, args: [section.trim()] });
       }
-      if (addresse && addresse.trim() !== '') {
-        await turso.execute({ sql: `INSERT OR IGNORE INTO Addressees (name) VALUES (?)`, args: [addresse.trim()] });
-      }
       if (modeOfTransmittal && modeOfTransmittal.trim() !== '') {
         await turso.execute({ sql: `INSERT OR IGNORE INTO TransmittalModes (name) VALUES (?)`, args: [modeOfTransmittal.trim()] });
       }
@@ -171,9 +166,6 @@ export default async function handler(req, res) {
       // Add to dropdown tables if they exist
       if (section && section.trim() !== '') {
         await turso.execute({ sql: `INSERT OR IGNORE INTO Sections (name) VALUES (?)`, args: [section.trim()] });
-      }
-      if (addresse && addresse.trim() !== '') {
-        await turso.execute({ sql: `INSERT OR IGNORE INTO Addressees (name) VALUES (?)`, args: [addresse.trim()] });
       }
       if (modeOfTransmittal && modeOfTransmittal.trim() !== '') {
         await turso.execute({ sql: `INSERT OR IGNORE INTO TransmittalModes (name) VALUES (?)`, args: [modeOfTransmittal.trim()] });

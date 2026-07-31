@@ -19,9 +19,11 @@ export default function OfficeActivities() {
 
   // Modal and Form States
   const [searchTerm, setSearchTerm] = useState('');
+  const [assigneeSearchTerm, setAssigneeSearchTerm] = useState('');
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [modalStep, setModalStep] = useState(1);
   const [activityToDelete, setActivityToDelete] = useState(null);
+  const [showNoAttachmentWarning, setShowNoAttachmentWarning] = useState(false);
   const [editingActivityId, setEditingActivityId] = useState(null);
   const [isSaving, setIsSaving] = useState(false);
   const [emailProgress, setEmailProgress] = useState({ current: 0, total: 0 });
@@ -31,8 +33,10 @@ export default function OfficeActivities() {
     start_date: '',
     end_date: '',
     assigned_to: ['All'],
-    status: 'Pending'
+    status: 'Pending',
+    attachment: null
   });
+  const [attachmentError, setAttachmentError] = useState('');
 
   useEffect(() => {
     const initAndFetch = async () => {
@@ -120,16 +124,25 @@ export default function OfficeActivities() {
 
   const handleProceedToReview = (e) => {
     e.preventDefault();
+    if (!formData.description || formData.description.trim() === '') {
+      setAlertConfig({ message: "Description is required.", type: 'info' });
+      return;
+    }
     if (formData.assigned_to.length === 0) {
       setAlertConfig({ message: "Please assign at least one person.", type: 'info' });
       return;
     }
-    setModalStep(2);
+    if (!formData.attachment && !editingActivityId) {
+      setShowNoAttachmentWarning(true);
+    } else {
+      setModalStep(2);
+    }
   };
 
   const handleCloseModal = () => {
     setIsAddModalOpen(false);
     setModalStep(1);
+    setAssigneeSearchTerm('');
     setEmailProgress({ current: 0, total: 0 });
     setEditingActivityId(null);
     setFormData({
@@ -138,8 +151,10 @@ export default function OfficeActivities() {
       start_date: '',
       end_date: '',
       assigned_to: ['All'],
-      status: 'Pending'
+      status: 'Pending',
+      attachment: null
     });
+    setAttachmentError('');
   };
 
   const handleUpdateStatus = async (id, newStatus) => {
@@ -192,8 +207,10 @@ export default function OfficeActivities() {
       start_date: act.start_date,
       end_date: act.end_date || '',
       assigned_to: assigned,
-      status: act.status
+      status: act.status,
+      attachment: null
     });
+    setAttachmentError('');
     setEditingActivityId(act.id);
     setModalStep(1);
     setIsAddModalOpen(true);
@@ -203,7 +220,11 @@ export default function OfficeActivities() {
     setFormData(prev => {
       let updated = [...prev.assigned_to];
       if (emp === 'All') {
-        updated = ['All'];
+        if (updated.includes('All')) {
+          updated = []; // Toggle off All
+        } else {
+          updated = ['All']; // Toggle on All
+        }
       } else {
         updated = updated.filter(a => a !== 'All'); // Remove 'All' if a specific person is selected
         if (updated.includes(emp)) {
@@ -211,10 +232,51 @@ export default function OfficeActivities() {
         } else {
           updated.push(emp);
         }
-        if (updated.length === 0) updated = ['All']; // fallback
       }
       return { ...prev, assigned_to: updated };
     });
+  };
+
+  const handleFileChange = (e) => {
+    setAttachmentError('');
+    const file = e.target.files[0];
+    if (!file) {
+      setFormData(prev => ({ ...prev, attachment: null }));
+      return;
+    }
+    
+    if (file.size > 5 * 1024 * 1024) {
+      setAttachmentError('File size exceeds 5MB limit.');
+      setFormData(prev => ({ ...prev, attachment: null }));
+      e.target.value = null;
+      return;
+    }
+
+    const allowedExts = ['.pdf', '.docx', '.xlsx', '.png', '.jpg', '.jpeg'];
+    const ext = file.name.substring(file.name.lastIndexOf('.')).toLowerCase();
+    if (!allowedExts.includes(ext)) {
+      setAttachmentError('Invalid file type. Allowed: PDF, DOCX, XLSX, PNG, JPG.');
+      setFormData(prev => ({ ...prev, attachment: null }));
+      e.target.value = null;
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      setFormData(prev => ({
+        ...prev,
+        attachment: {
+          name: file.name,
+          type: file.type,
+          base64: event.target.result
+        }
+      }));
+    };
+    reader.onerror = () => {
+      setAttachmentError('Failed to read file.');
+      setFormData(prev => ({ ...prev, attachment: null }));
+    };
+    reader.readAsDataURL(file);
   };
 
   const getStatusBadge = (status) => {
@@ -265,8 +327,9 @@ export default function OfficeActivities() {
     try { assignedArray = JSON.parse(act.assigned_to); } catch (e) { }
     const isAll = assignedArray.includes('All');
 
-    const canEditOrDelete = act.status !== 'Completed' && 
-      (act.created_by === currentUserDisplayName || act.created_by === user?.primaryEmailAddress?.emailAddress || act.created_by === user?.fullName);
+    const isCreator = act.created_by === currentUserDisplayName || act.created_by === user?.primaryEmailAddress?.emailAddress || act.created_by === user?.fullName;
+    const canEditOrDelete = act.status !== 'Completed' && isCreator;
+    const canUpdateStatus = isAdmin || isCreator;
 
     return (
       <div key={act.id} className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden flex flex-col group hover:shadow-md transition-shadow">
@@ -302,7 +365,10 @@ export default function OfficeActivities() {
           <div className="mt-auto pt-4 border-t border-slate-100 flex items-center justify-between">
             <div className="flex flex-col">
               <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1">Assigned To</span>
-              <span className="text-xs font-semibold text-slate-700 bg-slate-100 px-2.5 py-1 rounded-md inline-block max-w-[200px] truncate">
+              <span 
+                className="text-xs font-semibold text-slate-700 bg-slate-100 px-2.5 py-1 rounded-md inline-block max-w-[200px] truncate cursor-help"
+                title={isAll ? "Everyone" : assignedArray.join(', ')}
+              >
                 {isAll ? "Everyone" : assignedArray.join(', ')}
               </span>
             </div>
@@ -313,19 +379,35 @@ export default function OfficeActivities() {
           </div>
         </div>
 
-        {/* Status Actions for Admins */}
-        {isAdmin && (
+        {/* Status Actions */}
+        {canUpdateStatus && (
           <div className="bg-slate-50/80 px-6 py-3 border-t border-slate-100 flex items-center gap-2 justify-end">
             <span className="text-xs font-semibold text-slate-500 mr-2">Update Status:</span>
-            <select
-              value={act.status}
-              onChange={(e) => handleUpdateStatus(act.id, e.target.value)}
-              className="text-xs font-bold bg-white border border-slate-200 text-slate-700 py-1.5 pl-3 pr-8 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-teal-500 cursor-pointer appearance-none"
-            >
-              <option value="Pending">Pending</option>
-              <option value="In Progress">In Progress</option>
-              <option value="Completed">Completed</option>
-            </select>
+            <div className="relative group/status">
+              <div className="flex items-center gap-2 text-xs font-bold bg-white border border-slate-200 text-slate-700 py-1.5 pl-3 pr-2 rounded-lg shadow-sm cursor-pointer hover:border-slate-300 transition-colors">
+                <div className="flex items-center gap-1.5">
+                  <span className={`w-2 h-2 rounded-full ${act.status === 'Completed' ? 'bg-emerald-500' : act.status === 'In Progress' ? 'bg-blue-500' : 'bg-amber-500'}`}></span>
+                  {act.status}
+                </div>
+                <svg className="w-3.5 h-3.5 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" /></svg>
+              </div>
+              
+              <div className="absolute right-0 bottom-full mb-2 hidden group-hover/status:flex flex-col w-36 bg-white border border-slate-200 rounded-xl shadow-[0_10px_25px_-5px_rgba(0,0,0,0.1),0_8px_10px_-6px_rgba(0,0,0,0.1)] overflow-hidden z-30 pb-1">
+                <div className="px-3 py-2 text-[10px] font-bold uppercase tracking-wider text-slate-400 bg-slate-50/50 border-b border-slate-100 mb-1">Set Status</div>
+                {['Pending', 'In Progress', 'Completed'].map(st => (
+                  <button
+                    key={st}
+                    onClick={() => handleUpdateStatus(act.id, st)}
+                    className={`text-left w-full px-3 py-2 text-xs font-bold transition-all border-l-2 ${act.status === st ? 'bg-slate-50/80 text-slate-900 border-teal-500' : 'border-transparent text-slate-500 hover:bg-slate-50 hover:text-slate-800 hover:border-slate-300'}`}
+                  >
+                    <div className="flex items-center gap-2.5">
+                      <span className={`w-1.5 h-1.5 rounded-full shadow-sm ${st === 'Completed' ? 'bg-emerald-500' : st === 'In Progress' ? 'bg-blue-500' : 'bg-amber-500'}`}></span>
+                      {st}
+                    </div>
+                  </button>
+                ))}
+              </div>
+            </div>
           </div>
         )}
       </div>
@@ -481,35 +563,67 @@ export default function OfficeActivities() {
                   </div>
 
                   <div>
-                    <label className="block text-sm font-semibold text-slate-700 mb-2">Assign To <span className="text-red-500">*</span></label>
-                    <div className="bg-slate-50 border border-slate-200 rounded-xl p-3 max-h-48 overflow-y-auto flex flex-col gap-2 shadow-inner">
-                      <label className="flex items-center gap-3 p-2 hover:bg-white rounded-lg cursor-pointer transition-colors border border-transparent hover:border-slate-200 hover:shadow-sm">
-                        <input
-                          type="checkbox"
-                          checked={formData.assigned_to.includes('All')}
-                          onChange={() => toggleAssignee('All')}
-                          className="w-4 h-4 text-teal-600 border-slate-300 rounded focus:ring-teal-500"
-                        />
-                        <span className="text-sm font-bold text-slate-800">Assign to Everyone</span>
+                    <div className="flex items-center justify-between mb-2">
+                      <label className="block text-sm font-semibold text-slate-700">Assign To <span className="text-red-500">*</span></label>
+                      <label className="flex items-center gap-2 cursor-pointer group">
+                        <span className="text-xs font-bold text-slate-500 group-hover:text-teal-700 transition-colors">Assign to Everyone</span>
+                        <div className={`relative inline-flex h-5 w-9 shrink-0 items-center rounded-full transition-colors duration-200 ease-in-out focus:outline-none ${formData.assigned_to.includes('All') ? 'bg-teal-500' : 'bg-slate-200'}`}>
+                          <input type="checkbox" checked={formData.assigned_to.includes('All')} onChange={() => toggleAssignee('All')} className="sr-only" />
+                          <span className={`pointer-events-none inline-block h-3.5 w-3.5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out`} style={{ transform: formData.assigned_to.includes('All') ? 'translateX(18px)' : 'translateX(4px)' }} />
+                        </div>
                       </label>
-                      <div className="h-px bg-slate-200 my-1"></div>
-                      {employees.map(emp => (
-                        <label key={emp} className="flex items-center gap-3 p-2 hover:bg-white rounded-lg cursor-pointer transition-colors border border-transparent hover:border-slate-200 hover:shadow-sm">
-                          <input
-                            type="checkbox"
-                            checked={formData.assigned_to.includes(emp)}
-                            onChange={() => toggleAssignee(emp)}
-                            className="w-4 h-4 text-teal-600 border-slate-300 rounded focus:ring-teal-500"
-                          />
-                          <span className="text-sm font-medium text-slate-700">{emp}</span>
-                        </label>
-                      ))}
+                    </div>
+                    <div className="mb-2 relative">
+                      <svg className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
+                      <input
+                        type="text"
+                        placeholder="Search employees..."
+                        value={assigneeSearchTerm}
+                        onChange={(e) => setAssigneeSearchTerm(e.target.value)}
+                        className="w-full pl-9 pr-4 py-1.5 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 text-sm disabled:opacity-50"
+                        disabled={formData.assigned_to.includes('All')}
+                      />
+                    </div>
+                    <div className={`bg-slate-50/50 border border-slate-200 rounded-xl p-3 max-h-56 overflow-y-auto flex flex-col gap-1.5 shadow-inner transition-opacity ${formData.assigned_to.includes('All') ? 'opacity-50 pointer-events-none' : ''}`}>
+                      {employees.filter(emp => emp.toLowerCase().includes(assigneeSearchTerm.toLowerCase())).map(emp => {
+                        const isChecked = formData.assigned_to.includes(emp);
+                        return (
+                          <label key={emp} className={`flex items-center gap-3 p-2.5 rounded-lg cursor-pointer transition-all border ${isChecked ? 'bg-white border-teal-500 shadow-sm ring-1 ring-teal-500' : 'bg-transparent border-transparent hover:bg-white hover:border-slate-200 hover:shadow-sm'}`}>
+                            <div className={`flex shrink-0 items-center justify-center w-5 h-5 rounded border ${isChecked ? 'bg-teal-500 border-teal-500 text-white' : 'bg-white border-slate-300'}`}>
+                              {isChecked && <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="3"><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>}
+                            </div>
+                            <input
+                              type="checkbox"
+                              checked={isChecked}
+                              onChange={() => toggleAssignee(emp)}
+                              className="hidden"
+                            />
+                            <span className={`text-sm font-medium ${isChecked ? 'text-teal-900' : 'text-slate-700'}`}>{emp}</span>
+                          </label>
+                        );
+                      })}
+                      {employees.filter(emp => emp.toLowerCase().includes(assigneeSearchTerm.toLowerCase())).length === 0 && (
+                        <div className="text-sm text-slate-500 text-center py-4 italic bg-slate-100/50 rounded-lg border border-dashed border-slate-200">No employees found matching "{assigneeSearchTerm}".</div>
+                      )}
                     </div>
                   </div>
 
                   <div>
-                    <label className="block text-sm font-semibold text-slate-700 mb-1">Description</label>
-                    <textarea value={formData.description} onChange={e => setFormData({ ...formData, description: e.target.value })} rows="3" className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-teal-500 text-slate-800 font-medium resize-none" placeholder="Provide instructions or details..." />
+                    <label className="block text-sm font-semibold text-slate-700 mb-1">Description <span className="text-red-500">*</span></label>
+                    <textarea required value={formData.description} onChange={e => setFormData({ ...formData, description: e.target.value })} rows="3" className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-teal-500 text-slate-800 font-medium resize-none" placeholder="Provide instructions or details..." />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-semibold text-slate-700 mb-1">Attachment <span className="text-slate-400 font-normal">(Optional)</span></label>
+                    <div className="flex items-center">
+                      <input 
+                        type="file" 
+                        onChange={handleFileChange}
+                        className="w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-sm file:font-bold file:bg-teal-50 file:text-teal-700 hover:file:bg-teal-100 file:transition-colors file:cursor-pointer cursor-pointer border border-slate-200 rounded-xl bg-slate-50 p-1" 
+                        accept=".pdf,.docx,.xlsx,.png,.jpg,.jpeg"
+                      />
+                    </div>
+                    {attachmentError && <p className="text-red-500 text-xs mt-2 font-bold">{attachmentError}</p>}
                   </div>
 
                   <input type="hidden" value={formData.status} />
@@ -546,6 +660,15 @@ export default function OfficeActivities() {
                       <p className="text-slate-700 text-sm leading-relaxed whitespace-pre-wrap">{formData.description}</p>
                     </div>
                   )}
+                  {formData.attachment && (
+                    <div className="bg-slate-50 p-5 rounded-xl border border-slate-200 shadow-sm">
+                      <h4 className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-2">Attachment</h4>
+                      <div className="flex items-center gap-2">
+                        <svg className="w-5 h-5 text-teal-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" /></svg>
+                        <p className="text-slate-800 text-sm font-bold truncate">{formData.attachment.name}</p>
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
             </div>
@@ -570,6 +693,27 @@ export default function OfficeActivities() {
               )}
             </div>
 
+          </div>
+        </div>
+      )}
+
+      {/* No Attachment Warning Modal */}
+      {showNoAttachmentWarning && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-[60]">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden flex flex-col transform transition-all">
+            <div className="p-6 text-center">
+              <div className="w-16 h-16 bg-amber-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <svg className="w-8 h-8 text-amber-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                </svg>
+              </div>
+              <h3 className="text-xl font-bold text-slate-800 mb-2">No Attachment</h3>
+              <p className="text-slate-500 text-sm mb-1">You are proceeding without any supporting documents.</p>
+            </div>
+            <div className="px-6 py-4 bg-slate-50 border-t border-slate-100 flex gap-3 shrink-0">
+              <button onClick={() => setShowNoAttachmentWarning(false)} className="flex-1 py-2.5 font-medium text-slate-600 hover:bg-slate-200 bg-slate-100 rounded-xl transition-colors">Back to Edit</button>
+              <button onClick={() => { setShowNoAttachmentWarning(false); setModalStep(2); }} className="flex-1 py-2.5 font-medium text-white bg-amber-500 hover:bg-amber-600 rounded-xl shadow-sm transition-colors">Okay, Proceed</button>
+            </div>
           </div>
         </div>
       )}

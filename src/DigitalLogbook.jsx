@@ -9,7 +9,14 @@ const { user } = useUser();
   const { getToken } = useAuth();
   const [entries, setEntries] = useState([]);
   const [sectionsList, setSectionsList] = useState([]);
-  const [addresseesList, setAddresseesList] = useState([]);
+  const [recentAddressees, setRecentAddressees] = useState(() => {
+    try {
+      const stored = localStorage.getItem('recent_addressees');
+      return stored ? JSON.parse(stored) : [];
+    } catch (e) {
+      return [];
+    }
+  });
   const [transmittalModesList, setTransmittalModesList] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -61,7 +68,7 @@ const { user } = useUser();
       
       setEntries(data.entries || []);
       setSectionsList(data.sectionsList || []);
-      setAddresseesList(data.addresseesList || []);
+
       setTransmittalModesList(data.transmittalModesList || []);
       
       if (data.transmitterName) setTransmitterName(data.transmitterName);
@@ -202,6 +209,15 @@ const { user } = useUser();
       if (!res.ok) throw new Error("Failed to save logbook entry");
       const data = await res.json();
       const generatedRef = data.generatedRef;
+
+      if (payload.addresse && payload.addresse.trim() !== '') {
+        const newAddressee = payload.addresse.trim();
+        setRecentAddressees(prev => {
+          const updatedList = [newAddressee, ...prev.filter(a => a.toLowerCase() !== newAddressee.toLowerCase())].slice(0, 10);
+          localStorage.setItem('recent_addressees', JSON.stringify(updatedList));
+          return updatedList;
+        });
+      }
 
       // Clear form on success
       setFormData({
@@ -598,31 +614,36 @@ const { user } = useUser();
                         {isAddresseeDropdownOpen && (
                           <div className="absolute z-10 mt-1 w-full bg-white rounded-md shadow-lg border border-slate-200 overflow-hidden">
                             <ul className="max-h-60 overflow-auto py-1 text-base text-slate-700">
-                              {addresseesList.filter(add => add.name.toLowerCase().includes((formData.addresse || "").toLowerCase())).map((add) => (
+                              {recentAddressees.filter(add => add.toLowerCase().includes((formData.addresse || "").toLowerCase())).map((add, idx) => (
                                 <li
-                                  key={add.id}
-                                  onClick={() => { handleInputChange({ target: { name: 'addresse', value: add.name } }); setIsAddresseeDropdownOpen(false); }}
-                                  className="cursor-pointer select-none relative py-2 pl-3 pr-9 hover:bg-slate-50"
+                                  key={idx}
+                                  onClick={() => { handleInputChange({ target: { name: 'addresse', value: add } }); setIsAddresseeDropdownOpen(false); }}
+                                  className="cursor-pointer select-none relative py-2 pl-3 pr-9 hover:bg-slate-50 flex items-center justify-between"
                                 >
-                                  {add.name}
+                                  <div className="flex items-center gap-2 text-slate-700">
+                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4 text-slate-400">
+                                      <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
+                                    </svg>
+                                    <span>{add}</span>
+                                  </div>
                                 </li>
                               ))}
 
-                              {!addresseesList.some(add => add.name.toLowerCase() === (formData.addresse || "").trim().toLowerCase()) && (formData.addresse || "").trim() !== "" && (
+                              {(formData.addresse || "").trim() !== "" && !recentAddressees.some(add => add.toLowerCase() === (formData.addresse || "").trim().toLowerCase()) && (
                                 <li
                                   onMouseDown={(e) => { e.preventDefault(); setIsAddresseeDropdownOpen(false); }}
                                   className="cursor-pointer select-none relative py-2 pl-3 pr-9 hover:bg-slate-50 text-teal-600 font-semibold border-t border-slate-100 mt-1"
                                 >
-                                  + Create "{(formData.addresse || "").trim()}"
+                                  + Use "{(formData.addresse || "").trim()}"
                                 </li>
                               )}
 
-                              {(formData.addresse || "").trim() === "" && (
+                              {(formData.addresse || "").trim() === "" && recentAddressees.length === 0 && (
                                 <li
                                   onMouseDown={(e) => e.preventDefault()}
                                   className="select-none relative py-2 pl-3 pr-9 text-slate-500 italic text-sm border-t border-slate-100 mt-1 cursor-default"
                                 >
-                                  Type to add a new addressee...
+                                  No recent searches...
                                 </li>
                               )}
                             </ul>
