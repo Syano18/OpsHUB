@@ -43,6 +43,45 @@ const Loading = ({ type = "table", text = "Loading..." }) => {
     );
   }
 
+  if (type === "calendar") {
+    return (
+      <div className="w-full h-full min-h-[32rem] grid grid-cols-7 grid-rows-5 gap-px bg-slate-200 border border-slate-200 animate-pulse rounded-b-2xl overflow-hidden">
+        {Array.from({ length: 35 }).map((_, i) => (
+          <div key={i} className="bg-white p-2">
+            <div className="h-4 w-6 bg-slate-200 rounded-full mb-2"></div>
+            <div className="h-16 bg-slate-100/50 rounded"></div>
+          </div>
+        ))}
+      </div>
+    );
+  }
+
+  if (type === "profile") {
+    return (
+      <div className="w-full h-full max-w-5xl mx-auto flex flex-col md:flex-row gap-6 p-4 md:p-8 animate-pulse">
+        <div className="w-full md:w-80 flex flex-col gap-6 shrink-0">
+          <div className="bg-white p-6 rounded-2xl border border-slate-200 flex flex-col items-center gap-4">
+            <div className="w-32 h-32 bg-slate-200 rounded-full"></div>
+            <div className="h-6 w-3/4 bg-slate-200 rounded"></div>
+            <div className="h-4 w-1/2 bg-slate-200 rounded"></div>
+            <div className="h-8 w-full bg-slate-200 rounded-lg mt-4"></div>
+          </div>
+        </div>
+        <div className="flex-1 bg-white p-6 rounded-2xl border border-slate-200 flex flex-col gap-6">
+          <div className="h-8 w-1/4 bg-slate-200 rounded mb-4"></div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+            {Array.from({ length: 6 }).map((_, i) => (
+              <div key={i} className="flex flex-col gap-2">
+                <div className="h-4 w-1/3 bg-slate-200 rounded"></div>
+                <div className="h-10 w-full bg-slate-200 rounded-lg"></div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   // Fallback to spinner
   return (
     <div className="flex flex-col items-center justify-center w-full h-full min-h-[16rem] gap-4">

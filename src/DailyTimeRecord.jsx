@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useOutletContext } from 'react-router-dom';
 import { UserButton, useUser, useAuth } from '@clerk/clerk-react';
 import Alert from './Alert';
-
+import Loading from './components/Loading';
 export default function DailyTimeRecord() {
     const { setIsSidebarOpen } = useOutletContext();
 const { user } = useUser();
@@ -178,9 +178,7 @@ const { user } = useUser();
           )}
 
           {loading ? (
-            <div className="flex items-center justify-center h-64 text-slate-400">
-              Loading records...
-            </div>
+            <Loading type="table" />
           ) : (
             <>
               {/* Attendance Table */}

@@ -270,7 +270,7 @@ const { user } = useUser();
             {/* Calendar Cells */}
             <div className="flex-1 grid grid-cols-7 divide-x divide-y divide-slate-100 bg-slate-100/50 overflow-y-auto" style={{ gridAutoRows: 'minmax(120px, 1fr)' }}>
               {loading ? (
-                <div className="col-span-7 flex items-center justify-center"><Loading type="spinner" text="Loading calendar..." /></div>
+                <div className="col-span-7"><Loading type="calendar" /></div>
               ) : (
                 gridDays.map((dateObj, idx) => {
                   if (!dateObj) {

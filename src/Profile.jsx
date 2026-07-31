@@ -91,8 +91,8 @@ export default function Profile() {
 
   if (loading) {
     return (
-      <div className="h-full flex items-center justify-center bg-slate-50">
-        <Loading type="spinner" text="Loading profile data..." />
+      <div className="h-full bg-slate-50 overflow-hidden">
+        <Loading type="profile" />
       </div>
     );
   }
