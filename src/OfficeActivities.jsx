@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useOutletContext } from 'react-router-dom';
 import { UserButton, useUser, useAuth } from '@clerk/clerk-react';
 import Alert from './Alert';
-
+import Loading from './components/Loading';
 export default function OfficeActivities() {
   const { setIsSidebarOpen } = useOutletContext();
   const { user } = useUser();
@@ -480,7 +480,7 @@ export default function OfficeActivities() {
 
           {/* Activities Grid */}
           {loading ? (
-            <div className="h-64 flex items-center justify-center text-slate-400">Loading activities...</div>
+            <Loading type="grid" />
           ) : filteredActivities.length === 0 ? (
             <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-12 flex flex-col items-center text-center">
               <div className="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center mb-4">

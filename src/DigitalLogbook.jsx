@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { useOutletContext } from 'react-router-dom';
 import { UserButton, useUser, useAuth } from '@clerk/clerk-react';
 import Alert from './Alert';
-
+import Loading from './components/Loading';
 export default function DigitalLogbook() {
     const { setIsSidebarOpen } = useOutletContext();
 const { user } = useUser();
@@ -833,7 +833,7 @@ const { user } = useUser();
 
             <div className="flex-1 overflow-y-auto pr-2 space-y-4">
               {loading ? (
-                <div className="flex justify-center items-center h-32 text-slate-400">Loading records...</div>
+                <Loading text="Loading records..." />
               ) : entries.length > 0 ? (
                 renderedEntries
               ) : (

@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useOutletContext } from 'react-router-dom';
 import { UserButton, useUser, useAuth } from '@clerk/clerk-react';
 import Alert from './Alert';
-
+import Loading from './components/Loading';
 export default function PersonalCalendar() {
     const { setIsSidebarOpen } = useOutletContext();
 const { user } = useUser();
@@ -270,7 +270,7 @@ const { user } = useUser();
             {/* Calendar Cells */}
             <div className="flex-1 grid grid-cols-7 divide-x divide-y divide-slate-100 bg-slate-100/50 overflow-y-auto" style={{ gridAutoRows: 'minmax(120px, 1fr)' }}>
               {loading ? (
-                <div className="col-span-7 h-64 flex items-center justify-center text-slate-400">Loading calendar...</div>
+                <div className="col-span-7 flex items-center justify-center"><Loading type="spinner" text="Loading calendar..." /></div>
               ) : (
                 gridDays.map((dateObj, idx) => {
                   if (!dateObj) {

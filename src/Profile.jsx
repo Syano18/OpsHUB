@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useOutletContext } from 'react-router-dom';
 import { useAuth, useUser } from '@clerk/clerk-react';
 import Alert from './Alert';
+import Loading from './components/Loading';
 
 export default function Profile() {
   const { setIsSidebarOpen } = useOutletContext();
@@ -91,7 +92,7 @@ export default function Profile() {
   if (loading) {
     return (
       <div className="h-full flex items-center justify-center bg-slate-50">
-        <div className="text-slate-400">Loading profile data...</div>
+        <Loading type="spinner" text="Loading profile data..." />
       </div>
     );
   }
