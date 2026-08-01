@@ -688,7 +688,7 @@ export default function OfficeActivities() {
                 </>
               ) : (
                 <>
-                  <button type="button" onClick={() => setModalStep(1)} className="flex-1 py-2.5 font-medium text-slate-600 hover:bg-slate-200 bg-slate-100 rounded-xl transition-colors">Back to Edit</button>
+                  <button type="button" onClick={() => setModalStep(1)} disabled={isSaving} className="flex-1 py-2.5 font-medium text-slate-600 hover:bg-slate-200 bg-slate-100 rounded-xl transition-colors disabled:opacity-50 disabled:cursor-not-allowed">Back to Edit</button>
                   <button type="button" onClick={handleSaveActivity} disabled={isSaving} className="flex-1 py-2.5 font-medium text-white bg-teal-600 hover:bg-teal-700 rounded-xl shadow-sm transition-colors disabled:opacity-50">
                     {isSaving
                       ? (emailProgress.total > 0 ? `Sending emails (${emailProgress.current}/${emailProgress.total})...` : 'Assigning...')
