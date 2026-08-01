@@ -9,23 +9,23 @@ export default async function handler(req, res) {
     const { to, subject, text, html } = req.body;
 
     const transporter = nodemailer.createTransport({
-      host: process.env.VITE_SMTP_HOST,
-      port: parseInt(process.env.VITE_SMTP_PORT || '587'),
-      secure: process.env.VITE_SMTP_PORT === '465',
+      host: process.env.SMTP_HOST,
+      port: parseInt(process.env.SMTP_PORT || '587'),
+      secure: process.env.SMTP_PORT === '465',
       auth: {
-        user: process.env.VITE_SMTP_USER,
-        pass: process.env.VITE_SMTP_PASS,
+        user: process.env.SMTP_USER,
+        pass: process.env.SMTP_PASS,
       },
     });
 
-    if (!process.env.VITE_SMTP_USER) {
+    if (!process.env.SMTP_USER) {
       throw new Error("SMTP credentials not set");
     }
 
     const info = await transporter.sendMail({
       from: {
         name: 'OpsHUB Notifier',
-        address: process.env.VITE_SMTP_USER || 'kalinga@psa.gov.ph'
+        address: process.env.SMTP_USER || 'kalinga@psa.gov.ph'
       },
       to: Array.isArray(to) ? to.join(', ') : to,
       subject: subject,

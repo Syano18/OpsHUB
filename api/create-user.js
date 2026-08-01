@@ -29,7 +29,7 @@ export default async function handler(req, res) {
     const { email, firstName, lastName, middleName, suffix, role, empStat, position, isRegional } = req.body;
 
     const clerkClient = createClerkClient({ secretKey: process.env.CLERK_SECRET_KEY });
-    const turso = createClient({ url: process.env.VITE_TURSO_DB_URL, authToken: process.env.VITE_TURSO_DB_AUTH_TOKEN });
+    const turso = createClient({ url: process.env.TURSO_DB_URL, authToken: process.env.TURSO_DB_AUTH_TOKEN });
 
     // 1. Check Turso DB
     const checkRes = await turso.execute({
@@ -64,14 +64,14 @@ export default async function handler(req, res) {
     // 5. Send Email (Skip for External Signatories)
     if (role !== 'External Signatory') {
       const transporter = nodemailer.createTransport({
-        host: process.env.VITE_SMTP_HOST,
-        port: parseInt(process.env.VITE_SMTP_PORT || '587'),
-        secure: process.env.VITE_SMTP_PORT === '465',
-        auth: { user: process.env.VITE_SMTP_USER, pass: process.env.VITE_SMTP_PASS },
+        host: process.env.SMTP_HOST,
+        port: parseInt(process.env.SMTP_PORT || '587'),
+        secure: process.env.SMTP_PORT === '465',
+        auth: { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS },
       });
 
       const mailOptions = {
-        from: process.env.VITE_SMTP_FROM || '"OpsHUB" <noreply@opshub.local>',
+        from: process.env.SMTP_FROM || '"OpsHUB" <noreply@opshub.local>',
         to: email,
         subject: 'Welcome to OpsHUB - Your Account Details',
         html: `

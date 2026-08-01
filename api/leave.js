@@ -5,13 +5,13 @@ import nodemailer from 'nodemailer';
 
 const s3Client = new S3Client({
   region: 'auto',
-  endpoint: process.env.VITE_R2_ENDPOINT_URL?.trim(),
+  endpoint: process.env.R2_ENDPOINT_URL?.trim(),
   credentials: {
-    accessKeyId: process.env.VITE_R2_ACCESS_KEY_ID?.trim(),
-    secretAccessKey: process.env.VITE_R2_SECRET_ACCESS_KEY?.trim(),
+    accessKeyId: process.env.R2_ACCESS_KEY_ID?.trim(),
+    secretAccessKey: process.env.R2_SECRET_ACCESS_KEY?.trim(),
   },
 });
-const BUCKET_NAME = process.env.VITE_R2_BUCKET_NAME?.trim();
+const BUCKET_NAME = process.env.R2_BUCKET_NAME?.trim();
 import { verifyToken } from '@clerk/backend';
 
 function parseFormattedDates(dateStr) {
@@ -70,8 +70,8 @@ export default async function handler(req, res) {
     }
 
     const turso = createClient({ 
-      url: process.env.VITE_TURSO_DB_URL, 
-      authToken: process.env.VITE_TURSO_DB_AUTH_TOKEN 
+      url: process.env.TURSO_DB_URL, 
+      authToken: process.env.TURSO_DB_AUTH_TOKEN 
     });
 
     // Create tables if they don't exist
@@ -278,7 +278,7 @@ export default async function handler(req, res) {
         if (!id || !base64Str) return res.status(400).json({ error: 'Missing id or document' });
         
         try {
-          if (process.env.VITE_R2_BUCKET_NAME) {
+          if (process.env.R2_BUCKET_NAME) {
             const matches = base64Str.match(/^data:([A-Za-z-+\/]+);base64,(.+)$/);
             if (!matches || matches.length !== 3) {
               return res.status(400).json({ error: 'Invalid base64 format' });
@@ -315,7 +315,7 @@ export default async function handler(req, res) {
         if (!id || !base64Str) return res.status(400).json({ error: 'Missing id or document' });
         
         try {
-          if (process.env.VITE_R2_BUCKET_NAME) {
+          if (process.env.R2_BUCKET_NAME) {
             const matches = base64Str.match(/^data:([A-Za-z-+\/]+);base64,(.+)$/);
             if (!matches || matches.length !== 3) {
               return res.status(400).json({ error: 'Invalid base64 format' });
@@ -398,7 +398,7 @@ export default async function handler(req, res) {
 
           let attachmentUrl = null;
           let finalKeyToDelete = null;
-          if (process.env.VITE_R2_BUCKET_NAME) {
+          if (process.env.R2_BUCKET_NAME) {
             if (record.signed_document && record.signed_document.startsWith('R2:')) {
               try { await s3Client.send(new DeleteObjectCommand({ Bucket: BUCKET_NAME, Key: record.signed_document.split('R2:')[1] })); } 
               catch (err) { console.error("Error deleting original from R2", err); }
@@ -414,10 +414,10 @@ export default async function handler(req, res) {
           if (!isCSS) {
             try {
               const transporter = nodemailer.createTransport({
-                host: process.env.VITE_SMTP_HOST,
-                port: parseInt(process.env.VITE_SMTP_PORT || '587'),
-                secure: process.env.VITE_SMTP_PORT === '465',
-                auth: { user: process.env.VITE_SMTP_USER, pass: process.env.VITE_SMTP_PASS },
+                host: process.env.SMTP_HOST,
+                port: parseInt(process.env.SMTP_PORT || '587'),
+                secure: process.env.SMTP_PORT === '465',
+                auth: { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS },
               });
               
               const isApproved = status === 'Approved';
@@ -451,7 +451,7 @@ export default async function handler(req, res) {
                 `;
                 
               const mailOptions = {
-                from: { name: 'OpsHUB Notifier', address: process.env.VITE_SMTP_USER || 'kalinga@psa.gov.ph' },
+                from: { name: 'OpsHUB Notifier', address: process.env.SMTP_USER || 'kalinga@psa.gov.ph' },
                 to: record.user_email,
                 subject,
                 html: htmlContent
@@ -563,7 +563,7 @@ export default async function handler(req, res) {
         sql: 'SELECT signed_document, final_document FROM Leave_History WHERE id = ?',
         args: [id]
       });
-      if (recordRs.rows.length > 0 && process.env.VITE_R2_BUCKET_NAME) {
+      if (recordRs.rows.length > 0 && process.env.R2_BUCKET_NAME) {
         const record = recordRs.rows[0];
         if (record.signed_document && record.signed_document.startsWith('R2:')) {
            try { await s3Client.send(new DeleteObjectCommand({ Bucket: BUCKET_NAME, Key: record.signed_document.split('R2:')[1] })); } catch(e) {}

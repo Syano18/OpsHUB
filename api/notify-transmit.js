@@ -5,13 +5,13 @@ import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 
 const s3Client = new S3Client({
   region: 'auto',
-  endpoint: process.env.VITE_R2_ENDPOINT_URL?.trim(),
+  endpoint: process.env.R2_ENDPOINT_URL?.trim(),
   credentials: {
-    accessKeyId: process.env.VITE_R2_ACCESS_KEY_ID?.trim(),
-    secretAccessKey: process.env.VITE_R2_SECRET_ACCESS_KEY?.trim(),
+    accessKeyId: process.env.R2_ACCESS_KEY_ID?.trim(),
+    secretAccessKey: process.env.R2_SECRET_ACCESS_KEY?.trim(),
   },
 });
-const BUCKET_NAME = process.env.VITE_R2_BUCKET_NAME?.trim();
+const BUCKET_NAME = process.env.R2_BUCKET_NAME?.trim();
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
@@ -25,8 +25,8 @@ export default async function handler(req, res) {
     }
 
     const turso = createClient({
-      url: process.env.VITE_TURSO_DB_URL,
-      authToken: process.env.VITE_TURSO_DB_AUTH_TOKEN
+      url: process.env.TURSO_DB_URL,
+      authToken: process.env.TURSO_DB_AUTH_TOKEN
     });
 
     // Fetch the leave record
@@ -79,16 +79,16 @@ export default async function handler(req, res) {
 
     // Set up nodemailer
     const transporter = nodemailer.createTransport({
-      host: process.env.VITE_SMTP_HOST,
-      port: parseInt(process.env.VITE_SMTP_PORT || '587'),
-      secure: process.env.VITE_SMTP_PORT === '465',
+      host: process.env.SMTP_HOST,
+      port: parseInt(process.env.SMTP_PORT || '587'),
+      secure: process.env.SMTP_PORT === '465',
       auth: {
-        user: process.env.VITE_SMTP_USER,
-        pass: process.env.VITE_SMTP_PASS,
+        user: process.env.SMTP_USER,
+        pass: process.env.SMTP_PASS,
       },
     });
 
-    if (!process.env.VITE_SMTP_USER) {
+    if (!process.env.SMTP_USER) {
       throw new Error("SMTP credentials not set");
     }
 
@@ -96,7 +96,7 @@ export default async function handler(req, res) {
     const mailOptions = {
       from: {
         name: 'OpsHUB Notification',
-        address: process.env.VITE_SMTP_USER || 'kalinga@psa.gov.ph'
+        address: process.env.SMTP_USER || 'kalinga@psa.gov.ph'
       },
       to: toEmails.join(', '),
       subject: `Leave Application Transmitted: ${leaveRecord.leave_type || 'Leave'}`,

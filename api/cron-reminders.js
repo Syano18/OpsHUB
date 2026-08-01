@@ -7,8 +7,8 @@ export default async function handler(req, res) {
     return res.status(401).json({ error: 'Unauthorized' });
   }
 
-  const url = process.env.VITE_TURSO_DB_URL;
-  const authToken = process.env.VITE_TURSO_DB_AUTH_TOKEN;
+  const url = process.env.TURSO_DB_URL;
+  const authToken = process.env.TURSO_DB_AUTH_TOKEN;
 
   if (!url) {
     return res.status(500).json({ error: "Database URL not configured" });
@@ -43,12 +43,12 @@ export default async function handler(req, res) {
 
     // 4. Set up nodemailer transporter
     const transporter = nodemailer.createTransport({
-      host: process.env.VITE_SMTP_HOST,
-      port: parseInt(process.env.VITE_SMTP_PORT || '587'),
-      secure: process.env.VITE_SMTP_PORT === '465',
+      host: process.env.SMTP_HOST,
+      port: parseInt(process.env.SMTP_PORT || '587'),
+      secure: process.env.SMTP_PORT === '465',
       auth: {
-        user: process.env.VITE_SMTP_USER,
-        pass: process.env.VITE_SMTP_PASS,
+        user: process.env.SMTP_USER,
+        pass: process.env.SMTP_PASS,
       },
     });
 
@@ -70,7 +70,7 @@ export default async function handler(req, res) {
 
       if (targetEmails.length > 0) {
         await transporter.sendMail({
-          from: process.env.VITE_SMTP_FROM || '"OpsHUB" <noreply@opshub.local>',
+          from: process.env.SMTP_FROM || '"OpsHUB" <noreply@opshub.local>',
           bcc: targetEmails.join(', '),
           subject: `Reminder: Upcoming Activity - ${activity.title}`,
           text: `Reminder: You have an upcoming activity starting tomorrow.\n\nTitle: ${activity.title}\nDates: ${activity.start_date} to ${activity.end_date || activity.start_date}\n\nDescription: ${activity.description}\n\n---\nPlease do not reply to this message. This is an automated notification from OpsHUB.`,

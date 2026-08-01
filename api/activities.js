@@ -4,14 +4,14 @@ import nodemailer from 'nodemailer';
 import { S3Client, PutObjectCommand, DeleteObjectCommand } from '@aws-sdk/client-s3';
 
 let s3Client;
-const BUCKET_NAME = process.env.VITE_R2_BUCKET_NAME?.trim();
+const BUCKET_NAME = process.env.R2_BUCKET_NAME?.trim();
 if (BUCKET_NAME) {
   s3Client = new S3Client({
     region: 'auto',
-    endpoint: process.env.VITE_R2_ENDPOINT_URL?.trim(),
+    endpoint: process.env.R2_ENDPOINT_URL?.trim(),
     credentials: {
-      accessKeyId: process.env.VITE_R2_ACCESS_KEY_ID?.trim(),
-      secretAccessKey: process.env.VITE_R2_SECRET_ACCESS_KEY?.trim(),
+      accessKeyId: process.env.R2_ACCESS_KEY_ID?.trim(),
+      secretAccessKey: process.env.R2_SECRET_ACCESS_KEY?.trim(),
     }
   });
 }
@@ -38,8 +38,8 @@ export default async function handler(req, res) {
     }
 
     const turso = createClient({ 
-      url: process.env.VITE_TURSO_DB_URL, 
-      authToken: process.env.VITE_TURSO_DB_AUTH_TOKEN 
+      url: process.env.TURSO_DB_URL, 
+      authToken: process.env.TURSO_DB_AUTH_TOKEN 
     });
 
     if (req.method === 'GET') {
@@ -141,15 +141,15 @@ export default async function handler(req, res) {
 
         // Send Emails
         const transporter = nodemailer.createTransport({
-          host: process.env.VITE_SMTP_HOST,
-          port: parseInt(process.env.VITE_SMTP_PORT || '587'),
-          secure: process.env.VITE_SMTP_PORT === '465',
-          auth: { user: process.env.VITE_SMTP_USER, pass: process.env.VITE_SMTP_PASS },
+          host: process.env.SMTP_HOST,
+          port: parseInt(process.env.SMTP_PORT || '587'),
+          secure: process.env.SMTP_PORT === '465',
+          auth: { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS },
         });
 
         const mailPromises = emails.map(targetEmail => {
           return transporter.sendMail({
-            from: process.env.VITE_SMTP_FROM || '"OpsHUB Notifier" <kalinga@psa.gov.ph>',
+            from: process.env.SMTP_FROM || '"OpsHUB Notifier" <kalinga@psa.gov.ph>',
             to: targetEmail,
             subject: `New Activity Assigned: ${formData.title}`,
             text: `You have been assigned to a new activity: ${formData.title}\nDates: ${formData.start_date} to ${formData.end_date || formData.start_date}\n\nDescription: ${formData.description}\n\n---\nPlease do not reply to this message. This is an automated notification from OpsHUB.`,
