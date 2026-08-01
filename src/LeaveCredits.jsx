@@ -9,6 +9,7 @@ import { jsPDF } from 'jspdf';
 import { DayPicker } from "react-day-picker";
 import "react-day-picker/style.css";
 import { format } from "date-fns";
+import * as XLSX from 'xlsx';
 
 // Helper to calculate sync
 async function syncLeaveCredits(email, token) {
@@ -796,6 +797,52 @@ export default function LeaveCredits() {
     }
   };
 
+  const handleExportData = () => {
+    try {
+      // 1. Prepare Leave Balances Data
+      const balancesData = allUsers.map(u => ({
+        'Name': u.Name,
+        'Email': u.Email,
+        'Employment Status': u.emp_stat,
+        'Vacation Leave': u.emp_stat === 'COSW' ? 'N/A' : (u.credits?.vl_balance?.toFixed(2) || '0.00'),
+        'Sick Leave': u.emp_stat === 'COSW' ? 'N/A' : (u.credits?.sl_balance?.toFixed(2) || '0.00'),
+        'Forced Leave': u.emp_stat === 'COSW' ? 'N/A' : (u.credits?.fl_balance?.toFixed(2) || '0.00'),
+        'Wellness Leave': u.credits?.wl_balance?.toFixed(2) || '0.00',
+        'USE Leave': u.emp_stat === 'COSW' ? 'N/A' : (u.credits?.use_balance?.toFixed(2) || '0.00'),
+        'Special Privilege Leave': u.emp_stat === 'COSW' ? 'N/A' : (u.credits?.spl_balance?.toFixed(2) || '0.00')
+      }));
+
+      // 2. Prepare Leave Applications Data
+      const applicationsData = allFiledLeaves.map(l => ({
+        'Name': `${l.First_Name} ${l.Last_Name}`,
+        'Email': l.user_email,
+        'Leave Type': l.leave_type,
+        'Inclusive Dates': l.start_date,
+        'Days Applied': l.days_applied,
+        'Status': l.status || 'Pending',
+        'Filing Type': l.has_document === 1 ? 'Digital' : 'Manual',
+        'Reason': l.reason || 'N/A'
+      }));
+
+      // Create workbook
+      const wb = XLSX.utils.book_new();
+
+      // Create sheets
+      const balancesSheet = XLSX.utils.json_to_sheet(balancesData);
+      const applicationsSheet = XLSX.utils.json_to_sheet(applicationsData);
+
+      // Add sheets to workbook
+      XLSX.utils.book_append_sheet(wb, balancesSheet, "Leave Balances");
+      XLSX.utils.book_append_sheet(wb, applicationsSheet, "Leave History");
+
+      // Save file
+      XLSX.writeFile(wb, `Leave_Data_Export_${format(new Date(), "yyyy-MM-dd")}.xlsx`);
+    } catch (error) {
+      console.error("Export error:", error);
+      setAlertConfig({ message: `Export error: ${error.message}`, type: 'error' });
+    }
+  };
+
   return (
     <div className="h-full flex flex-col overflow-hidden bg-slate-50/50">
       {/* Header */}
@@ -978,7 +1025,7 @@ export default function LeaveCredits() {
         {/* Admin Management Table */}
         {isAdmin && (
           <div className="mt-8">
-            <div className="flex gap-4 mb-6">
+            <div className="flex gap-4 mb-6 flex-wrap">
               <button
                 onClick={() => setActiveAdminTab('applications')}
                 className={`px-4 py-2 rounded-lg font-medium transition-colors ${activeAdminTab === 'applications' ? 'bg-indigo-600 text-white shadow-sm' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}
@@ -990,6 +1037,16 @@ export default function LeaveCredits() {
                 className={`px-4 py-2 rounded-lg font-medium transition-colors ${activeAdminTab === 'balances' ? 'bg-indigo-600 text-white shadow-sm' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}
               >
                 Leave Balances Management
+              </button>
+              <div className="flex-1 hidden sm:block"></div>
+              <button
+                onClick={handleExportData}
+                className="px-4 py-2 bg-green-600 text-white rounded-lg font-medium shadow-sm hover:bg-green-700 transition-colors flex items-center gap-2"
+              >
+                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                </svg>
+                Export Data
               </button>
             </div>
 
@@ -1423,7 +1480,6 @@ export default function LeaveCredits() {
                   </label>
                   {/* Transmit */}
                   <button
-                    disabled={uploadingRecordId === pendingUploadId}
                     onClick={async () => {
                       await handleTransmitLeave({ id: pendingUploadId, status: null });
                       setPendingUploadId(null);
