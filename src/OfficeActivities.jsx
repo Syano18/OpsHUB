@@ -3,6 +3,7 @@ import { useOutletContext } from 'react-router-dom';
 import { UserButton, useUser, useAuth } from '@clerk/clerk-react';
 import Alert from './Alert';
 import Loading from './components/Loading';
+import ThemeToggleIcon from './ThemeToggleIcon';
 export default function OfficeActivities() {
   const { setIsSidebarOpen } = useOutletContext();
   const { user } = useUser();
@@ -332,7 +333,7 @@ export default function OfficeActivities() {
     const canUpdateStatus = (isAdmin || isCreator) && act.status !== 'Completed';
 
     return (
-      <div key={act.id} className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden flex flex-col group hover:shadow-md transition-shadow">
+      <div key={act.id} className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 overflow-hidden flex flex-col group hover:shadow-md transition-shadow">
         <div className="p-6 flex-1 flex flex-col">
           <div className="flex items-start justify-between gap-4 mb-4">
             <span className={`inline-flex px-2.5 py-1 rounded-full text-xs font-bold border ${getStatusBadge(act.status)}`}>
@@ -350,8 +351,8 @@ export default function OfficeActivities() {
             )}
           </div>
 
-          <h4 className="text-lg font-bold text-slate-800 mb-1">{act.title}</h4>
-          <div className="flex items-center gap-2 text-sm text-slate-500 font-medium mb-4">
+          <h4 className="text-lg font-bold text-slate-800 dark:text-slate-100 mb-1">{act.title}</h4>
+          <div className="flex items-center gap-2 text-sm text-slate-500 dark:text-slate-400 font-medium mb-4">
             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
             {act.start_date === act.end_date || !act.end_date
               ? formatDate(act.start_date)
@@ -359,14 +360,14 @@ export default function OfficeActivities() {
           </div>
 
           {act.description && (
-            <p className="text-sm text-slate-600 mb-6 line-clamp-3 leading-relaxed">{act.description}</p>
+            <p className="text-sm text-slate-600 dark:text-slate-300 mb-6 line-clamp-3 leading-relaxed">{act.description}</p>
           )}
 
-          <div className="mt-auto pt-4 border-t border-slate-100 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+          <div className="mt-auto pt-4 border-t border-slate-100 dark:border-slate-800 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
             <div className="flex flex-col min-w-0 group/assigned relative cursor-pointer sm:cursor-auto" tabIndex="0" onClick={() => {}}>
-              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1">Assigned To</span>
+              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 mb-1">Assigned To</span>
               <span 
-                className="text-xs font-semibold text-slate-700 bg-slate-100 px-2.5 py-1 rounded-md inline-block max-w-[200px] truncate sm:cursor-help"
+                className="text-xs font-semibold text-slate-700 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 px-2.5 py-1 rounded-md inline-block max-w-[200px] truncate sm:cursor-help"
                 title={isAll ? "Everyone" : assignedArray.join(', ')}
               >
                 {isAll ? "Everyone" : assignedArray.join(', ')}
@@ -378,18 +379,18 @@ export default function OfficeActivities() {
               </div>
             </div>
             <div className="flex flex-col items-start sm:items-end shrink-0 max-w-full sm:max-w-[200px]">
-              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1">Created By</span>
-              <span className="text-xs font-medium text-slate-500 truncate w-full sm:text-right">{act.created_by}</span>
+              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 mb-1">Created By</span>
+              <span className="text-xs font-medium text-slate-500 dark:text-slate-400 truncate w-full sm:text-right">{act.created_by}</span>
             </div>
           </div>
         </div>
 
         {/* Status Actions */}
         {canUpdateStatus && (
-          <div className="bg-slate-50/80 px-6 py-3 border-t border-slate-100 flex items-center gap-2 justify-end">
-            <span className="text-xs font-semibold text-slate-500 mr-2">Update Status:</span>
+          <div className="bg-slate-50/80 dark:bg-slate-800/80 px-6 py-3 border-t border-slate-100 dark:border-slate-800 flex items-center gap-2 justify-end">
+            <span className="text-xs font-semibold text-slate-500 dark:text-slate-400 mr-2">Update Status:</span>
             <div className="relative group/status">
-              <div className="flex items-center gap-2 text-xs font-bold bg-white border border-slate-200 text-slate-700 py-1.5 pl-3 pr-2 rounded-lg shadow-sm cursor-pointer hover:border-slate-300 transition-colors">
+              <div className="flex items-center gap-2 text-xs font-bold bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 py-1.5 pl-3 pr-2 rounded-lg shadow-sm cursor-pointer hover:border-slate-300 dark:hover:border-slate-600 transition-colors">
                 <div className="flex items-center gap-1.5">
                   <span className={`w-2 h-2 rounded-full ${act.status === 'Completed' ? 'bg-emerald-500' : act.status === 'In Progress' ? 'bg-blue-500' : 'bg-amber-500'}`}></span>
                   {act.status}
@@ -397,13 +398,13 @@ export default function OfficeActivities() {
                 <svg className="w-3.5 h-3.5 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" /></svg>
               </div>
               
-              <div className="absolute right-0 bottom-full mb-2 hidden group-hover/status:flex flex-col w-36 bg-white border border-slate-200 rounded-xl shadow-[0_10px_25px_-5px_rgba(0,0,0,0.1),0_8px_10px_-6px_rgba(0,0,0,0.1)] overflow-hidden z-30 pb-1">
-                <div className="px-3 py-2 text-[10px] font-bold uppercase tracking-wider text-slate-400 bg-slate-50/50 border-b border-slate-100 mb-1">Set Status</div>
+              <div className="absolute right-0 bottom-full mb-2 hidden group-hover/status:flex flex-col w-36 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl shadow-[0_10px_25px_-5px_rgba(0,0,0,0.1),0_8px_10px_-6px_rgba(0,0,0,0.1)] overflow-hidden z-30 pb-1">
+                <div className="px-3 py-2 text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 bg-slate-50/50 dark:bg-slate-800/50 border-b border-slate-100 dark:border-slate-700 mb-1">Set Status</div>
                 {['Pending', 'In Progress', 'Completed'].map(st => (
                   <button
                     key={st}
                     onClick={() => handleUpdateStatus(act.id, st)}
-                    className={`text-left w-full px-3 py-2 text-xs font-bold transition-all border-l-2 ${act.status === st ? 'bg-slate-50/80 text-slate-900 border-teal-500' : 'border-transparent text-slate-500 hover:bg-slate-50 hover:text-slate-800 hover:border-slate-300'}`}
+                    className={`text-left w-full px-3 py-2 text-xs font-bold transition-all border-l-2 ${act.status === st ? 'bg-slate-50/80 dark:bg-slate-800/80 text-slate-900 dark:text-white border-teal-500' : 'border-transparent text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-slate-800 dark:hover:text-slate-200 hover:border-slate-300 dark:hover:border-slate-600'}`}
                   >
                     <div className="flex items-center gap-2.5">
                       <span className={`w-1.5 h-1.5 rounded-full shadow-sm ${st === 'Completed' ? 'bg-emerald-500' : st === 'In Progress' ? 'bg-blue-500' : 'bg-amber-500'}`}></span>
@@ -420,21 +421,22 @@ export default function OfficeActivities() {
   };
 
   return (
-    <div className="h-full flex flex-col overflow-hidden bg-slate-50/50">
+    <div className="h-full flex flex-col overflow-hidden bg-slate-50/50 dark:bg-slate-950/50 text-slate-900 dark:text-slate-100">
       {/* Header */}
-      <header className="shrink-0 h-16 bg-white border-b border-slate-200 flex items-center justify-between px-4 md:px-8 shadow-sm sticky top-0 z-20">
+      <header className="shrink-0 h-16 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between px-4 md:px-8 shadow-sm sticky top-0 z-20">
         <div className="flex items-center gap-2">
-          <button onClick={() => setIsSidebarOpen(true)} className="md:hidden p-2 -ml-2 mr-1 text-slate-600 hover:bg-slate-100 rounded-lg transition-colors">
+          <button onClick={() => setIsSidebarOpen(true)} className="md:hidden p-2 -ml-2 mr-1 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors">
             <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" /></svg>
           </button>
-          <h2 className="text-xl font-bold text-slate-800 flex items-center gap-2">
+          <h2 className="text-xl font-bold text-slate-800 dark:text-white flex items-center gap-2">
             Office Activities
           </h2>
         </div>
         <div className="flex items-center gap-4">
-          <div className="text-sm text-slate-600 font-medium hidden sm:block">
+          <div className="text-sm text-slate-600 dark:text-slate-300 font-medium hidden sm:block">
             {user?.firstName ? `Welcome back, ${user.firstName}!` : 'Welcome back!'}
           </div>
+          <ThemeToggleIcon />
           <UserButton
             afterSignOutUrl="/"
             userProfileMode="navigation"
@@ -470,7 +472,7 @@ export default function OfficeActivities() {
                 placeholder="Search activities or assignees..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-10 pr-4 py-2 bg-white border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-teal-500 text-sm"
+                className="w-full pl-10 pr-4 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl focus:outline-none focus:ring-2 focus:ring-teal-500 text-sm"
               />
             </div>
 
@@ -487,8 +489,8 @@ export default function OfficeActivities() {
           {loading ? (
             <Loading type="grid" />
           ) : filteredActivities.length === 0 ? (
-            <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-12 flex flex-col items-center text-center">
-              <div className="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center mb-4">
+            <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 p-12 flex flex-col items-center text-center">
+              <div className="w-16 h-16 bg-slate-50 dark:bg-slate-800 rounded-full flex items-center justify-center mb-4">
                 <span className="text-3xl">🎉</span>
               </div>
               <h3 className="text-lg font-bold text-slate-800 mb-2">No Activities Found</h3>
@@ -540,10 +542,10 @@ export default function OfficeActivities() {
       {/* Add Activity Modal */}
       {isAddModalOpen && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden flex flex-col max-h-[100dvh] sm:max-h-[90vh]">
-            <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/50 shrink-0">
-              <h3 className="text-lg font-bold text-slate-800">Assign New Activity</h3>
-              <button onClick={handleCloseModal} className="text-slate-400 hover:text-slate-600 p-1">
+          <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden flex flex-col max-h-[100dvh] sm:max-h-[90vh]">
+            <div className="px-6 py-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between bg-slate-50/50 dark:bg-slate-800/50 shrink-0">
+              <h3 className="text-lg font-bold text-slate-800 dark:text-white">Assign New Activity</h3>
+              <button onClick={handleCloseModal} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 p-1">
                 <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
               </button>
             </div>
@@ -553,17 +555,17 @@ export default function OfficeActivities() {
                 <form id="add-activity-form" onSubmit={handleProceedToReview} className="flex flex-col gap-5">
                   <div>
                     <label className="block text-sm font-semibold text-slate-700 mb-1">Activity Title <span className="text-red-500">*</span></label>
-                    <input required type="text" value={formData.title} onChange={e => setFormData({ ...formData, title: e.target.value })} className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-teal-500 text-slate-800 font-medium" placeholder="E.g., Tree Planting Activity" />
+                    <input required type="text" value={formData.title} onChange={e => setFormData({ ...formData, title: e.target.value })} className="w-full px-4 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-teal-500 text-slate-800 dark:text-slate-100 font-medium" placeholder="E.g., Tree Planting Activity" />
                   </div>
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
                       <label className="block text-sm font-semibold text-slate-700 mb-1">Start Date <span className="text-red-500">*</span></label>
-                      <input required type="date" value={formData.start_date} onChange={e => setFormData({ ...formData, start_date: e.target.value })} className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-teal-500 text-slate-800 font-medium" />
+                      <input required type="date" value={formData.start_date} onChange={e => setFormData({ ...formData, start_date: e.target.value })} className="w-full px-4 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-teal-500 text-slate-800 dark:text-slate-100 font-medium" />
                     </div>
                     <div>
                       <label className="block text-sm font-semibold text-slate-700 mb-1">End Date <span className="text-red-500">*</span></label>
-                      <input required type="date" value={formData.end_date} onChange={e => setFormData({ ...formData, end_date: e.target.value })} className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-teal-500 text-slate-800 font-medium" />
+                      <input required type="date" value={formData.end_date} onChange={e => setFormData({ ...formData, end_date: e.target.value })} className="w-full px-4 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-teal-500 text-slate-800 dark:text-slate-100 font-medium" />
                     </div>
                   </div>
 
@@ -585,16 +587,16 @@ export default function OfficeActivities() {
                         placeholder="Search employees..."
                         value={assigneeSearchTerm}
                         onChange={(e) => setAssigneeSearchTerm(e.target.value)}
-                        className="w-full pl-9 pr-4 py-1.5 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 text-sm disabled:opacity-50"
+                        className="w-full pl-9 pr-4 py-1.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 text-sm disabled:opacity-50"
                         disabled={formData.assigned_to.includes('All')}
                       />
                     </div>
-                    <div className={`bg-slate-50/50 border border-slate-200 rounded-xl p-3 max-h-56 overflow-y-auto flex flex-col gap-1.5 shadow-inner transition-opacity ${formData.assigned_to.includes('All') ? 'opacity-50 pointer-events-none' : ''}`}>
+                    <div className={`bg-slate-50/50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-700 rounded-xl p-3 max-h-56 overflow-y-auto flex flex-col gap-1.5 shadow-inner transition-opacity ${formData.assigned_to.includes('All') ? 'opacity-50 pointer-events-none' : ''}`}>
                       {employees.filter(emp => emp.toLowerCase().includes(assigneeSearchTerm.toLowerCase())).map(emp => {
                         const isChecked = formData.assigned_to.includes(emp);
                         return (
-                          <label key={emp} className={`flex items-center gap-3 p-2.5 rounded-lg cursor-pointer transition-all border ${isChecked ? 'bg-white border-teal-500 shadow-sm ring-1 ring-teal-500' : 'bg-transparent border-transparent hover:bg-white hover:border-slate-200 hover:shadow-sm'}`}>
-                            <div className={`flex shrink-0 items-center justify-center w-5 h-5 rounded border ${isChecked ? 'bg-teal-500 border-teal-500 text-white' : 'bg-white border-slate-300'}`}>
+                          <label key={emp} className={`flex items-center gap-3 p-2.5 rounded-lg cursor-pointer transition-all border ${isChecked ? 'bg-white dark:bg-slate-800 border-teal-500 shadow-sm ring-1 ring-teal-500' : 'bg-transparent border-transparent hover:bg-white dark:hover:bg-slate-800 hover:border-slate-200 dark:hover:border-slate-700 hover:shadow-sm'}`}>
+                            <div className={`flex shrink-0 items-center justify-center w-5 h-5 rounded border ${isChecked ? 'bg-teal-500 border-teal-500 text-white' : 'bg-white dark:bg-slate-900 border-slate-300 dark:border-slate-600'}`}>
                               {isChecked && <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="3"><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>}
                             </div>
                             <input
@@ -603,19 +605,19 @@ export default function OfficeActivities() {
                               onChange={() => toggleAssignee(emp)}
                               className="hidden"
                             />
-                            <span className={`text-sm font-medium ${isChecked ? 'text-teal-900' : 'text-slate-700'}`}>{emp}</span>
+                            <span className={`text-sm font-medium ${isChecked ? 'text-teal-900 dark:text-teal-400' : 'text-slate-700 dark:text-slate-300'}`}>{emp}</span>
                           </label>
                         );
                       })}
                       {employees.filter(emp => emp.toLowerCase().includes(assigneeSearchTerm.toLowerCase())).length === 0 && (
-                        <div className="text-sm text-slate-500 text-center py-4 italic bg-slate-100/50 rounded-lg border border-dashed border-slate-200">No employees found matching "{assigneeSearchTerm}".</div>
+                        <div className="text-sm text-slate-500 dark:text-slate-400 text-center py-4 italic bg-slate-100/50 dark:bg-slate-800/50 rounded-lg border border-dashed border-slate-200 dark:border-slate-700">No employees found matching "{assigneeSearchTerm}".</div>
                       )}
                     </div>
                   </div>
 
                   <div>
                     <label className="block text-sm font-semibold text-slate-700 mb-1">Description <span className="text-red-500">*</span></label>
-                    <textarea required value={formData.description} onChange={e => setFormData({ ...formData, description: e.target.value })} rows="3" className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-teal-500 text-slate-800 font-medium resize-none" placeholder="Provide instructions or details..." />
+                    <textarea required value={formData.description} onChange={e => setFormData({ ...formData, description: e.target.value })} rows="3" className="w-full px-4 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-teal-500 text-slate-800 dark:text-slate-100 font-medium resize-none" placeholder="Provide instructions or details..." />
                   </div>
 
                   <div>
@@ -624,7 +626,7 @@ export default function OfficeActivities() {
                       <input 
                         type="file" 
                         onChange={handleFileChange}
-                        className="w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-sm file:font-bold file:bg-teal-50 file:text-teal-700 hover:file:bg-teal-100 file:transition-colors file:cursor-pointer cursor-pointer border border-slate-200 rounded-xl bg-slate-50 p-1" 
+                        className="w-full text-sm text-slate-500 dark:text-slate-400 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-sm file:font-bold file:bg-teal-50 dark:file:bg-teal-900/50 file:text-teal-700 dark:file:text-teal-400 hover:file:bg-teal-100 dark:hover:file:bg-teal-900 file:transition-colors file:cursor-pointer cursor-pointer border border-slate-200 dark:border-slate-700 rounded-xl bg-slate-50 dark:bg-slate-800 p-1" 
                         accept=".pdf,.docx,.xlsx,.png,.jpg,.jpeg"
                       />
                     </div>
@@ -635,42 +637,42 @@ export default function OfficeActivities() {
                 </form>
               ) : (
                 <div className="flex flex-col gap-5">
-                  <div className="bg-slate-50 p-5 rounded-xl border border-slate-200 shadow-sm">
-                    <h4 className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1">Activity Title</h4>
-                    <p className="text-slate-800 font-bold text-lg">{formData.title}</p>
+                  <div className="bg-slate-50 dark:bg-slate-800 p-5 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm">
+                    <h4 className="text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 mb-1">Activity Title</h4>
+                    <p className="text-slate-800 dark:text-slate-100 font-bold text-lg">{formData.title}</p>
                   </div>
-                  <div className="bg-slate-50 p-5 rounded-xl border border-slate-200 shadow-sm grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="bg-slate-50 dark:bg-slate-800 p-5 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
-                      <h4 className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1">Start Date</h4>
-                      <p className="text-slate-800 font-semibold">{formatDate(formData.start_date)}</p>
+                      <h4 className="text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 mb-1">Start Date</h4>
+                      <p className="text-slate-800 dark:text-slate-100 font-semibold">{formatDate(formData.start_date)}</p>
                     </div>
                     <div>
-                      <h4 className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1">End Date</h4>
-                      <p className="text-slate-800 font-semibold">{formatDate(formData.end_date) || formatDate(formData.start_date)}</p>
+                      <h4 className="text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 mb-1">End Date</h4>
+                      <p className="text-slate-800 dark:text-slate-100 font-semibold">{formatDate(formData.end_date) || formatDate(formData.start_date)}</p>
                     </div>
                   </div>
-                  <div className="bg-slate-50 p-5 rounded-xl border border-slate-200 shadow-sm">
-                    <h4 className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-3">Assigned To</h4>
+                  <div className="bg-slate-50 dark:bg-slate-800 p-5 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm">
+                    <h4 className="text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 mb-3">Assigned To</h4>
                     <div className="flex flex-wrap gap-2">
                       {formData.assigned_to.map(emp => (
-                        <span key={emp} className="bg-white border border-slate-200 px-3 py-1.5 rounded-md text-xs font-bold text-slate-700 shadow-sm">
+                        <span key={emp} className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 px-3 py-1.5 rounded-md text-xs font-bold text-slate-700 dark:text-slate-300 shadow-sm">
                           {emp === 'All' ? 'Everyone' : emp}
                         </span>
                       ))}
                     </div>
                   </div>
                   {formData.description && (
-                    <div className="bg-slate-50 p-5 rounded-xl border border-slate-200 shadow-sm">
-                      <h4 className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-2">Description</h4>
-                      <p className="text-slate-700 text-sm leading-relaxed whitespace-pre-wrap">{formData.description}</p>
+                    <div className="bg-slate-50 dark:bg-slate-800 p-5 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm">
+                      <h4 className="text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 mb-2">Description</h4>
+                      <p className="text-slate-700 dark:text-slate-300 text-sm leading-relaxed whitespace-pre-wrap">{formData.description}</p>
                     </div>
                   )}
                   {formData.attachment && (
-                    <div className="bg-slate-50 p-5 rounded-xl border border-slate-200 shadow-sm">
-                      <h4 className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-2">Attachment</h4>
+                    <div className="bg-slate-50 dark:bg-slate-800 p-5 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm">
+                      <h4 className="text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 mb-2">Attachment</h4>
                       <div className="flex items-center gap-2">
-                        <svg className="w-5 h-5 text-teal-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" /></svg>
-                        <p className="text-slate-800 text-sm font-bold truncate">{formData.attachment.name}</p>
+                        <svg className="w-5 h-5 text-teal-600 dark:text-teal-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" /></svg>
+                        <p className="text-slate-800 dark:text-slate-200 text-sm font-bold truncate">{formData.attachment.name}</p>
                       </div>
                     </div>
                   )}
@@ -678,7 +680,7 @@ export default function OfficeActivities() {
               )}
             </div>
 
-            <div className="px-6 py-4 bg-slate-50 border-t border-slate-100 flex gap-3 shrink-0">
+            <div className="px-6 py-4 bg-slate-50 dark:bg-slate-800 border-t border-slate-100 dark:border-slate-700 flex gap-3 shrink-0">
               {modalStep === 1 ? (
                 <>
                   <button type="button" onClick={handleCloseModal} className="flex-1 py-2.5 font-medium text-slate-600 hover:bg-slate-200 bg-slate-100 rounded-xl transition-colors">Cancel</button>
@@ -705,18 +707,18 @@ export default function OfficeActivities() {
       {/* No Attachment Warning Modal */}
       {showNoAttachmentWarning && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-[60]">
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden flex flex-col transform transition-all">
+          <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden flex flex-col transform transition-all">
             <div className="p-6 text-center">
-              <div className="w-16 h-16 bg-amber-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <svg className="w-8 h-8 text-amber-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+              <div className="w-16 h-16 bg-amber-100 dark:bg-amber-900/50 rounded-full flex items-center justify-center mx-auto mb-4">
+                <svg className="w-8 h-8 text-amber-500 dark:text-amber-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
                 </svg>
               </div>
-              <h3 className="text-xl font-bold text-slate-800 mb-2">No Attachment</h3>
-              <p className="text-slate-500 text-sm mb-1">You are proceeding without any supporting documents.</p>
+              <h3 className="text-xl font-bold text-slate-800 dark:text-white mb-2">No Attachment</h3>
+              <p className="text-slate-500 dark:text-slate-400 text-sm mb-1">You are proceeding without any supporting documents.</p>
             </div>
-            <div className="px-6 py-4 bg-slate-50 border-t border-slate-100 flex gap-3 shrink-0">
-              <button onClick={() => setShowNoAttachmentWarning(false)} className="flex-1 py-2.5 font-medium text-slate-600 hover:bg-slate-200 bg-slate-100 rounded-xl transition-colors">Back to Edit</button>
+            <div className="px-6 py-4 bg-slate-50 dark:bg-slate-800 border-t border-slate-100 dark:border-slate-700 flex gap-3 shrink-0">
+              <button onClick={() => setShowNoAttachmentWarning(false)} className="flex-1 py-2.5 font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 bg-slate-100 dark:bg-slate-800 rounded-xl transition-colors">Back to Edit</button>
               <button onClick={() => { setShowNoAttachmentWarning(false); setModalStep(2); }} className="flex-1 py-2.5 font-medium text-white bg-amber-500 hover:bg-amber-600 rounded-xl shadow-sm transition-colors">Okay, Proceed</button>
             </div>
           </div>
@@ -726,19 +728,19 @@ export default function OfficeActivities() {
       {/* Delete Confirmation Modal */}
       {activityToDelete && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden flex flex-col transform transition-all">
+          <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden flex flex-col transform transition-all">
             <div className="p-6 text-center">
-              <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <svg className="w-8 h-8 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+              <div className="w-16 h-16 bg-red-100 dark:bg-red-900/50 rounded-full flex items-center justify-center mx-auto mb-4">
+                <svg className="w-8 h-8 text-red-500 dark:text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
                 </svg>
               </div>
-              <h3 className="text-xl font-bold text-slate-800 mb-2">Delete Activity?</h3>
-              <p className="text-slate-500 text-sm mb-1">Are you sure you want to delete <span className="font-bold text-slate-700">"{activityToDelete.title}"</span>?</p>
-              <p className="text-slate-500 text-sm">This action cannot be undone.</p>
+              <h3 className="text-xl font-bold text-slate-800 dark:text-white mb-2">Delete Activity?</h3>
+              <p className="text-slate-500 dark:text-slate-400 text-sm mb-1">Are you sure you want to delete <span className="font-bold text-slate-700 dark:text-slate-200">"{activityToDelete.title}"</span>?</p>
+              <p className="text-slate-500 dark:text-slate-400 text-sm">This action cannot be undone.</p>
             </div>
-            <div className="px-6 py-4 bg-slate-50 border-t border-slate-100 flex gap-3 shrink-0">
-              <button onClick={() => setActivityToDelete(null)} className="flex-1 py-2.5 font-medium text-slate-600 hover:bg-slate-200 bg-slate-100 rounded-xl transition-colors">Cancel</button>
+            <div className="px-6 py-4 bg-slate-50 dark:bg-slate-800 border-t border-slate-100 dark:border-slate-700 flex gap-3 shrink-0">
+              <button onClick={() => setActivityToDelete(null)} className="flex-1 py-2.5 font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 bg-slate-100 dark:bg-slate-800 rounded-xl transition-colors">Cancel</button>
               <button onClick={executeDeleteActivity} className="flex-1 py-2.5 font-medium text-white bg-red-500 hover:bg-red-600 rounded-xl shadow-sm transition-colors">Delete</button>
             </div>
           </div>

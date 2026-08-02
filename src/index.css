@@ -14,9 +14,11 @@
   --color-teal-950: oklch(27.7% 0.046 192.524);
 }
 
+@custom-variant dark (&:is(.dark *));
+
 @layer base {
   body {
-    @apply bg-white;
+    @apply bg-white dark:bg-slate-950 text-slate-900 dark:text-slate-100;
   }
 }
 

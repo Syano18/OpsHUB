@@ -39,14 +39,14 @@ export default function Layout() {
 
   if (isChecking) {
     return (
-      <div className="flex h-screen items-center justify-center bg-slate-50">
-        <div className="text-slate-400 font-medium animate-pulse">Verifying account access...</div>
+      <div className="flex h-screen items-center justify-center bg-slate-50 dark:bg-slate-950">
+        <div className="text-slate-400 dark:text-slate-500 font-medium animate-pulse">Verifying account access...</div>
       </div>
     );
   }
 
   return (
-    <div className="flex h-[100dvh] bg-slate-50 overflow-hidden relative">
+    <div className="flex h-[100dvh] bg-slate-50 dark:bg-slate-950 overflow-hidden relative text-slate-900 dark:text-slate-100">
       <Sidebar isOpen={isSidebarOpen} setIsOpen={setIsSidebarOpen} />
       <main className="flex-1 flex flex-col overflow-hidden min-h-0 relative">
         <Outlet context={{ setIsSidebarOpen }} />

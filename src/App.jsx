@@ -9,10 +9,13 @@ import DailyTimeRecord from './DailyTimeRecord';
 import PersonalCalendar from './PersonalCalendar';
 import LeaveCredits from './LeaveCredits';
 import Profile from './Profile';
+import { ThemeProvider } from './contexts/ThemeContext';
+import UpdatePrompt from './UpdatePrompt';
 
 export default function App() {
   return (
-    <BrowserRouter>
+    <ThemeProvider>
+      <BrowserRouter>
       <SignedOut>
         <Login />
       </SignedOut>
@@ -30,6 +33,8 @@ export default function App() {
           </Route>
         </Routes>
       </SignedIn>
+      <UpdatePrompt />
     </BrowserRouter>
+    </ThemeProvider>
   );
 }

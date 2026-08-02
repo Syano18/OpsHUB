@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useOutletContext } from 'react-router-dom';
-import { useAuth, useUser } from '@clerk/clerk-react';
+import { useAuth, useUser, UserButton } from '@clerk/clerk-react';
 import Alert from './Alert';
+import ThemeToggleIcon from './ThemeToggleIcon';
 import Loading from './components/Loading';
 
 export default function Profile() {
@@ -91,7 +92,7 @@ export default function Profile() {
 
   if (loading) {
     return (
-      <div className="h-full bg-slate-50 overflow-hidden">
+      <div className="h-full bg-slate-50 dark:bg-slate-950 overflow-hidden">
         <Loading type="profile" />
       </div>
     );
@@ -345,13 +346,13 @@ export default function Profile() {
   };
 
   return (
-    <div className="h-full flex flex-col overflow-hidden bg-slate-50">
-      <header className="shrink-0 h-16 bg-white border-b border-slate-200 flex items-center justify-between px-4 md:px-8 shadow-sm sticky top-0 z-20">
+    <div className="h-full flex flex-col overflow-hidden bg-slate-50 dark:bg-slate-950">
+      <header className="shrink-0 h-16 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between px-4 md:px-8 shadow-sm sticky top-0 z-20">
         <div className="flex items-center gap-2">
-          <button onClick={() => setIsSidebarOpen(true)} className="md:hidden p-2 -ml-2 mr-1 text-slate-600 hover:bg-slate-100 rounded-lg transition-colors">
+          <button onClick={() => setIsSidebarOpen(true)} className="md:hidden p-2 -ml-2 mr-1 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors">
             <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" /></svg>
           </button>
-          <h2 className="text-xl font-bold text-slate-800 flex items-center gap-2">
+          <h2 className="text-xl font-bold text-slate-800 dark:text-white flex items-center gap-2">
             <span className="text-2xl">👤</span> User Profile
           </h2>
         </div>
@@ -362,13 +363,13 @@ export default function Profile() {
 
           <Alert message={error} onClose={() => setError('')} duration={5000} />
 
-          <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden flex-1 flex flex-col">
+          <div className="bg-white dark:bg-slate-900 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800 overflow-hidden flex-1 flex flex-col">
             {/* Profile Header */}
             <div className="h-32 bg-gradient-to-r from-teal-500 to-emerald-400"></div>
             <div className="px-8 pb-8">
               <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end -mt-12 mb-6 gap-4 sm:gap-0">
                 <div className="flex flex-col sm:flex-row items-start sm:items-end gap-4 sm:gap-6 w-full">
-                  <div className="relative shrink-0 w-24 h-24 rounded-2xl bg-white p-1 shadow-md border border-slate-100 group">
+                  <div className="relative shrink-0 w-24 h-24 rounded-2xl bg-white dark:bg-slate-800 p-1 shadow-md border border-slate-100 dark:border-slate-700 group">
                     <label htmlFor="profile-upload" className={`absolute inset-1 rounded-xl bg-black/40 flex items-center justify-center cursor-pointer transition-opacity z-10 ${isUploadingImage ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}>
                       {isUploadingImage ? (
                         <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
@@ -394,14 +395,14 @@ export default function Profile() {
                     />
                   </div>
                   <div className="pb-0 sm:pb-6 w-full min-w-0">
-                    <h1 className="text-2xl font-bold text-slate-900 break-words">
+                    <h1 className="text-2xl font-bold text-slate-900 dark:text-white break-words">
                       {userData ? `${userData.First_Name || ''} ${userData.Middle_Name ? userData.Middle_Name.charAt(0).toUpperCase() + '.' : ''} ${userData.Last_Name || ''} ${userData.Suffix || ''}`.replace(/\s+/g, ' ').trim() : user?.fullName}
                     </h1>
-                    <p className="text-slate-500 font-medium">{user?.primaryEmailAddress?.emailAddress}</p>
+                    <p className="text-slate-500 dark:text-slate-400 font-medium">{user?.primaryEmailAddress?.emailAddress}</p>
                   </div>
                 </div>
                 {userData?.Role && (
-                  <div className="mb-0 sm:mb-2 px-4 py-1.5 rounded-full bg-teal-50 border border-teal-200 text-teal-700 font-semibold text-sm shadow-sm flex items-center gap-2 self-start sm:self-auto">
+                  <div className="mb-0 sm:mb-2 px-4 py-1.5 rounded-full bg-teal-50 dark:bg-teal-900/30 border border-teal-200 dark:border-teal-800/30 text-teal-700 dark:text-teal-400 font-semibold text-sm shadow-sm flex items-center gap-2 self-start sm:self-auto">
                     <span className="shrink-0 w-2 h-2 rounded-full bg-teal-500"></span>
                     <span className="whitespace-nowrap">{userData.Role} Access</span>
                   </div>
@@ -413,7 +414,7 @@ export default function Profile() {
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-8">
 
                     {/* General Info */}
-                    <div className="bg-slate-50 rounded-xl p-6 border border-slate-100 relative">
+                    <div className="bg-slate-50 dark:bg-slate-800/50 rounded-xl p-6 border border-slate-100 dark:border-slate-800 relative">
                       {!isEditing && (
                         <button
                           onClick={handleEditClick}
@@ -425,7 +426,7 @@ export default function Profile() {
                           </svg>
                         </button>
                       )}
-                      <h3 className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-4 flex items-center gap-2">
+                      <h3 className="text-sm font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-4 flex items-center gap-2">
                         <svg className="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V8a2 2 0 00-2-2h-5m-4 0V5a2 2 0 114 0v1m-4 0a2 2 0 104 0m-5 8a2 2 0 100-4 2 2 0 000 4zm0 0c1.306 0 2.417.835 2.83 2M9 14a3.001 3.001 0 00-2.83 2M15 11h3m-3 4h2" /></svg>
                         General Information
                       </h3>
@@ -434,30 +435,30 @@ export default function Profile() {
                         <div className="space-y-4">
                           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <div>
-                              <label className="text-xs text-slate-500 mb-1 block">First Name</label>
-                              <input type="text" value={editForm.First_Name} onChange={e => setEditForm({ ...editForm, First_Name: e.target.value })} className="w-full px-3 py-1.5 border border-slate-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 bg-white text-slate-900" />
+                              <label className="text-xs text-slate-500 dark:text-slate-400 mb-1 block">First Name</label>
+                              <input type="text" value={editForm.First_Name} onChange={e => setEditForm({ ...editForm, First_Name: e.target.value })} className="w-full px-3 py-1.5 border border-slate-300 dark:border-slate-700 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 bg-white dark:bg-slate-900 text-slate-900 dark:text-white" />
                             </div>
                             <div>
-                              <label className="text-xs text-slate-500 mb-1 block">Last Name</label>
-                              <input type="text" value={editForm.Last_Name} onChange={e => setEditForm({ ...editForm, Last_Name: e.target.value })} className="w-full px-3 py-1.5 border border-slate-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 bg-white text-slate-900" />
+                              <label className="text-xs text-slate-500 dark:text-slate-400 mb-1 block">Last Name</label>
+                              <input type="text" value={editForm.Last_Name} onChange={e => setEditForm({ ...editForm, Last_Name: e.target.value })} className="w-full px-3 py-1.5 border border-slate-300 dark:border-slate-700 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 bg-white dark:bg-slate-900 text-slate-900 dark:text-white" />
                             </div>
                           </div>
                           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <div>
-                              <label className="text-xs text-slate-500 mb-1 block">Middle Name</label>
-                              <input type="text" value={editForm.Middle_Name} onChange={e => setEditForm({ ...editForm, Middle_Name: e.target.value })} className="w-full px-3 py-1.5 border border-slate-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 bg-white text-slate-900" />
+                              <label className="text-xs text-slate-500 dark:text-slate-400 mb-1 block">Middle Name</label>
+                              <input type="text" value={editForm.Middle_Name} onChange={e => setEditForm({ ...editForm, Middle_Name: e.target.value })} className="w-full px-3 py-1.5 border border-slate-300 dark:border-slate-700 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 bg-white dark:bg-slate-900 text-slate-900 dark:text-white" />
                             </div>
                             <div>
-                              <label className="text-xs text-slate-500 mb-1 block">Suffix</label>
-                              <input type="text" value={editForm.Suffix} onChange={e => setEditForm({ ...editForm, Suffix: e.target.value })} className="w-full px-3 py-1.5 border border-slate-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 bg-white text-slate-900" />
+                              <label className="text-xs text-slate-500 dark:text-slate-400 mb-1 block">Suffix</label>
+                              <input type="text" value={editForm.Suffix} onChange={e => setEditForm({ ...editForm, Suffix: e.target.value })} className="w-full px-3 py-1.5 border border-slate-300 dark:border-slate-700 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 bg-white dark:bg-slate-900 text-slate-900 dark:text-white" />
                             </div>
                           </div>
                           <div>
-                            <label className="text-xs text-slate-500 mb-1 block">Position</label>
-                            <input type="text" value={editForm.Position} onChange={e => setEditForm({ ...editForm, Position: e.target.value })} className="w-full px-3 py-1.5 border border-slate-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 bg-white text-slate-900" />
+                            <label className="text-xs text-slate-500 dark:text-slate-400 mb-1 block">Position</label>
+                            <input type="text" value={editForm.Position} onChange={e => setEditForm({ ...editForm, Position: e.target.value })} className="w-full px-3 py-1.5 border border-slate-300 dark:border-slate-700 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 bg-white dark:bg-slate-900 text-slate-900 dark:text-white" />
                           </div>
                           <div>
-                            <label className="text-xs text-slate-500 mb-1 block">Sex</label>
+                            <label className="text-xs text-slate-500 dark:text-slate-400 mb-1 block">Sex</label>
                             <div className="relative">
                               <div className="relative flex items-center">
                                 <input
@@ -467,12 +468,12 @@ export default function Profile() {
                                   onFocus={() => setIsSexDropdownOpen(true)}
                                   onBlur={() => setTimeout(() => setIsSexDropdownOpen(false), 200)}
                                   placeholder="Select sex..."
-                                  className="w-full px-3 py-1.5 border border-slate-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 bg-white text-slate-900 pr-8"
+                                  className="w-full px-3 py-1.5 border border-slate-300 dark:border-slate-700 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 bg-white dark:bg-slate-900 text-slate-900 dark:text-white pr-8"
                                 />
                                 <button
                                   type="button"
                                   onClick={() => setIsSexDropdownOpen(!isSexDropdownOpen)}
-                                  className="absolute right-1 p-1 text-slate-400 hover:text-slate-600 rounded transition-colors"
+                                  className="absolute right-1 p-1 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 rounded transition-colors"
                                 >
                                   <svg className={`size-4 transition-transform duration-200 ${isSexDropdownOpen ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
@@ -480,7 +481,7 @@ export default function Profile() {
                                 </button>
                               </div>
                               {isSexDropdownOpen && (
-                                <div className="absolute z-10 w-full mt-1 bg-white border border-slate-200 rounded-lg shadow-lg max-h-40 overflow-auto py-1">
+                                <div className="absolute z-10 w-full mt-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg shadow-lg max-h-40 overflow-auto py-1">
                                   {["Male", "Female"]
                                     .filter(opt => opt.toLowerCase().includes((editForm.sex || "").toLowerCase()))
                                     .map((opt) => (
@@ -488,7 +489,7 @@ export default function Profile() {
                                         key={opt}
                                         type="button"
                                         onClick={() => { setEditForm({ ...editForm, sex: opt }); setIsSexDropdownOpen(false); }}
-                                        className="w-full text-left px-3 py-1.5 hover:bg-teal-50 hover:text-teal-700 transition-colors text-sm text-slate-700 focus:bg-teal-50 focus:outline-none"
+                                        className="w-full text-left px-3 py-1.5 hover:bg-teal-50 dark:hover:bg-teal-900/30 hover:text-teal-700 dark:hover:text-teal-400 transition-colors text-sm text-slate-700 dark:text-slate-300 focus:bg-teal-50 dark:focus:bg-teal-900/30 focus:outline-none"
                                       >
                                         {opt}
                                       </button>
@@ -501,19 +502,19 @@ export default function Profile() {
                       ) : (
                         <div className="space-y-4">
                           <div>
-                            <div className="text-xs text-slate-500 mb-1">Full Name</div>
-                            <div className="font-medium text-slate-900">
+                            <div className="text-xs text-slate-500 dark:text-slate-400 mb-1">Full Name</div>
+                            <div className="font-medium text-slate-900 dark:text-white">
                               {`${userData.First_Name || ''} ${userData.Middle_Name ? userData.Middle_Name.charAt(0).toUpperCase() + '.' : ''} ${userData.Last_Name || ''} ${userData.Suffix || ''}`.replace(/\s+/g, ' ').trim() || 'N/A'}
                             </div>
                           </div>
                           <div>
-                            <div className="text-xs text-slate-500 mb-1">Position</div>
-                            <div className="font-medium text-slate-900">{userData.Position || 'N/A'}</div>
+                            <div className="text-xs text-slate-500 dark:text-slate-400 mb-1">Position</div>
+                            <div className="font-medium text-slate-900 dark:text-white">{userData.Position || 'N/A'}</div>
                           </div>
                           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <div>
-                              <div className="text-xs text-slate-500 mb-1">Sex</div>
-                              <div className="font-medium text-slate-900">{userData.sex || 'N/A'}</div>
+                              <div className="text-xs text-slate-500 dark:text-slate-400 mb-1">Sex</div>
+                              <div className="font-medium text-slate-900 dark:text-white">{userData.sex || 'N/A'}</div>
                             </div>
                           </div>
                         </div>
@@ -521,9 +522,9 @@ export default function Profile() {
                     </div>
 
                     {/* Employment Details */}
-                    <div className="bg-slate-50 rounded-xl p-6 border border-slate-100 flex flex-col justify-between">
+                    <div className="bg-slate-50 dark:bg-slate-800/50 rounded-xl p-6 border border-slate-100 dark:border-slate-800 flex flex-col justify-between">
                       <div>
-                        <h3 className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-4 flex items-center gap-2">
+                        <h3 className="text-sm font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-4 flex items-center gap-2">
                           <svg className="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>
                           Employment Details
                         </h3>
@@ -531,7 +532,7 @@ export default function Profile() {
                         {isEditing ? (
                           <div className="space-y-4">
                             <div>
-                              <label className="text-xs text-slate-500 mb-1 flex items-center gap-1">
+                              <label className="text-xs text-slate-500 dark:text-slate-400 mb-1 flex items-center gap-1">
                                 Employment Status
                                 {!(userData.Role === 'Admin' || userData.Role === 'Super Admin') && (
                                   <svg className="size-3 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" title="Only Admin can edit this field"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>
@@ -542,13 +543,13 @@ export default function Profile() {
                                 value={editForm.emp_stat} 
                                 onChange={e => setEditForm({ ...editForm, emp_stat: e.target.value })} 
                                 disabled={!(userData.Role === 'Admin' || userData.Role === 'Super Admin')}
-                                className="w-full px-3 py-1.5 border border-slate-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 disabled:bg-slate-100 disabled:text-slate-500 disabled:cursor-not-allowed bg-white text-slate-900" 
+                                className="w-full px-3 py-1.5 border border-slate-300 dark:border-slate-700 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 disabled:bg-slate-100 dark:disabled:bg-slate-800 disabled:text-slate-500 dark:disabled:text-slate-400 disabled:cursor-not-allowed bg-white dark:bg-slate-900 text-slate-900 dark:text-white" 
                               />
                             </div>
 
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                               <div>
-                                <label className="text-xs text-slate-500 mb-1 flex items-center gap-1">
+                                <label className="text-xs text-slate-500 dark:text-slate-400 mb-1 flex items-center gap-1">
                                   Salary Grade
                                   {!(userData.Role === 'Admin' || userData.Role === 'Super Admin') && (
                                     <svg className="size-3 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" title="Only Admin can edit this field"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>
@@ -559,11 +560,11 @@ export default function Profile() {
                                   value={editForm.Salary_Grade} 
                                   onChange={e => setEditForm({ ...editForm, Salary_Grade: e.target.value })} 
                                   disabled={!(userData.Role === 'Admin' || userData.Role === 'Super Admin')}
-                                  className="w-full px-3 py-1.5 border border-slate-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 disabled:bg-slate-100 disabled:text-slate-500 disabled:cursor-not-allowed bg-white text-slate-900" 
+                                  className="w-full px-3 py-1.5 border border-slate-300 dark:border-slate-700 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 disabled:bg-slate-100 dark:disabled:bg-slate-800 disabled:text-slate-500 dark:disabled:text-slate-400 disabled:cursor-not-allowed bg-white dark:bg-slate-900 text-slate-900 dark:text-white" 
                                 />
                               </div>
                               <div>
-                                <label className="text-xs text-slate-500 mb-1 flex items-center gap-1">
+                                <label className="text-xs text-slate-500 dark:text-slate-400 mb-1 flex items-center gap-1">
                                   Salary
                                   {!(userData.Role === 'Admin' || userData.Role === 'Super Admin') && (
                                     <svg className="size-3 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" title="Only Admin can edit this field"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>
@@ -575,7 +576,7 @@ export default function Profile() {
                                   value={editForm.Salary} 
                                   onChange={e => setEditForm({ ...editForm, Salary: e.target.value })} 
                                   disabled={!(userData.Role === 'Admin' || userData.Role === 'Super Admin')}
-                                  className="w-full px-3 py-1.5 border border-slate-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 disabled:bg-slate-100 disabled:text-slate-500 disabled:cursor-not-allowed bg-white text-slate-900" 
+                                  className="w-full px-3 py-1.5 border border-slate-300 dark:border-slate-700 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 disabled:bg-slate-100 dark:disabled:bg-slate-800 disabled:text-slate-500 dark:disabled:text-slate-400 disabled:cursor-not-allowed bg-white dark:bg-slate-900 text-slate-900 dark:text-white" 
                                 />
                               </div>
                             </div>
@@ -583,17 +584,17 @@ export default function Profile() {
                         ) : (
                           <div className="space-y-4">
                             <div>
-                              <div className="text-xs text-slate-500 mb-1">Employment Status</div>
-                              <div className="font-medium text-slate-900">{userData.emp_stat || 'N/A'}</div>
+                              <div className="text-xs text-slate-500 dark:text-slate-400 mb-1">Employment Status</div>
+                              <div className="font-medium text-slate-900 dark:text-white">{userData.emp_stat || 'N/A'}</div>
                             </div>
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                               <div>
-                                <div className="text-xs text-slate-500 mb-1">Salary Grade</div>
-                                <div className="font-medium text-slate-900">{userData.Salary_Grade ? `SG-${userData.Salary_Grade}` : 'N/A'}</div>
+                                <div className="text-xs text-slate-500 dark:text-slate-400 mb-1">Salary Grade</div>
+                                <div className="font-medium text-slate-900 dark:text-white">{userData.Salary_Grade ? `SG-${userData.Salary_Grade}` : 'N/A'}</div>
                               </div>
                               <div>
-                                <div className="text-xs text-slate-500 mb-1">Salary</div>
-                                <div className="font-medium text-slate-900">{formatCurrency(userData.Salary)}</div>
+                                <div className="text-xs text-slate-500 dark:text-slate-400 mb-1">Salary</div>
+                                <div className="font-medium text-slate-900 dark:text-white">{formatCurrency(userData.Salary)}</div>
                               </div>
                             </div>
                           </div>
@@ -601,11 +602,11 @@ export default function Profile() {
                       </div>
 
                       {isEditing && (
-                        <div className="mt-8 flex justify-end gap-3 pt-4 border-t border-slate-200">
+                        <div className="mt-8 flex justify-end gap-3 pt-4 border-t border-slate-200 dark:border-slate-700">
                           <button
                             onClick={() => setIsEditing(false)}
                             disabled={isSaving}
-                            className="px-4 py-2 text-sm font-medium text-slate-600 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 transition-colors"
+                            className="px-4 py-2 text-sm font-medium text-slate-600 dark:text-slate-300 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors"
                           >
                             Cancel
                           </button>
@@ -624,8 +625,8 @@ export default function Profile() {
                   </div>
 
                   {/* Security Settings */}
-                  <div className="bg-slate-50 rounded-xl p-6 border border-slate-100 mt-6">
-                    <h3 className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-6 flex items-center gap-2">
+                  <div className="bg-slate-50 dark:bg-slate-800/50 rounded-xl p-6 border border-slate-100 dark:border-slate-800 mt-6">
+                    <h3 className="text-sm font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-6 flex items-center gap-2">
                       <svg className="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>
                       Security Settings
                     </h3>
@@ -643,16 +644,16 @@ export default function Profile() {
                           </div>
                         )}
                         <div>
-                          <label className="text-xs text-slate-500 mb-1 block">Current Password</label>
-                          <input type="password" required value={currentPassword} onChange={e => setCurrentPassword(e.target.value)} className="w-full px-3 py-1.5 border border-slate-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 bg-white text-slate-900" />
+                          <label className="text-xs text-slate-500 dark:text-slate-400 mb-1 block">Current Password</label>
+                          <input type="password" required value={currentPassword} onChange={e => setCurrentPassword(e.target.value)} className="w-full px-3 py-1.5 border border-slate-300 dark:border-slate-700 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 bg-white dark:bg-slate-900 text-slate-900 dark:text-white" />
                         </div>
                         <div>
-                          <label className="text-xs text-slate-500 mb-1 block">New Password</label>
-                          <input type="password" required value={newPassword} onChange={e => setNewPassword(e.target.value)} className="w-full px-3 py-1.5 border border-slate-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 bg-white text-slate-900" />
+                          <label className="text-xs text-slate-500 dark:text-slate-400 mb-1 block">New Password</label>
+                          <input type="password" required value={newPassword} onChange={e => setNewPassword(e.target.value)} className="w-full px-3 py-1.5 border border-slate-300 dark:border-slate-700 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 bg-white dark:bg-slate-900 text-slate-900 dark:text-white" />
                         </div>
                         <div>
-                          <label className="text-xs text-slate-500 mb-1 block">Confirm New Password</label>
-                          <input type="password" required value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} className="w-full px-3 py-1.5 border border-slate-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 bg-white text-slate-900" />
+                          <label className="text-xs text-slate-500 dark:text-slate-400 mb-1 block">Confirm New Password</label>
+                          <input type="password" required value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} className="w-full px-3 py-1.5 border border-slate-300 dark:border-slate-700 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 bg-white dark:bg-slate-900 text-slate-900 dark:text-white" />
                         </div>
                         <div className="pt-2 flex items-center gap-3">
                           <button
@@ -664,7 +665,7 @@ export default function Profile() {
                               setPasswordError('');
                               setPasswordSuccess('');
                             }}
-                            className="px-4 py-2 text-sm font-medium text-slate-600 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 transition-colors"
+                            className="px-4 py-2 text-sm font-medium text-slate-600 dark:text-slate-300 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors"
                           >
                             Cancel
                           </button>
@@ -683,8 +684,8 @@ export default function Profile() {
 
                   {/* User Management */}
                   {(userData.Role === 'Admin' || userData.Role === 'Super Admin') && (
-                    <div className="bg-slate-50 rounded-xl p-6 border border-slate-100 mt-6">
-                      <h3 className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-6 flex items-center gap-2">
+                    <div className="bg-slate-50 dark:bg-slate-800/50 rounded-xl p-6 border border-slate-100 dark:border-slate-800 mt-6">
+                      <h3 className="text-sm font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-6 flex items-center gap-2">
                         <svg className="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" /></svg>
                         User Management
                       </h3>
@@ -692,9 +693,9 @@ export default function Profile() {
 
                         {/* Update Existing User */}
                         <div className="flex flex-col gap-4">
-                          <h4 className="text-slate-800 font-semibold border-b border-slate-200 pb-2">Update User Information</h4>
+                          <h4 className="text-slate-800 dark:text-white font-semibold border-b border-slate-200 dark:border-slate-700 pb-2">Update User Information</h4>
                           <div>
-                            <label className="text-xs text-slate-500 mb-1 block">Select User</label>
+                            <label className="text-xs text-slate-500 dark:text-slate-400 mb-1 block">Select User</label>
                             <div className={`relative ${isUserDropdownOpen ? 'z-50' : ''}`}>
                               <div className="relative flex items-center">
                                 <input
@@ -704,12 +705,12 @@ export default function Profile() {
                                   onFocus={() => { setIsUserDropdownOpen(true); setSelectedUserEmail(''); setSelectedUserRole(''); }}
                                   onBlur={() => setTimeout(() => setIsUserDropdownOpen(false), 200)}
                                   placeholder="Search user by email or name..."
-                                  className="w-full px-3 py-1.5 border border-slate-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 bg-white text-slate-900 pr-8"
+                                  className="w-full px-3 py-1.5 border border-slate-300 dark:border-slate-700 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 bg-white dark:bg-slate-900 text-slate-900 dark:text-white pr-8"
                                 />
                                 <button
                                   type="button"
                                   onClick={() => { setIsUserDropdownOpen(!isUserDropdownOpen); if (!isUserDropdownOpen) { setSelectedUserEmail(''); setSelectedUserRole(''); } }}
-                                  className="absolute right-1 p-1 text-slate-400 hover:text-slate-600 rounded transition-colors"
+                                  className="absolute right-1 p-1 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 rounded transition-colors"
                                 >
                                   <svg className={`size-4 transition-transform duration-200 ${isUserDropdownOpen ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
@@ -717,7 +718,7 @@ export default function Profile() {
                                 </button>
                               </div>
                               {isUserDropdownOpen && (
-                                <div className="absolute z-10 w-full mt-1 bg-white border border-slate-200 rounded-lg shadow-lg max-h-96 overflow-auto py-1">
+                                <div className="absolute z-10 w-full mt-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg shadow-lg max-h-96 overflow-auto py-1">
                                   {allUsers
                                     .filter(u => u.Email.toLowerCase().includes((selectedUserEmail || "").toLowerCase()) || (u.First_Name || "").toLowerCase().includes((selectedUserEmail || "").toLowerCase()))
                                     .map((u) => (
@@ -738,10 +739,10 @@ export default function Profile() {
                                           setSelectedUserEmpStat(u.emp_stat || '');
                                           setIsUserDropdownOpen(false);
                                         }}
-                                        className="w-full text-left px-3 py-1.5 hover:bg-teal-50 hover:text-teal-700 transition-colors text-sm text-slate-700 focus:bg-teal-50 focus:outline-none flex flex-col"
+                                        className="w-full text-left px-3 py-1.5 hover:bg-teal-50 dark:hover:bg-teal-900/30 hover:text-teal-700 dark:hover:text-teal-400 transition-colors text-sm text-slate-700 dark:text-slate-300 focus:bg-teal-50 dark:focus:bg-teal-900/30 focus:outline-none flex flex-col"
                                       >
                                         <span className="font-medium">{u.First_Name} {u.Last_Name}</span>
-                                        <span className="text-xs text-slate-400">{u.Email}</span>
+                                        <span className="text-xs text-slate-400 dark:text-slate-500">{u.Email}</span>
                                       </button>
                                     ))}
                                 </div>
@@ -753,36 +754,36 @@ export default function Profile() {
                             <div className="flex flex-col gap-3">
                               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                 <div>
-                                  <label className="text-xs text-slate-500 mb-1 block">First Name</label>
-                                  <input type="text" value={selectedUserFirstName} onChange={e => setSelectedUserFirstName(e.target.value)} placeholder="First Name" className="w-full px-3 py-1.5 border border-slate-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 bg-white text-slate-900" />
+                                  <label className="text-xs text-slate-500 dark:text-slate-400 mb-1 block">First Name</label>
+                                  <input type="text" value={selectedUserFirstName} onChange={e => setSelectedUserFirstName(e.target.value)} placeholder="First Name" className="w-full px-3 py-1.5 border border-slate-300 dark:border-slate-700 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 bg-white dark:bg-slate-900 text-slate-900 dark:text-white" />
                                 </div>
                                 <div>
-                                  <label className="text-xs text-slate-500 mb-1 block">Middle Name</label>
-                                  <input type="text" value={selectedUserMiddleName} onChange={e => setSelectedUserMiddleName(e.target.value)} placeholder="Middle Name" className="w-full px-3 py-1.5 border border-slate-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 bg-white text-slate-900" />
+                                  <label className="text-xs text-slate-500 dark:text-slate-400 mb-1 block">Middle Name</label>
+                                  <input type="text" value={selectedUserMiddleName} onChange={e => setSelectedUserMiddleName(e.target.value)} placeholder="Middle Name" className="w-full px-3 py-1.5 border border-slate-300 dark:border-slate-700 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 bg-white dark:bg-slate-900 text-slate-900 dark:text-white" />
                                 </div>
                               </div>
                               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                 <div>
-                                  <label className="text-xs text-slate-500 mb-1 block">Last Name</label>
-                                  <input type="text" value={selectedUserLastName} onChange={e => setSelectedUserLastName(e.target.value)} placeholder="Last Name" className="w-full px-3 py-1.5 border border-slate-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 bg-white text-slate-900" />
+                                  <label className="text-xs text-slate-500 dark:text-slate-400 mb-1 block">Last Name</label>
+                                  <input type="text" value={selectedUserLastName} onChange={e => setSelectedUserLastName(e.target.value)} placeholder="Last Name" className="w-full px-3 py-1.5 border border-slate-300 dark:border-slate-700 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 bg-white dark:bg-slate-900 text-slate-900 dark:text-white" />
                                 </div>
                                 <div>
-                                  <label className="text-xs text-slate-500 mb-1 block">Suffix</label>
-                                  <input type="text" value={selectedUserSuffix} onChange={e => setSelectedUserSuffix(e.target.value)} placeholder="Suffix" className="w-full px-3 py-1.5 border border-slate-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 bg-white text-slate-900" />
+                                  <label className="text-xs text-slate-500 dark:text-slate-400 mb-1 block">Suffix</label>
+                                  <input type="text" value={selectedUserSuffix} onChange={e => setSelectedUserSuffix(e.target.value)} placeholder="Suffix" className="w-full px-3 py-1.5 border border-slate-300 dark:border-slate-700 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 bg-white dark:bg-slate-900 text-slate-900 dark:text-white" />
                                 </div>
                               </div>
                               <div>
-                                <label className="text-xs text-slate-500 mb-1 block">Position</label>
-                                <input type="text" value={selectedUserPosition} onChange={e => setSelectedUserPosition(e.target.value)} placeholder="Position" className="w-full px-3 py-1.5 border border-slate-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 bg-white text-slate-900" />
+                                <label className="text-xs text-slate-500 dark:text-slate-400 mb-1 block">Position</label>
+                                <input type="text" value={selectedUserPosition} onChange={e => setSelectedUserPosition(e.target.value)} placeholder="Position" className="w-full px-3 py-1.5 border border-slate-300 dark:border-slate-700 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 bg-white dark:bg-slate-900 text-slate-900 dark:text-white" />
                               </div>
                               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                 <div>
-                                  <label className="text-xs text-slate-500 mb-1 block">Salary Grade</label>
-                                  <input type="number" value={selectedUserSalaryGrade} onChange={e => setSelectedUserSalaryGrade(e.target.value)} placeholder="Salary Grade" className="w-full px-3 py-1.5 border border-slate-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 bg-white text-slate-900" />
+                                  <label className="text-xs text-slate-500 dark:text-slate-400 mb-1 block">Salary Grade</label>
+                                  <input type="number" value={selectedUserSalaryGrade} onChange={e => setSelectedUserSalaryGrade(e.target.value)} placeholder="Salary Grade" className="w-full px-3 py-1.5 border border-slate-300 dark:border-slate-700 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 bg-white dark:bg-slate-900 text-slate-900 dark:text-white" />
                                 </div>
                                 <div>
-                                  <label className="text-xs text-slate-500 mb-1 block">Salary</label>
-                                  <input type="number" step="0.01" value={selectedUserSalary} onChange={e => setSelectedUserSalary(e.target.value)} placeholder="Salary" className="w-full px-3 py-1.5 border border-slate-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 bg-white text-slate-900" />
+                                  <label className="text-xs text-slate-500 dark:text-slate-400 mb-1 block">Salary</label>
+                                  <input type="number" step="0.01" value={selectedUserSalary} onChange={e => setSelectedUserSalary(e.target.value)} placeholder="Salary" className="w-full px-3 py-1.5 border border-slate-300 dark:border-slate-700 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 bg-white dark:bg-slate-900 text-slate-900 dark:text-white" />
                                 </div>
                               </div>
                               <div className="flex items-center gap-2 mt-1 mb-2">
@@ -795,13 +796,13 @@ export default function Profile() {
                                   } else {
                                     setSelectedUserRole('');
                                   }
-                                }} className="rounded text-teal-600 focus:ring-teal-500" />
-                                <label htmlFor="updateIsRegional" className="text-sm text-slate-700 font-medium">Is from Regional Office</label>
+                                }} className="rounded text-teal-600 focus:ring-teal-500 bg-white dark:bg-slate-900 border-slate-300 dark:border-slate-700" />
+                                <label htmlFor="updateIsRegional" className="text-sm text-slate-700 dark:text-slate-300 font-medium">Is from Regional Office</label>
                               </div>
                               {!selectedUserIsRegional && (
                                 <div className="flex flex-col gap-4">
                                   <div>
-                                    <label className="text-xs text-slate-500 mb-1 block">System Role</label>
+                                    <label className="text-xs text-slate-500 dark:text-slate-400 mb-1 block">System Role</label>
                                     <div className={`relative ${isUserRoleDropdownOpen ? 'z-50' : ''}`}>
                                       <div className="relative flex items-center">
                                         <input
@@ -811,12 +812,12 @@ export default function Profile() {
                                           onFocus={() => { setIsUserRoleDropdownOpen(true); setSelectedUserRole(''); }}
                                           onBlur={() => setTimeout(() => setIsUserRoleDropdownOpen(false), 200)}
                                           placeholder="Select a role..."
-                                          className="w-full px-3 py-1.5 border border-slate-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 bg-white text-slate-900 pr-8"
+                                          className="w-full px-3 py-1.5 border border-slate-300 dark:border-slate-700 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 bg-white dark:bg-slate-900 text-slate-900 dark:text-white pr-8"
                                         />
                                         <button
                                           type="button"
                                           onClick={() => { setIsUserRoleDropdownOpen(!isUserRoleDropdownOpen); if (!isUserRoleDropdownOpen) setSelectedUserRole(''); }}
-                                          className="absolute right-1 p-1 text-slate-400 hover:text-slate-600 rounded transition-colors"
+                                          className="absolute right-1 p-1 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 rounded transition-colors"
                                         >
                                           <svg className={`size-4 transition-transform duration-200 ${isUserRoleDropdownOpen ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
@@ -824,7 +825,7 @@ export default function Profile() {
                                         </button>
                                       </div>
                                       {isUserRoleDropdownOpen && (
-                                        <div className="absolute z-10 w-full mt-1 bg-white border border-slate-200 rounded-lg shadow-lg max-h-60 overflow-auto py-1">
+                                        <div className="absolute z-10 w-full mt-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg shadow-lg max-h-60 overflow-auto py-1">
                                           {(userData.Role === 'Super Admin' ? ["Super Admin", "Admin", "PACD", "Staff", "External Signatory"] : ["PACD", "Staff"])
                                             .filter(role => role.toLowerCase().includes((selectedUserRole || "").toLowerCase()))
                                             .map((role) => (
@@ -832,7 +833,7 @@ export default function Profile() {
                                                 key={role}
                                                 type="button"
                                                 onClick={() => { setSelectedUserRole(role); setIsUserRoleDropdownOpen(false); }}
-                                                className="w-full text-left px-3 py-1.5 hover:bg-teal-50 hover:text-teal-700 transition-colors text-sm text-slate-700 focus:bg-teal-50 focus:outline-none"
+                                                className="w-full text-left px-3 py-1.5 hover:bg-teal-50 dark:hover:bg-teal-900/30 hover:text-teal-700 dark:hover:text-teal-400 transition-colors text-sm text-slate-700 dark:text-slate-300 focus:bg-teal-50 dark:focus:bg-teal-900/30 focus:outline-none"
                                               >
                                                 {role}
                                               </button>
@@ -842,7 +843,7 @@ export default function Profile() {
                                     </div>
                                   </div>
                                   <div>
-                                    <label className="text-xs text-slate-500 mb-1 block">Employment Status</label>
+                                    <label className="text-xs text-slate-500 dark:text-slate-400 mb-1 block">Employment Status</label>
                                     <div className={`relative ${isSelectedUserEmpStatDropdownOpen ? 'z-50' : ''}`}>
                                       <div className="relative flex items-center">
                                         <input
@@ -852,12 +853,12 @@ export default function Profile() {
                                           onFocus={() => setIsSelectedUserEmpStatDropdownOpen(true)}
                                           onBlur={() => setTimeout(() => setIsSelectedUserEmpStatDropdownOpen(false), 200)}
                                           placeholder="Select employment status..."
-                                          className="w-full px-3 py-1.5 border border-slate-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 bg-white text-slate-900 pr-8"
+                                          className="w-full px-3 py-1.5 border border-slate-300 dark:border-slate-700 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 bg-white dark:bg-slate-900 text-slate-900 dark:text-white pr-8"
                                         />
                                         <button
                                           type="button"
                                           onClick={() => setIsSelectedUserEmpStatDropdownOpen(!isSelectedUserEmpStatDropdownOpen)}
-                                          className="absolute right-1 p-1 text-slate-400 hover:text-slate-600 rounded transition-colors"
+                                          className="absolute right-1 p-1 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 rounded transition-colors"
                                         >
                                           <svg className={`size-4 transition-transform duration-200 ${isSelectedUserEmpStatDropdownOpen ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
@@ -865,7 +866,7 @@ export default function Profile() {
                                         </button>
                                       </div>
                                       {isSelectedUserEmpStatDropdownOpen && (
-                                        <div className="absolute z-10 w-full mt-1 bg-white border border-slate-200 rounded-lg shadow-lg max-h-60 overflow-auto py-1">
+                                        <div className="absolute z-10 w-full mt-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg shadow-lg max-h-60 overflow-auto py-1">
                                           {["COSW", "Permanent", "Contractual"]
                                             .filter(stat => stat.toLowerCase().includes((selectedUserEmpStat || "").toLowerCase()))
                                             .map((stat) => (
@@ -873,7 +874,7 @@ export default function Profile() {
                                                 key={stat}
                                                 type="button"
                                                 onClick={() => { setSelectedUserEmpStat(stat); setIsSelectedUserEmpStatDropdownOpen(false); }}
-                                                className="w-full text-left px-3 py-1.5 hover:bg-teal-50 hover:text-teal-700 transition-colors text-sm text-slate-700 focus:bg-teal-50 focus:outline-none"
+                                                className="w-full text-left px-3 py-1.5 hover:bg-teal-50 dark:hover:bg-teal-900/30 hover:text-teal-700 dark:hover:text-teal-400 transition-colors text-sm text-slate-700 dark:text-slate-300 focus:bg-teal-50 dark:focus:bg-teal-900/30 focus:outline-none"
                                               >
                                                 {stat}
                                               </button>
@@ -900,7 +901,7 @@ export default function Profile() {
                                     setSelectedUserEmpStat('');
                                     setSelectedUserRole('');
                                   }}
-                                  className="px-4 py-2 text-sm font-medium text-slate-600 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 transition-colors"
+                                  className="px-4 py-2 text-sm font-medium text-slate-600 dark:text-slate-300 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors"
                                 >
                                   Cancel
                                 </button>
@@ -919,7 +920,7 @@ export default function Profile() {
 
                         {/* Create New User */}
                         <div className="flex flex-col gap-4">
-                          <h4 className="text-slate-800 font-semibold border-b border-slate-200 pb-2">Create New User</h4>
+                          <h4 className="text-slate-800 dark:text-white font-semibold border-b border-slate-200 dark:border-slate-700 pb-2">Create New User</h4>
 
                           {createUserSuccess && (
                             <div className="bg-emerald-50 text-emerald-700 p-2 text-xs rounded border border-emerald-200">
@@ -928,33 +929,33 @@ export default function Profile() {
                           )}
 
                           <div>
-                            <label className="text-xs text-slate-500 mb-1 block">Email</label>
-                            <input type="email" value={newUserEmail} onChange={e => setNewUserEmail(e.target.value)} placeholder="Email Address" className="w-full px-3 py-1.5 border border-slate-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 bg-white text-slate-900" />
+                            <label className="text-xs text-slate-500 dark:text-slate-400 mb-1 block">Email</label>
+                            <input type="email" value={newUserEmail} onChange={e => setNewUserEmail(e.target.value)} placeholder="Email Address" className="w-full px-3 py-1.5 border border-slate-300 dark:border-slate-700 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 bg-white dark:bg-slate-900 text-slate-900 dark:text-white" />
                           </div>
                           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <div>
-                              <label className="text-xs text-slate-500 mb-1 block">First Name</label>
-                              <input type="text" value={newUserFirstName} onChange={e => setNewUserFirstName(e.target.value)} placeholder="First Name" className="w-full px-3 py-1.5 border border-slate-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 bg-white text-slate-900" />
+                              <label className="text-xs text-slate-500 dark:text-slate-400 mb-1 block">First Name</label>
+                              <input type="text" value={newUserFirstName} onChange={e => setNewUserFirstName(e.target.value)} placeholder="First Name" className="w-full px-3 py-1.5 border border-slate-300 dark:border-slate-700 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 bg-white dark:bg-slate-900 text-slate-900 dark:text-white" />
                             </div>
                             <div>
-                              <label className="text-xs text-slate-500 mb-1 block">Middle Name (Optional)</label>
-                              <input type="text" value={newUserMiddleName} onChange={e => setNewUserMiddleName(e.target.value)} placeholder="Middle Name" className="w-full px-3 py-1.5 border border-slate-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 bg-white text-slate-900" />
+                              <label className="text-xs text-slate-500 dark:text-slate-400 mb-1 block">Middle Name (Optional)</label>
+                              <input type="text" value={newUserMiddleName} onChange={e => setNewUserMiddleName(e.target.value)} placeholder="Middle Name" className="w-full px-3 py-1.5 border border-slate-300 dark:border-slate-700 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 bg-white dark:bg-slate-900 text-slate-900 dark:text-white" />
                             </div>
                           </div>
                           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <div>
-                              <label className="text-xs text-slate-500 mb-1 block">Last Name</label>
-                              <input type="text" value={newUserLastName} onChange={e => setNewUserLastName(e.target.value)} placeholder="Last Name" className="w-full px-3 py-1.5 border border-slate-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 bg-white text-slate-900" />
+                              <label className="text-xs text-slate-500 dark:text-slate-400 mb-1 block">Last Name</label>
+                              <input type="text" value={newUserLastName} onChange={e => setNewUserLastName(e.target.value)} placeholder="Last Name" className="w-full px-3 py-1.5 border border-slate-300 dark:border-slate-700 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 bg-white dark:bg-slate-900 text-slate-900 dark:text-white" />
                             </div>
                             <div>
-                              <label className="text-xs text-slate-500 mb-1 block">Suffix (Optional)</label>
-                              <input type="text" value={newUserSuffix} onChange={e => setNewUserSuffix(e.target.value)} placeholder="E.g., Jr., Sr., III" className="w-full px-3 py-1.5 border border-slate-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 bg-white text-slate-900" />
+                              <label className="text-xs text-slate-500 dark:text-slate-400 mb-1 block">Suffix (Optional)</label>
+                              <input type="text" value={newUserSuffix} onChange={e => setNewUserSuffix(e.target.value)} placeholder="E.g., Jr., Sr., III" className="w-full px-3 py-1.5 border border-slate-300 dark:border-slate-700 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 bg-white dark:bg-slate-900 text-slate-900 dark:text-white" />
                             </div>
                           </div>
 
                           <div>
-                            <label className="text-xs text-slate-500 mb-1 block">Position</label>
-                            <input type="text" value={newUserPosition} onChange={e => setNewUserPosition(e.target.value)} placeholder="Position" className="w-full px-3 py-1.5 border border-slate-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 bg-white text-slate-900" />
+                            <label className="text-xs text-slate-500 dark:text-slate-400 mb-1 block">Position</label>
+                            <input type="text" value={newUserPosition} onChange={e => setNewUserPosition(e.target.value)} placeholder="Position" className="w-full px-3 py-1.5 border border-slate-300 dark:border-slate-700 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 bg-white dark:bg-slate-900 text-slate-900 dark:text-white" />
                           </div>
                           <div className="flex items-center gap-2">
                             <input type="checkbox" id="newIsRegional" checked={newUserIsRegional} onChange={e => {
@@ -966,14 +967,14 @@ export default function Profile() {
                               } else {
                                 setNewUserRole('');
                               }
-                            }} className="rounded text-teal-600 focus:ring-teal-500" />
-                            <label htmlFor="newIsRegional" className="text-sm text-slate-700 font-medium">Is from Regional Office</label>
+                            }} className="rounded text-teal-600 focus:ring-teal-500 bg-white dark:bg-slate-900 border-slate-300 dark:border-slate-700" />
+                            <label htmlFor="newIsRegional" className="text-sm text-slate-700 dark:text-slate-300 font-medium">Is from Regional Office</label>
                           </div>
 
                           {!newUserIsRegional && (
                             <div className="flex flex-col gap-4">
                               <div>
-                                <label className="text-xs text-slate-500 mb-1 block">System Role</label>
+                                <label className="text-xs text-slate-500 dark:text-slate-400 mb-1 block">System Role</label>
                                 <div className={`relative ${isNewUserRoleDropdownOpen ? 'z-50' : ''}`}>
                                   <div className="relative flex items-center">
                                     <input
@@ -983,12 +984,12 @@ export default function Profile() {
                                       onFocus={() => setIsNewUserRoleDropdownOpen(true)}
                                       onBlur={() => setTimeout(() => setIsNewUserRoleDropdownOpen(false), 200)}
                                       placeholder="Select a role..."
-                                      className="w-full px-3 py-1.5 border border-slate-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 bg-white text-slate-900 pr-8"
+                                      className="w-full px-3 py-1.5 border border-slate-300 dark:border-slate-700 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 bg-white dark:bg-slate-900 text-slate-900 dark:text-white pr-8"
                                     />
                                     <button
                                       type="button"
                                       onClick={() => setIsNewUserRoleDropdownOpen(!isNewUserRoleDropdownOpen)}
-                                      className="absolute right-1 p-1 text-slate-400 hover:text-slate-600 rounded transition-colors"
+                                      className="absolute right-1 p-1 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 rounded transition-colors"
                                     >
                                       <svg className={`size-4 transition-transform duration-200 ${isNewUserRoleDropdownOpen ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
@@ -996,7 +997,7 @@ export default function Profile() {
                                     </button>
                                   </div>
                                   {isNewUserRoleDropdownOpen && (
-                                    <div className="absolute z-10 w-full mt-1 bg-white border border-slate-200 rounded-lg shadow-lg max-h-60 overflow-auto py-1">
+                                    <div className="absolute z-10 w-full mt-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg shadow-lg max-h-60 overflow-auto py-1">
                                       {(userData.Role === 'Super Admin' ? ["Super Admin", "Admin", "PACD", "Staff"] : ["PACD", "Staff"])
                                         .filter(role => role.toLowerCase().includes((newUserRole || "").toLowerCase()))
                                         .map((role) => (
@@ -1004,7 +1005,7 @@ export default function Profile() {
                                             key={role}
                                             type="button"
                                             onClick={() => { setNewUserRole(role); setIsNewUserRoleDropdownOpen(false); }}
-                                            className="w-full text-left px-3 py-1.5 hover:bg-teal-50 hover:text-teal-700 transition-colors text-sm text-slate-700 focus:bg-teal-50 focus:outline-none"
+                                            className="w-full text-left px-3 py-1.5 hover:bg-teal-50 dark:hover:bg-teal-900/30 hover:text-teal-700 dark:hover:text-teal-400 transition-colors text-sm text-slate-700 dark:text-slate-300 focus:bg-teal-50 dark:focus:bg-teal-900/30 focus:outline-none"
                                           >
                                             {role}
                                           </button>
@@ -1015,7 +1016,7 @@ export default function Profile() {
                               </div>
 
                               <div>
-                                <label className="text-xs text-slate-500 mb-1 block">Employment Status</label>
+                                <label className="text-xs text-slate-500 dark:text-slate-400 mb-1 block">Employment Status</label>
                                 <div className={`relative ${isNewUserEmpStatDropdownOpen ? 'z-50' : ''}`}>
                                   <div className="relative flex items-center">
                                     <input
@@ -1025,12 +1026,12 @@ export default function Profile() {
                                       onFocus={() => setIsNewUserEmpStatDropdownOpen(true)}
                                       onBlur={() => setTimeout(() => setIsNewUserEmpStatDropdownOpen(false), 200)}
                                       placeholder="Select employment status..."
-                                      className="w-full px-3 py-1.5 border border-slate-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 bg-white text-slate-900 pr-8"
+                                      className="w-full px-3 py-1.5 border border-slate-300 dark:border-slate-700 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 bg-white dark:bg-slate-900 text-slate-900 dark:text-white pr-8"
                                     />
                                     <button
                                       type="button"
                                       onClick={() => setIsNewUserEmpStatDropdownOpen(!isNewUserEmpStatDropdownOpen)}
-                                      className="absolute right-1 p-1 text-slate-400 hover:text-slate-600 rounded transition-colors"
+                                      className="absolute right-1 p-1 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 rounded transition-colors"
                                     >
                                       <svg className={`size-4 transition-transform duration-200 ${isNewUserEmpStatDropdownOpen ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
@@ -1038,7 +1039,7 @@ export default function Profile() {
                                     </button>
                                   </div>
                                   {isNewUserEmpStatDropdownOpen && (
-                                    <div className="absolute z-10 w-full mt-1 bg-white border border-slate-200 rounded-lg shadow-lg max-h-60 overflow-auto py-1">
+                                    <div className="absolute z-10 w-full mt-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg shadow-lg max-h-60 overflow-auto py-1">
                                       {["COSW", "Permanent", "Contractual"]
                                         .filter(stat => stat.toLowerCase().includes((newUserEmpStat || "").toLowerCase()))
                                         .map((stat) => (
@@ -1046,7 +1047,7 @@ export default function Profile() {
                                             key={stat}
                                             type="button"
                                             onClick={() => { setNewUserEmpStat(stat); setIsNewUserEmpStatDropdownOpen(false); }}
-                                            className="w-full text-left px-3 py-1.5 hover:bg-teal-50 hover:text-teal-700 transition-colors text-sm text-slate-700 focus:bg-teal-50 focus:outline-none"
+                                            className="w-full text-left px-3 py-1.5 hover:bg-teal-50 dark:hover:bg-teal-900/30 hover:text-teal-700 dark:hover:text-teal-400 transition-colors text-sm text-slate-700 dark:text-slate-300 focus:bg-teal-50 dark:focus:bg-teal-900/30 focus:outline-none"
                                           >
                                             {stat}
                                           </button>
@@ -1073,7 +1074,7 @@ export default function Profile() {
                                 setNewUserRole('');
                                 setCreateUserSuccess('');
                               }}
-                              className="px-4 py-2 text-sm font-medium text-slate-600 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 transition-colors"
+                              className="px-4 py-2 text-sm font-medium text-slate-600 dark:text-slate-300 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors"
                             >
                               Cancel
                             </button>
@@ -1093,12 +1094,12 @@ export default function Profile() {
                   )}
                 </>
               ) : (
-                <div className="mt-8 text-center py-12 bg-slate-50 rounded-xl border border-slate-100 border-dashed">
-                  <div className="w-12 h-12 bg-slate-200 text-slate-400 rounded-full flex items-center justify-center mx-auto mb-3">
+                <div className="mt-8 text-center py-12 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-slate-100 dark:border-slate-800 border-dashed">
+                  <div className="w-12 h-12 bg-slate-200 dark:bg-slate-700 text-slate-400 dark:text-slate-500 rounded-full flex items-center justify-center mx-auto mb-3">
                     <svg className="size-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
                   </div>
-                  <h3 className="text-slate-900 font-medium mb-1">No Profile Data Found</h3>
-                  <p className="text-slate-500 text-sm max-w-sm mx-auto">Your account is active, but we couldn't find an associated record in the permissions database. Please contact an Administrator to update your profile.</p>
+                  <h3 className="text-slate-900 dark:text-white font-medium mb-1">No Profile Data Found</h3>
+                  <p className="text-slate-500 dark:text-slate-400 text-sm max-w-sm mx-auto">Your account is active, but we couldn't find an associated record in the permissions database. Please contact an Administrator to update your profile.</p>
                 </div>
               )}
             </div>

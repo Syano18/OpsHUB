@@ -3,6 +3,7 @@ import { useOutletContext } from 'react-router-dom';
 import { UserButton, useUser, useAuth } from '@clerk/clerk-react';
 import CscForm6Printable from './components/CscForm6Printable';
 import UseLeavePrintable from './components/UseLeavePrintable';
+import ThemeToggleIcon from './ThemeToggleIcon';
 import Alert from './Alert';
 import { toJpeg } from 'html-to-image';
 import { jsPDF } from 'jspdf';
@@ -844,21 +845,22 @@ export default function LeaveCredits() {
   };
 
   return (
-    <div className="h-full flex flex-col overflow-hidden bg-slate-50/50">
+    <div className="h-full flex flex-col overflow-hidden bg-slate-50/50 dark:bg-slate-950/50 text-slate-900 dark:text-slate-100">
       {/* Header */}
-      <header className="shrink-0 h-16 bg-white border-b border-slate-200 flex items-center justify-between px-4 md:px-8 shadow-sm sticky top-0 z-20">
+      <header className="shrink-0 h-16 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between px-4 md:px-8 shadow-sm sticky top-0 z-20">
         <div className="flex items-center gap-2">
-          <button onClick={() => setIsSidebarOpen(true)} className="md:hidden p-2 -ml-2 mr-1 text-slate-600 hover:bg-slate-100 rounded-lg transition-colors">
+          <button onClick={() => setIsSidebarOpen(true)} className="md:hidden p-2 -ml-2 mr-1 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors">
             <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" /></svg>
           </button>
-          <h2 className="text-xl font-bold text-slate-800 flex items-center gap-2">
+          <h2 className="text-xl font-bold text-slate-800 dark:text-white flex items-center gap-2">
             Leave Credits
           </h2>
         </div>
         <div className="flex items-center gap-4">
-          <div className="text-sm text-slate-600 font-medium hidden sm:block">
+          <div className="text-sm text-slate-600 dark:text-slate-300 font-medium hidden sm:block">
             {user?.firstName ? `Welcome back, ${user.firstName}!` : 'Welcome back!'}
           </div>
+          <ThemeToggleIcon />
           <UserButton
             afterSignOutUrl="/"
             userProfileMode="navigation"
@@ -889,7 +891,7 @@ export default function LeaveCredits() {
         </div>
 
         {debugError && (
-          <div className="mb-8 p-4 bg-red-50 text-red-700 border border-red-200 rounded-lg whitespace-pre-wrap">
+          <div className="mb-8 p-4 bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-400 border border-red-200 dark:border-red-800/30 rounded-lg whitespace-pre-wrap">
             <strong>Error:</strong> {debugError}
           </div>
         )}
@@ -898,19 +900,19 @@ export default function LeaveCredits() {
 
           {/* Vacation Leave */}
           {empStat !== 'COSW' && (
-            <div onClick={() => handleCardClick('Vacation Leave')} className="cursor-pointer group relative overflow-hidden rounded-2xl bg-white border border-slate-200 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300">
+            <div onClick={() => handleCardClick('Vacation Leave')} className="cursor-pointer group relative overflow-hidden rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300">
               <div className="absolute top-0 right-0 p-6 opacity-10 group-hover:opacity-20 transition-opacity">
                 <svg className="w-24 h-24 text-amber-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1"><path strokeLinecap="round" strokeLinejoin="round" d="M3 15a4 4 0 004 4h9a5 5 0 10-.1-9.999 5.002 5.002 0 10-9.78 2.096A4.001 4.001 0 003 15z" /></svg>
               </div>
               <div className="p-8 relative z-10">
-                <div className="w-12 h-12 bg-amber-50 text-amber-600 rounded-xl flex items-center justify-center mb-6 shadow-sm border border-amber-100">
+                <div className="w-12 h-12 bg-amber-50 dark:bg-amber-900/30 text-amber-600 dark:text-amber-500 rounded-xl flex items-center justify-center mb-6 shadow-sm border border-amber-100 dark:border-amber-800/30">
                   <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M3 15a4 4 0 004 4h9a5 5 0 10-.1-9.999 5.002 5.002 0 10-9.78 2.096A4.001 4.001 0 003 15z" /></svg>
                 </div>
-                <h3 className="text-lg font-bold text-slate-800 mb-1">Vacation Leave</h3>
-                <p className="text-sm text-slate-500 font-medium mb-6">Rest & Recreation</p>
+                <h3 className="text-lg font-bold text-slate-800 dark:text-white mb-1">Vacation Leave</h3>
+                <p className="text-sm text-slate-500 dark:text-slate-400 font-medium mb-6">Rest & Recreation</p>
                 <div className="flex items-end gap-2">
-                  <span className="text-5xl font-black text-slate-800 tracking-tighter">{Number(userBalances.vl_balance).toFixed(2)}</span>
-                  <span className="text-sm font-bold text-slate-400 mb-2 uppercase tracking-wider">Days</span>
+                  <span className="text-5xl font-black text-slate-800 dark:text-slate-100 tracking-tighter">{Number(userBalances.vl_balance).toFixed(2)}</span>
+                  <span className="text-sm font-bold text-slate-400 dark:text-slate-500 mb-2 uppercase tracking-wider">Days</span>
                 </div>
               </div>
               <div className="h-1.5 w-full bg-gradient-to-r from-amber-400 to-orange-500"></div>
@@ -919,19 +921,19 @@ export default function LeaveCredits() {
 
           {/* Forced Leave */}
           {empStat !== 'COSW' && (
-            <div onClick={() => handleCardClick('Forced Leave')} className="cursor-pointer group relative overflow-hidden rounded-2xl bg-white border border-slate-200 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300">
+            <div onClick={() => handleCardClick('Forced Leave')} className="cursor-pointer group relative overflow-hidden rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300">
               <div className="absolute top-0 right-0 p-6 opacity-10 group-hover:opacity-20 transition-opacity">
                 <svg className="w-24 h-24 text-rose-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1"><path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
               </div>
               <div className="p-8 relative z-10">
-                <div className="w-12 h-12 bg-rose-50 text-rose-600 rounded-xl flex items-center justify-center mb-6 shadow-sm border border-rose-100">
+                <div className="w-12 h-12 bg-rose-50 dark:bg-rose-900/30 text-rose-600 dark:text-rose-500 rounded-xl flex items-center justify-center mb-6 shadow-sm border border-rose-100 dark:border-rose-800/30">
                   <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
                 </div>
-                <h3 className="text-lg font-bold text-slate-800 mb-1">Forced Leave</h3>
-                <p className="text-sm text-slate-500 font-medium mb-6">Mandatory Time Off</p>
+                <h3 className="text-lg font-bold text-slate-800 dark:text-white mb-1">Forced Leave</h3>
+                <p className="text-sm text-slate-500 dark:text-slate-400 font-medium mb-6">Mandatory Time Off</p>
                 <div className="flex items-end gap-2">
-                  <span className="text-5xl font-black text-slate-800 tracking-tighter">{Number(userBalances.fl_balance).toFixed(2)}</span>
-                  <span className="text-sm font-bold text-slate-400 mb-2 uppercase tracking-wider">Days</span>
+                  <span className="text-5xl font-black text-slate-800 dark:text-slate-100 tracking-tighter">{Number(userBalances.fl_balance).toFixed(2)}</span>
+                  <span className="text-sm font-bold text-slate-400 dark:text-slate-500 mb-2 uppercase tracking-wider">Days</span>
                 </div>
               </div>
               <div className="h-1.5 w-full bg-gradient-to-r from-rose-400 to-red-600"></div>
@@ -940,19 +942,19 @@ export default function LeaveCredits() {
 
           {/* Sick Leave */}
           {empStat !== 'COSW' && (
-            <div onClick={() => handleCardClick('Sick Leave')} className="cursor-pointer group relative overflow-hidden rounded-2xl bg-white border border-slate-200 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300">
+            <div onClick={() => handleCardClick('Sick Leave')} className="cursor-pointer group relative overflow-hidden rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300">
               <div className="absolute top-0 right-0 p-6 opacity-10 group-hover:opacity-20 transition-opacity">
                 <svg className="w-24 h-24 text-teal-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1"><path strokeLinecap="round" strokeLinejoin="round" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z" /></svg>
               </div>
               <div className="p-8 relative z-10">
-                <div className="w-12 h-12 bg-teal-50 text-teal-600 rounded-xl flex items-center justify-center mb-6 shadow-sm border border-teal-100">
+                <div className="w-12 h-12 bg-teal-50 dark:bg-teal-900/30 text-teal-600 dark:text-teal-500 rounded-xl flex items-center justify-center mb-6 shadow-sm border border-teal-100 dark:border-teal-800/30">
                   <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z" /></svg>
                 </div>
-                <h3 className="text-lg font-bold text-slate-800 mb-1">Sick Leave</h3>
-                <p className="text-sm text-slate-500 font-medium mb-6">Medical & Recovery</p>
+                <h3 className="text-lg font-bold text-slate-800 dark:text-white mb-1">Sick Leave</h3>
+                <p className="text-sm text-slate-500 dark:text-slate-400 font-medium mb-6">Medical & Recovery</p>
                 <div className="flex items-end gap-2">
-                  <span className="text-5xl font-black text-slate-800 tracking-tighter">{Number(userBalances.sl_balance).toFixed(2)}</span>
-                  <span className="text-sm font-bold text-slate-400 mb-2 uppercase tracking-wider">Days</span>
+                  <span className="text-5xl font-black text-slate-800 dark:text-slate-100 tracking-tighter">{Number(userBalances.sl_balance).toFixed(2)}</span>
+                  <span className="text-sm font-bold text-slate-400 dark:text-slate-500 mb-2 uppercase tracking-wider">Days</span>
                 </div>
               </div>
               <div className="h-1.5 w-full bg-gradient-to-r from-teal-400 to-emerald-500"></div>
@@ -961,19 +963,19 @@ export default function LeaveCredits() {
 
           {/* Special Privilege Leave */}
           {empStat !== 'COSW' && (
-            <div onClick={() => handleCardClick('Special Privilege Leave')} className="cursor-pointer group relative overflow-hidden rounded-2xl bg-white border border-slate-200 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300">
+            <div onClick={() => handleCardClick('Special Privilege Leave')} className="cursor-pointer group relative overflow-hidden rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300">
               <div className="absolute top-0 right-0 p-6 opacity-10 group-hover:opacity-20 transition-opacity">
                 <svg className="w-24 h-24 text-indigo-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1"><path strokeLinecap="round" strokeLinejoin="round" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" /></svg>
               </div>
               <div className="p-8 relative z-10">
-                <div className="w-12 h-12 bg-indigo-50 text-indigo-600 rounded-xl flex items-center justify-center mb-6 shadow-sm border border-indigo-100">
+                <div className="w-12 h-12 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-500 rounded-xl flex items-center justify-center mb-6 shadow-sm border border-indigo-100 dark:border-indigo-800/30">
                   <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" /></svg>
                 </div>
-                <h3 className="text-lg font-bold text-slate-800 mb-1">Special Privilege Leave</h3>
-                <p className="text-sm text-slate-500 font-medium mb-6">Personal Milestones</p>
+                <h3 className="text-lg font-bold text-slate-800 dark:text-white mb-1">Special Privilege Leave</h3>
+                <p className="text-sm text-slate-500 dark:text-slate-400 font-medium mb-6">Personal Milestones</p>
                 <div className="flex items-end gap-2">
-                  <span className="text-5xl font-black text-slate-800 tracking-tighter">{Number(userBalances.spl_balance).toFixed(2)}</span>
-                  <span className="text-sm font-bold text-slate-400 mb-2 uppercase tracking-wider">Days</span>
+                  <span className="text-5xl font-black text-slate-800 dark:text-slate-100 tracking-tighter">{Number(userBalances.spl_balance).toFixed(2)}</span>
+                  <span className="text-sm font-bold text-slate-400 dark:text-slate-500 mb-2 uppercase tracking-wider">Days</span>
                 </div>
               </div>
               <div className="h-1.5 w-full bg-gradient-to-r from-indigo-400 to-blue-600"></div>
@@ -981,19 +983,19 @@ export default function LeaveCredits() {
           )}
 
           {/* Wellness Leave */}
-          <div onClick={() => handleCardClick('Wellness Leave')} className="cursor-pointer group relative overflow-hidden rounded-2xl bg-white border border-slate-200 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300">
+          <div onClick={() => handleCardClick('Wellness Leave')} className="cursor-pointer group relative overflow-hidden rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300">
             <div className="absolute top-0 right-0 p-6 opacity-10 group-hover:opacity-20 transition-opacity">
               <svg className="w-24 h-24 text-fuchsia-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1"><path strokeLinecap="round" strokeLinejoin="round" d="M14.828 14.828a4 4 0 01-5.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
             </div>
             <div className="p-8 relative z-10">
-              <div className="w-12 h-12 bg-fuchsia-50 text-fuchsia-600 rounded-xl flex items-center justify-center mb-6 shadow-sm border border-fuchsia-100">
+              <div className="w-12 h-12 bg-fuchsia-50 dark:bg-fuchsia-900/30 text-fuchsia-600 dark:text-fuchsia-500 rounded-xl flex items-center justify-center mb-6 shadow-sm border border-fuchsia-100 dark:border-fuchsia-800/30">
                 <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M14.828 14.828a4 4 0 01-5.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
               </div>
-              <h3 className="text-lg font-bold text-slate-800 mb-1">Wellness Leave</h3>
-              <p className="text-sm text-slate-500 font-medium mb-6">Mental & Physical Health</p>
+              <h3 className="text-lg font-bold text-slate-800 dark:text-white mb-1">Wellness Leave</h3>
+              <p className="text-sm text-slate-500 dark:text-slate-400 font-medium mb-6">Mental & Physical Health</p>
               <div className="flex items-end gap-2">
-                <span className="text-5xl font-black text-slate-800 tracking-tighter">{Number(userBalances.wl_balance).toFixed(2)}</span>
-                <span className="text-sm font-bold text-slate-400 mb-2 uppercase tracking-wider">Days</span>
+                <span className="text-5xl font-black text-slate-800 dark:text-slate-100 tracking-tighter">{Number(userBalances.wl_balance).toFixed(2)}</span>
+                <span className="text-sm font-bold text-slate-400 dark:text-slate-500 mb-2 uppercase tracking-wider">Days</span>
               </div>
             </div>
             <div className="h-1.5 w-full bg-gradient-to-r from-fuchsia-400 to-pink-600"></div>
@@ -1001,19 +1003,19 @@ export default function LeaveCredits() {
 
           {/* USE Leave */}
           {(empStat !== 'COSW' && !(userPosition && userPosition.toLowerCase().includes('chief statistical'))) && (
-            <div onClick={() => handleCardClick('USE Leave')} className="cursor-pointer group relative overflow-hidden rounded-2xl bg-white border border-slate-200 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300">
+            <div onClick={() => handleCardClick('USE Leave')} className="cursor-pointer group relative overflow-hidden rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300">
               <div className="absolute top-0 right-0 p-6 opacity-10 group-hover:opacity-20 transition-opacity">
                 <svg className="w-24 h-24 text-sky-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1"><path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
               </div>
               <div className="p-8 relative z-10">
-                <div className="w-12 h-12 bg-sky-50 text-sky-600 rounded-xl flex items-center justify-center mb-6 shadow-sm border border-sky-100">
+                <div className="w-12 h-12 bg-sky-50 dark:bg-sky-900/30 text-sky-600 dark:text-sky-500 rounded-xl flex items-center justify-center mb-6 shadow-sm border border-sky-100 dark:border-sky-800/30">
                   <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
                 </div>
-                <h3 className="text-lg font-bold text-slate-800 mb-1">USE Leave</h3>
-                <p className="text-sm text-slate-500 font-medium mb-6">Union of Statistics Employees</p>
+                <h3 className="text-lg font-bold text-slate-800 dark:text-white mb-1">USE Leave</h3>
+                <p className="text-sm text-slate-500 dark:text-slate-400 font-medium mb-6">Union of Statistics Employees</p>
                 <div className="flex items-end gap-2">
-                  <span className="text-5xl font-black text-slate-800 tracking-tighter">{Number(userBalances.use_balance).toFixed(2)}</span>
-                  <span className="text-sm font-bold text-slate-400 mb-2 uppercase tracking-wider">Days</span>
+                  <span className="text-5xl font-black text-slate-800 dark:text-slate-100 tracking-tighter">{Number(userBalances.use_balance).toFixed(2)}</span>
+                  <span className="text-sm font-bold text-slate-400 dark:text-slate-500 mb-2 uppercase tracking-wider">Days</span>
                 </div>
               </div>
               <div className="h-1.5 w-full bg-gradient-to-r from-sky-400 to-cyan-500"></div>
@@ -1028,13 +1030,13 @@ export default function LeaveCredits() {
             <div className="flex gap-4 mb-6 flex-wrap">
               <button
                 onClick={() => setActiveAdminTab('applications')}
-                className={`px-4 py-2 rounded-lg font-medium transition-colors ${activeAdminTab === 'applications' ? 'bg-indigo-600 text-white shadow-sm' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}
+                className={`px-4 py-2 rounded-lg font-medium transition-colors ${activeAdminTab === 'applications' ? 'bg-indigo-600 text-white shadow-sm' : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700'}`}
               >
                 Leave Applications Management
               </button>
               <button
                 onClick={() => setActiveAdminTab('balances')}
-                className={`px-4 py-2 rounded-lg font-medium transition-colors ${activeAdminTab === 'balances' ? 'bg-indigo-600 text-white shadow-sm' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}
+                className={`px-4 py-2 rounded-lg font-medium transition-colors ${activeAdminTab === 'balances' ? 'bg-indigo-600 text-white shadow-sm' : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700'}`}
               >
                 Leave Balances Management
               </button>
@@ -1053,11 +1055,11 @@ export default function LeaveCredits() {
             {/* Leave Applications Management */}
             {activeAdminTab === 'applications' && (
               <div ref={applicationsRef} className="scroll-mt-8">
-                <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-x-auto">
+                <div className="bg-white dark:bg-slate-900 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800 overflow-x-auto">
                   <table className="w-full text-left border-collapse min-w-[1000px]">
                     <thead>
-                      <tr className="bg-slate-50 border-b border-slate-200 text-sm uppercase tracking-wider text-slate-500">
-                        <th className="px-6 py-4 font-semibold sticky left-0 bg-slate-50 z-10 shadow-[1px_0_0_0_#e2e8f0]">Employee</th>
+                      <tr className="bg-slate-50 dark:bg-slate-800/50 border-b border-slate-200 dark:border-slate-800 text-sm uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                        <th className="px-6 py-4 font-semibold sticky left-0 bg-slate-50 dark:bg-slate-800/50 z-10 shadow-[1px_0_0_0_#e2e8f0] dark:shadow-[1px_0_0_0_#1e293b]">Employee</th>
                         <th className="px-6 py-4 font-semibold">Leave Type</th>
                         <th className="px-6 py-4 font-semibold">Dates</th>
                         <th className="px-6 py-4 font-semibold">Days</th>
@@ -1066,20 +1068,20 @@ export default function LeaveCredits() {
                         <th className="px-6 py-4 font-semibold text-right">Actions</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-slate-100">
+                    <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
                       {allFiledLeaves.map((leave, idx) => (
-                        <tr key={idx} className="hover:bg-slate-50 transition-colors group">
-                          <td className="px-6 py-4 sticky left-0 bg-white group-hover:bg-slate-50 z-10 shadow-[1px_0_0_0_#e2e8f0]">
-                            <div className="font-semibold text-slate-800">{leave.First_Name} {leave.Last_Name}</div>
-                            <div className="text-sm text-slate-500">{leave.user_email}</div>
+                        <tr key={idx} className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors group">
+                          <td className="px-6 py-4 sticky left-0 bg-white dark:bg-slate-900 group-hover:bg-slate-50 dark:group-hover:bg-slate-800/50 z-10 shadow-[1px_0_0_0_#e2e8f0] dark:shadow-[1px_0_0_0_#1e293b]">
+                            <div className="font-semibold text-slate-800 dark:text-white">{leave.First_Name} {leave.Last_Name}</div>
+                            <div className="text-sm text-slate-500 dark:text-slate-400">{leave.user_email}</div>
                           </td>
-                          <td className="px-6 py-4 text-slate-700">
+                          <td className="px-6 py-4 text-slate-700 dark:text-slate-300">
                             <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
                               {leave.leave_type}
                             </span>
                           </td>
-                          <td className="px-6 py-4 text-slate-700 text-sm whitespace-pre-wrap">{leave.start_date}</td>
-                          <td className="px-6 py-4 text-slate-700 font-medium">{leave.days_applied}</td>
+                          <td className="px-6 py-4 text-slate-700 dark:text-slate-300 text-sm whitespace-pre-wrap">{leave.start_date}</td>
+                          <td className="px-6 py-4 text-slate-700 dark:text-slate-300 font-medium">{leave.days_applied}</td>
                           <td className="px-6 py-4">
                             <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${leave.has_document === 1 ? 'bg-purple-100 text-purple-800' : 'bg-orange-100 text-orange-800'}`}>
                               {leave.has_document === 1 ? 'Digital' : 'Manual'}
@@ -1097,7 +1099,7 @@ export default function LeaveCredits() {
                           <td className="px-6 py-4 text-right">
                             <button
                               onClick={() => setSelectedApplication(leave)}
-                              className="p-2 rounded-lg text-indigo-600 hover:bg-indigo-50 transition-colors inline-flex"
+                              className="p-2 rounded-lg text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 transition-colors inline-flex"
                               title="View Application Details"
                             >
                               <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
@@ -1139,11 +1141,11 @@ export default function LeaveCredits() {
             {/* Leave Balances Management */}
             {activeAdminTab === 'balances' && (
               <div ref={balancesRef} className="scroll-mt-8">
-                <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-x-auto">
+                <div className="bg-white dark:bg-slate-900 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800 overflow-x-auto">
                   <table className="w-full text-left border-collapse min-w-[800px]">
                     <thead>
-                      <tr className="bg-slate-50 border-b border-slate-200 text-sm uppercase tracking-wider text-slate-500">
-                        <th className="px-6 py-4 font-semibold sticky left-0 bg-slate-50 z-10 shadow-[1px_0_0_0_#e2e8f0]">Employee</th>
+                      <tr className="bg-slate-50 dark:bg-slate-800/50 border-b border-slate-200 dark:border-slate-800 text-sm uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                        <th className="px-6 py-4 font-semibold sticky left-0 bg-slate-50 dark:bg-slate-800/50 z-10 shadow-[1px_0_0_0_#e2e8f0] dark:shadow-[1px_0_0_0_#1e293b]">Employee</th>
                         <th className="px-6 py-4 font-semibold">VL</th>
                         <th className="px-6 py-4 font-semibold">SL</th>
                         <th className="px-6 py-4 font-semibold">FL</th>
@@ -1153,23 +1155,23 @@ export default function LeaveCredits() {
                         <th className="px-6 py-4 font-semibold text-right">Actions</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-slate-100">
+                    <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
                       {allUsers.map((u, idx) => (
-                        <tr key={idx} className="hover:bg-slate-50 transition-colors group">
-                          <td className="px-6 py-4 sticky left-0 bg-white group-hover:bg-slate-50 z-10 shadow-[1px_0_0_0_#e2e8f0]">
-                            <div className="font-semibold text-slate-800">{u.Name}</div>
-                            <div className="text-sm text-slate-500">{u.Email}</div>
+                        <tr key={idx} className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors group">
+                          <td className="px-6 py-4 sticky left-0 bg-white dark:bg-slate-900 group-hover:bg-slate-50 dark:group-hover:bg-slate-800/50 z-10 shadow-[1px_0_0_0_#e2e8f0] dark:shadow-[1px_0_0_0_#1e293b]">
+                            <div className="font-semibold text-slate-800 dark:text-white">{u.Name}</div>
+                            <div className="text-sm text-slate-500 dark:text-slate-400">{u.Email}</div>
                           </td>
-                          <td className="px-6 py-4 text-slate-700">{u.emp_stat === 'COSW' ? '-' : u.credits.vl_balance.toFixed(2)}</td>
-                          <td className="px-6 py-4 text-slate-700">{u.emp_stat === 'COSW' ? '-' : u.credits.sl_balance.toFixed(2)}</td>
-                          <td className="px-6 py-4 text-slate-700">{u.emp_stat === 'COSW' ? '-' : u.credits.fl_balance.toFixed(2)}</td>
-                          <td className="px-6 py-4 text-slate-700">{u.credits.wl_balance.toFixed(2)}</td>
-                          <td className="px-6 py-4 text-slate-700">{u.emp_stat === 'COSW' ? '-' : u.credits.use_balance.toFixed(2)}</td>
-                          <td className="px-6 py-4 text-slate-700">{u.emp_stat === 'COSW' ? '-' : u.credits.spl_balance.toFixed(2)}</td>
+                          <td className="px-6 py-4 text-slate-700 dark:text-slate-300">{u.emp_stat === 'COSW' ? '-' : u.credits.vl_balance.toFixed(2)}</td>
+                          <td className="px-6 py-4 text-slate-700 dark:text-slate-300">{u.emp_stat === 'COSW' ? '-' : u.credits.sl_balance.toFixed(2)}</td>
+                          <td className="px-6 py-4 text-slate-700 dark:text-slate-300">{u.emp_stat === 'COSW' ? '-' : u.credits.fl_balance.toFixed(2)}</td>
+                          <td className="px-6 py-4 text-slate-700 dark:text-slate-300">{u.credits.wl_balance.toFixed(2)}</td>
+                          <td className="px-6 py-4 text-slate-700 dark:text-slate-300">{u.emp_stat === 'COSW' ? '-' : u.credits.use_balance.toFixed(2)}</td>
+                          <td className="px-6 py-4 text-slate-700 dark:text-slate-300">{u.emp_stat === 'COSW' ? '-' : u.credits.spl_balance.toFixed(2)}</td>
                           <td className="px-6 py-4 text-right">
                             <button
                               onClick={() => setEditingUser(u)}
-                              className="text-sm text-indigo-600 font-medium hover:text-indigo-800 px-3 py-1.5 rounded-lg hover:bg-indigo-50 transition-colors"
+                              className="text-sm text-indigo-600 font-medium hover:text-indigo-800 dark:hover:text-indigo-400 px-3 py-1.5 rounded-lg hover:bg-indigo-50 dark:hover:bg-indigo-900/30 transition-colors"
                             >
                               Edit Balances
                             </button>
@@ -1192,18 +1194,18 @@ export default function LeaveCredits() {
 
       {/* File Leave Modal */}
       {showFileLeave && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm">
-          <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg overflow-hidden flex flex-col max-h-[100dvh] sm:max-h-[90vh] animate-in fade-in zoom-in-95 duration-200">
-            <div className="px-6 py-4 border-b border-slate-100 flex justify-between items-center bg-slate-50 shrink-0">
-              <h3 className="text-lg font-bold text-slate-800">File a Leave</h3>
-              <button onClick={handleCloseFileLeave} className="text-slate-400 hover:text-slate-600 transition-colors">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 dark:bg-slate-950/80 backdrop-blur-sm">
+          <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-xl border dark:border-slate-800 w-full max-w-lg overflow-hidden flex flex-col max-h-[100dvh] sm:max-h-[90vh] animate-in fade-in zoom-in-95 duration-200">
+            <div className="px-6 py-4 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center bg-slate-50 dark:bg-slate-800/50 shrink-0">
+              <h3 className="text-lg font-bold text-slate-800 dark:text-white">File a Leave</h3>
+              <button onClick={handleCloseFileLeave} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors">
                 <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
               </button>
             </div>
             <form onSubmit={handleFileLeave} className="flex flex-col min-h-0 flex-1">
               <div className="p-6 space-y-4 overflow-y-auto flex-1">
                 <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">Leave Type</label>
+                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Leave Type</label>
                   <div className={`relative ${isLeaveTypeDropdownOpen ? 'z-50' : ''}`} tabIndex={0} onBlur={(e) => {
                     if (!e.currentTarget.contains(e.relatedTarget)) {
                       setIsLeaveTypeDropdownOpen(false);
@@ -1212,7 +1214,7 @@ export default function LeaveCredits() {
                     <div className="relative">
                       <div
                         onClick={() => setIsLeaveTypeDropdownOpen(!isLeaveTypeDropdownOpen)}
-                        className={`w-full px-4 py-2 pr-10 border bg-slate-50 rounded-lg cursor-pointer min-h-[42px] flex items-center hover:bg-slate-100 transition-colors ${formErrors.leaveType ? 'border-red-500 ring-1 ring-red-500' : 'border-slate-200'} ${fileLeaveType ? 'text-slate-900' : 'text-slate-400'}`}
+                        className={`w-full px-4 py-2 pr-10 border bg-slate-50 dark:bg-slate-950 rounded-lg cursor-pointer min-h-[42px] flex items-center hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors ${formErrors.leaveType ? 'border-red-500 ring-1 ring-red-500' : 'border-slate-200 dark:border-slate-700'} ${fileLeaveType ? 'text-slate-900 dark:text-slate-100' : 'text-slate-400'}`}
                       >
                         {fileLeaveType || 'Select a leave type'}
                       </div>
@@ -1313,8 +1315,8 @@ export default function LeaveCredits() {
                 )}
 
                 <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">Inclusive Dates</label>
-                  <div className={`w-full flex justify-center bg-white border rounded-lg p-2 sm:p-4 shadow-sm leave-calendar ${formErrors.inclusiveDates ? 'border-red-500 ring-1 ring-red-500' : 'border-slate-200'}`}>
+                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Inclusive Dates</label>
+                  <div className={`w-full flex justify-center bg-white dark:bg-slate-900 border rounded-lg p-2 sm:p-4 shadow-sm leave-calendar ${formErrors.inclusiveDates ? 'border-red-500 ring-1 ring-red-500' : 'border-slate-200 dark:border-slate-700'}`}>
                     <style>{`
                       .leave-calendar {
                         --rdp-day-width: 11.5vw;
@@ -1328,6 +1330,10 @@ export default function LeaveCredits() {
                           font-size: 1.1rem;
                         }
                       }
+                      /* Dark mode support for day picker */
+                      .dark .rdp-day { color: #f1f5f9; }
+                      .dark .rdp-head_cell { color: #94a3b8; }
+                      .dark .rdp-button:hover:not([disabled]):not(.rdp-day_selected) { background-color: #334155; }
                     `}</style>
                     <DayPicker
                       mode="multiple"
@@ -1338,20 +1344,20 @@ export default function LeaveCredits() {
                         if (dates && dates.length > 0) setFormErrors(prev => ({ ...prev, inclusiveDates: false }));
                       }}
                       modifiersClassNames={{
-                        selected: "bg-blue-600 text-white font-bold rounded-lg shadow-md",
-                        today: "font-bold text-blue-600"
+                        selected: "bg-blue-600 text-white font-bold rounded-lg shadow-md rdp-day_selected",
+                        today: "font-bold text-blue-600 dark:text-blue-400"
                       }}
                     />
                   </div>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">Reason</label>
-                  <textarea value={reason} onChange={(e) => setReason(e.target.value)} rows="3" className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-shadow resize-none" placeholder="Please state your reason for leave..."></textarea>
+                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Reason</label>
+                  <textarea value={reason} onChange={(e) => setReason(e.target.value)} rows="3" className="w-full px-4 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-shadow resize-none text-slate-800 dark:text-slate-100" placeholder="Please state your reason for leave..."></textarea>
                 </div>
               </div>
-              <div className="p-6 bg-slate-50 border-t border-slate-100 flex justify-end gap-3 shrink-0">
+              <div className="p-6 bg-slate-50 dark:bg-slate-800/50 border-t border-slate-100 dark:border-slate-800 flex justify-end gap-3 shrink-0">
                 <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
-                  <button type="button" onClick={handleCloseFileLeave} disabled={isGeneratingPdf} className="w-full sm:w-auto px-4 py-2 text-sm font-medium text-slate-700 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 transition-colors shadow-sm disabled:opacity-50">
+                  <button type="button" onClick={handleCloseFileLeave} disabled={isGeneratingPdf} className="w-full sm:w-auto px-4 py-2 text-sm font-medium text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors shadow-sm disabled:opacity-50">
                     Cancel
                   </button>
                   <button type="submit" disabled={isGeneratingPdf || isBalanceZero} className="w-full sm:w-auto px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors shadow-sm flex items-center justify-center gap-2 disabled:opacity-75 disabled:cursor-not-allowed">
@@ -1371,14 +1377,14 @@ export default function LeaveCredits() {
 
       {/* Upload Signed Document Modal */}
       {pendingUploadId && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm">
-          <div className="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden flex flex-col max-h-[100dvh] sm:max-h-[90vh] animate-in fade-in zoom-in-95 duration-200">
-            <div className="px-6 py-4 border-b border-slate-100 flex justify-between items-center bg-slate-50 shrink-0">
-              <h3 className="text-lg font-bold text-slate-800">Upload Signed Document</h3>
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 dark:bg-slate-950/80 backdrop-blur-sm">
+          <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-xl border dark:border-slate-800 w-full max-w-md overflow-hidden flex flex-col max-h-[100dvh] sm:max-h-[90vh] animate-in fade-in zoom-in-95 duration-200">
+            <div className="px-6 py-4 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center bg-slate-50 dark:bg-slate-800/50 shrink-0">
+              <h3 className="text-lg font-bold text-slate-800 dark:text-white">Upload Signed Document</h3>
               <button
                 onClick={() => { setPendingUploadId(null); setPendingUploadDoc(null); }}
                 disabled={uploadingRecordId === pendingUploadId || transmittingRecordId === pendingUploadId}
-                className="text-slate-400 hover:text-slate-600 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
               >
                 <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
               </button>
@@ -1418,15 +1424,15 @@ export default function LeaveCredits() {
                 </div>
               ) : (
                 <>
-                  <p className="text-slate-600 mb-6">
+                  <p className="text-slate-600 dark:text-slate-300 mb-6">
                     Please upload the signed document to complete your leave submission.
                     If you prefer, you can skip this step and upload it later from your Leave History.
                   </p>
-                  <div className="flex flex-col items-center justify-center p-8 border-2 border-dashed border-slate-300 rounded-xl bg-slate-50">
+                  <div className="flex flex-col items-center justify-center p-8 border-2 border-dashed border-slate-300 dark:border-slate-700 rounded-xl bg-slate-50 dark:bg-slate-800/50">
                     {uploadingRecordId === pendingUploadId ? (
                       <div className="w-full">
-                        <p className="text-sm font-medium text-slate-700 text-center mb-2">Uploading...</p>
-                        <div className="w-full bg-slate-200 rounded-full h-2">
+                        <p className="text-sm font-medium text-slate-700 dark:text-slate-300 text-center mb-2">Uploading...</p>
+                        <div className="w-full bg-slate-200 dark:bg-slate-700 rounded-full h-2">
                           <div className="bg-blue-600 h-2 rounded-full transition-all duration-300" style={{ width: `${uploadProgress}%` }}></div>
                         </div>
                       </div>
@@ -1435,7 +1441,7 @@ export default function LeaveCredits() {
                         <svg className="w-12 h-12 text-slate-400 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.5">
                           <path strokeLinecap="round" strokeLinejoin="round" d="M12 16.5V9.75m0 0l3 3m-3-3l-3 3M6.75 19.5a4.5 4.5 0 01-1.41-8.775 5.25 5.25 0 0110.233-2.33 3 3 0 013.758 3.848A3.752 3.752 0 0118 19.5H6.75z" />
                         </svg>
-                        <label className="cursor-pointer px-4 py-2 bg-blue-50 text-blue-700 font-medium rounded-lg hover:bg-blue-100 transition-colors">
+                        <label className="cursor-pointer px-4 py-2 bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 font-medium rounded-lg hover:bg-blue-100 dark:hover:bg-blue-900/50 transition-colors">
                           Select PDF File
                           <input type="file" accept="application/pdf" className="hidden" onChange={(e) => handleUploadSigned(e, pendingUploadId)} />
                         </label>
@@ -1445,7 +1451,7 @@ export default function LeaveCredits() {
                 </>
               )}
             </div>
-            <div className="px-6 py-4 bg-slate-50 border-t border-slate-100 flex justify-end shrink-0 gap-2">
+            <div className="px-6 py-4 bg-slate-50 dark:bg-slate-800/50 border-t border-slate-100 dark:border-slate-800 flex justify-end shrink-0 gap-2">
               {pendingUploadDoc ? (
                 <>
                   {/* View */}
@@ -1511,11 +1517,11 @@ export default function LeaveCredits() {
 
       {/* History Modal */}
       {selectedHistoryType && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm">
-          <div className="bg-white rounded-2xl shadow-xl w-full max-w-4xl overflow-hidden flex flex-col max-h-[100dvh] sm:max-h-[90vh] animate-in fade-in zoom-in-95 duration-200">
-            <div className="px-6 py-4 border-b border-slate-100 flex justify-between items-center bg-slate-50 shrink-0">
-              <h3 className="text-lg font-bold text-slate-800">{selectedHistoryType} History</h3>
-              <button onClick={() => setSelectedHistoryType(null)} className="text-slate-400 hover:text-slate-600 transition-colors">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 dark:bg-slate-950/80 backdrop-blur-sm">
+          <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-xl border dark:border-slate-800 w-full max-w-4xl overflow-hidden flex flex-col max-h-[100dvh] sm:max-h-[90vh] animate-in fade-in zoom-in-95 duration-200">
+            <div className="px-6 py-4 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center bg-slate-50 dark:bg-slate-800/50 shrink-0">
+              <h3 className="text-lg font-bold text-slate-800 dark:text-white">{selectedHistoryType} History</h3>
+              <button onClick={() => setSelectedHistoryType(null)} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors">
                 <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
               </button>
             </div>
@@ -1524,27 +1530,27 @@ export default function LeaveCredits() {
                 <div className="overflow-x-auto">
                   <table className="w-full text-left border-collapse">
                     <thead>
-                      <tr className="bg-slate-50 text-slate-500 text-xs uppercase tracking-wider">
-                        <th className="px-4 py-3 border-b border-slate-200">Inclusive Date(s)</th>
-                        <th className="px-4 py-3 border-b border-slate-200">Days</th>
-                        <th className="px-4 py-3 border-b border-slate-200">Reason</th>
-                        <th className="px-4 py-3 border-b border-slate-200">Filed On</th>
-                        <th className="px-4 py-3 border-b border-slate-200">Status</th>
-                        <th className="px-4 py-3 border-b border-slate-200 text-center">Action</th>
+                      <tr className="bg-slate-50 dark:bg-slate-800/50 text-slate-500 dark:text-slate-400 text-xs uppercase tracking-wider">
+                        <th className="px-4 py-3 border-b border-slate-200 dark:border-slate-800">Inclusive Date(s)</th>
+                        <th className="px-4 py-3 border-b border-slate-200 dark:border-slate-800">Days</th>
+                        <th className="px-4 py-3 border-b border-slate-200 dark:border-slate-800">Reason</th>
+                        <th className="px-4 py-3 border-b border-slate-200 dark:border-slate-800">Filed On</th>
+                        <th className="px-4 py-3 border-b border-slate-200 dark:border-slate-800">Status</th>
+                        <th className="px-4 py-3 border-b border-slate-200 dark:border-slate-800 text-center">Action</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-slate-100">
+                    <tbody className="divide-y divide-slate-100 dark:divide-slate-800/50">
                       {[...Array(4)].map((_, i) => (
                         <tr key={i} className="animate-pulse">
-                          <td className="px-4 py-3"><div className="h-4 bg-slate-200 rounded w-32"></div></td>
-                          <td className="px-4 py-3"><div className="h-4 bg-slate-200 rounded w-8"></div></td>
-                          <td className="px-4 py-3"><div className="h-4 bg-slate-200 rounded w-40"></div></td>
-                          <td className="px-4 py-3"><div className="h-4 bg-slate-200 rounded w-24"></div></td>
-                          <td className="px-4 py-3"><div className="h-5 bg-slate-200 rounded-full w-20"></div></td>
+                          <td className="px-4 py-3"><div className="h-4 bg-slate-200 dark:bg-slate-700 rounded w-32"></div></td>
+                          <td className="px-4 py-3"><div className="h-4 bg-slate-200 dark:bg-slate-700 rounded w-8"></div></td>
+                          <td className="px-4 py-3"><div className="h-4 bg-slate-200 dark:bg-slate-700 rounded w-40"></div></td>
+                          <td className="px-4 py-3"><div className="h-4 bg-slate-200 dark:bg-slate-700 rounded w-24"></div></td>
+                          <td className="px-4 py-3"><div className="h-5 bg-slate-200 dark:bg-slate-700 rounded-full w-20"></div></td>
                           <td className="px-4 py-3">
                             <div className="flex items-center justify-center gap-2">
-                              <div className="h-8 w-8 bg-slate-200 rounded-lg"></div>
-                              <div className="h-8 w-8 bg-slate-200 rounded-lg"></div>
+                              <div className="h-8 w-8 bg-slate-200 dark:bg-slate-700 rounded-lg"></div>
+                              <div className="h-8 w-8 bg-slate-200 dark:bg-slate-700 rounded-lg"></div>
                             </div>
                           </td>
                         </tr>
@@ -1553,28 +1559,28 @@ export default function LeaveCredits() {
                   </table>
                 </div>
               ) : historyData.length === 0 ? (
-                <div className="text-center text-slate-500 p-8">No leave history found for this type.</div>
+                <div className="text-center text-slate-500 dark:text-slate-400 p-8">No leave history found for this type.</div>
               ) : (
                 <div className="overflow-x-auto">
                   <table className="w-full text-left border-collapse">
                     <thead>
-                      <tr className="bg-slate-50 text-slate-500 text-xs uppercase tracking-wider">
-                        <th className="px-4 py-3 font-semibold border-b border-slate-200">Inclusive Date(s)</th>
-                        <th className="px-4 py-3 font-semibold border-b border-slate-200">Days</th>
-                        <th className="px-4 py-3 font-semibold border-b border-slate-200">Reason</th>
-                        <th className="px-4 py-3 font-semibold border-b border-slate-200">Filed On</th>
-                        <th className="px-4 py-3 font-semibold border-b border-slate-200 text-center">Document</th>
-                        <th className="px-4 py-3 font-semibold border-b border-slate-200 text-center">Status</th>
-                        <th className="px-4 py-3 font-semibold border-b border-slate-200 text-center">Actions</th>
+                      <tr className="bg-slate-50 dark:bg-slate-800/50 text-slate-500 dark:text-slate-400 text-xs uppercase tracking-wider">
+                        <th className="px-4 py-3 font-semibold border-b border-slate-200 dark:border-slate-800">Inclusive Date(s)</th>
+                        <th className="px-4 py-3 font-semibold border-b border-slate-200 dark:border-slate-800">Days</th>
+                        <th className="px-4 py-3 font-semibold border-b border-slate-200 dark:border-slate-800">Reason</th>
+                        <th className="px-4 py-3 font-semibold border-b border-slate-200 dark:border-slate-800">Filed On</th>
+                        <th className="px-4 py-3 font-semibold border-b border-slate-200 dark:border-slate-800 text-center">Document</th>
+                        <th className="px-4 py-3 font-semibold border-b border-slate-200 dark:border-slate-800 text-center">Status</th>
+                        <th className="px-4 py-3 font-semibold border-b border-slate-200 dark:border-slate-800 text-center">Actions</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-slate-100">
+                    <tbody className="divide-y divide-slate-100 dark:divide-slate-800/50">
                       {historyData.map((row) => (
-                        <tr key={row.id} className="hover:bg-slate-50 transition-colors">
-                          <td className="px-4 py-3 text-slate-700 text-sm">{row.start_date || '-'}</td>
-                          <td className="px-4 py-3 text-slate-700 font-medium text-sm">{row.days_applied}</td>
-                          <td className="px-4 py-3 text-slate-500 text-sm max-w-[160px] truncate" title={row.reason}>{row.reason || '-'}</td>
-                          <td className="px-4 py-3 text-slate-500 text-xs">{new Date(row.created_at).toLocaleString()}</td>
+                        <tr key={row.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors">
+                          <td className="px-4 py-3 text-slate-700 dark:text-slate-300 text-sm">{row.start_date || '-'}</td>
+                          <td className="px-4 py-3 text-slate-700 dark:text-slate-300 font-medium text-sm">{row.days_applied}</td>
+                          <td className="px-4 py-3 text-slate-500 dark:text-slate-400 text-sm max-w-[160px] truncate" title={row.reason}>{row.reason || '-'}</td>
+                          <td className="px-4 py-3 text-slate-500 dark:text-slate-400 text-xs">{new Date(row.created_at).toLocaleString()}</td>
                           {/* Document column */}
                           <td className="px-4 py-3 text-center">
                             {uploadingRecordId === row.id ? (
@@ -1685,8 +1691,8 @@ export default function LeaveCredits() {
                 </div>
               )}
             </div>
-            <div className="p-4 bg-slate-50 border-t border-slate-100 flex justify-end shrink-0">
-              <button onClick={() => setSelectedHistoryType(null)} className="px-5 py-2 text-sm font-medium text-slate-700 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 transition-colors shadow-sm">
+            <div className="p-4 bg-slate-50 dark:bg-slate-800/50 border-t border-slate-100 dark:border-slate-800 flex justify-end shrink-0">
+              <button onClick={() => setSelectedHistoryType(null)} className="px-5 py-2 text-sm font-medium text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors shadow-sm">
                 Close
               </button>
             </div>
@@ -1745,16 +1751,16 @@ export default function LeaveCredits() {
 
       {/* Generated PDF Preview Modal */}
       {generatedPdfUrl && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm">
-          <div className="bg-white rounded-2xl shadow-xl w-full max-w-4xl overflow-hidden flex flex-col h-[90vh] animate-in fade-in zoom-in duration-200">
-            <div className="px-6 py-4 border-b border-slate-100 bg-slate-50 flex items-center justify-between shrink-0">
-              <h2 className="text-lg font-bold text-slate-800">Generated Leave Form</h2>
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/50 dark:bg-slate-950/80 backdrop-blur-sm">
+          <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-xl w-full max-w-4xl overflow-hidden flex flex-col h-[90vh] animate-in fade-in zoom-in duration-200">
+            <div className="px-6 py-4 border-b border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/50 flex items-center justify-between shrink-0">
+              <h2 className="text-lg font-bold text-slate-800 dark:text-white">Generated Leave Form</h2>
 
             </div>
-            <div className="flex-1 overflow-hidden p-4 bg-slate-100">
-              <iframe src={`${generatedPdfUrl}#toolbar=0&navpanes=0&scrollbar=0`} className="w-full h-full rounded border border-slate-300" title="Generated PDF" />
+            <div className="flex-1 overflow-hidden p-4 bg-slate-100 dark:bg-slate-950">
+              <iframe src={`${generatedPdfUrl}#toolbar=0&navpanes=0&scrollbar=0`} className="w-full h-full rounded border border-slate-300 dark:border-slate-700" title="Generated PDF" />
             </div>
-            <div className="px-6 py-4 border-t border-slate-100 bg-white shrink-0 flex items-center justify-end gap-3">
+            <div className="px-6 py-4 border-t border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900 shrink-0 flex items-center justify-end gap-3">
               <button
                 onClick={async () => {
                   const a = document.createElement('a');
@@ -1791,13 +1797,13 @@ export default function LeaveCredits() {
 
       {/* Edit Balances Modal */}
       {editingUser && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm">
-          <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg overflow-hidden border border-slate-200 flex flex-col max-h-[100dvh] sm:max-h-[90vh] animate-in fade-in zoom-in duration-200">
-            <div className="px-6 py-4 border-b border-slate-100 bg-slate-50/50 flex items-center justify-between shrink-0">
-              <h2 className="text-lg font-bold text-slate-800">Edit Leave Balances</h2>
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 dark:bg-slate-950/80 backdrop-blur-sm">
+          <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-xl border border-slate-200 dark:border-slate-800 w-full max-w-lg overflow-hidden flex flex-col max-h-[100dvh] sm:max-h-[90vh] animate-in fade-in zoom-in duration-200">
+            <div className="px-6 py-4 border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/50 flex items-center justify-between shrink-0">
+              <h2 className="text-lg font-bold text-slate-800 dark:text-white">Edit Leave Balances</h2>
               <button
                 onClick={() => setEditingUser(null)}
-                className="text-slate-400 hover:text-slate-600 transition-colors p-1"
+                className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors p-1"
               >
                 <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" /></svg>
               </button>
@@ -1805,10 +1811,10 @@ export default function LeaveCredits() {
 
             <form onSubmit={handleSaveEdit} className="flex flex-col min-h-0">
               <div className="p-6 overflow-y-auto">
-                <div className="mb-6 pb-6 border-b border-slate-100">
-                  <p className="font-medium text-slate-800">{editingUser.Name}</p>
-                  <p className="text-sm text-slate-500">{editingUser.Email}</p>
-                  <div className="mt-2 bg-blue-50 text-blue-800 text-xs px-3 py-2 rounded-lg flex items-start gap-2">
+                <div className="mb-6 pb-6 border-b border-slate-100 dark:border-slate-800">
+                  <p className="font-medium text-slate-800 dark:text-white">{editingUser.Name}</p>
+                  <p className="text-sm text-slate-500 dark:text-slate-400">{editingUser.Email}</p>
+                  <div className="mt-2 bg-blue-50 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300 text-xs px-3 py-2 rounded-lg flex items-start gap-2">
                     <svg className="w-4 h-4 mt-0.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
                     <span>Saving overrides will reset their accrual cycle to start fresh from today.</span>
                   </div>
@@ -1816,36 +1822,36 @@ export default function LeaveCredits() {
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-1">Vacation Leave (VL)</label>
-                    <input type="number" step="0.01" name="vl" defaultValue={editingUser.emp_stat === 'COSW' ? '' : editingUser.credits.vl_balance} disabled={editingUser.emp_stat === 'COSW'} required={editingUser.emp_stat !== 'COSW'} className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all disabled:bg-slate-100 disabled:text-slate-400" />
+                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Vacation Leave (VL)</label>
+                    <input type="number" step="0.01" name="vl" defaultValue={editingUser.emp_stat === 'COSW' ? '' : editingUser.credits.vl_balance} disabled={editingUser.emp_stat === 'COSW'} required={editingUser.emp_stat !== 'COSW'} className="w-full px-3 py-2 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 text-slate-800 dark:text-slate-100 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all disabled:bg-slate-100 dark:disabled:bg-slate-800 disabled:text-slate-400 dark:disabled:text-slate-500" />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-1">Sick Leave (SL)</label>
-                    <input type="number" step="0.01" name="sl" defaultValue={editingUser.emp_stat === 'COSW' ? '' : editingUser.credits.sl_balance} disabled={editingUser.emp_stat === 'COSW'} required={editingUser.emp_stat !== 'COSW'} className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all disabled:bg-slate-100 disabled:text-slate-400" />
+                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Sick Leave (SL)</label>
+                    <input type="number" step="0.01" name="sl" defaultValue={editingUser.emp_stat === 'COSW' ? '' : editingUser.credits.sl_balance} disabled={editingUser.emp_stat === 'COSW'} required={editingUser.emp_stat !== 'COSW'} className="w-full px-3 py-2 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 text-slate-800 dark:text-slate-100 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all disabled:bg-slate-100 dark:disabled:bg-slate-800 disabled:text-slate-400 dark:disabled:text-slate-500" />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-1">Forced Leave (FL)</label>
-                    <input type="number" step="0.01" name="fl" defaultValue={editingUser.emp_stat === 'COSW' ? '' : editingUser.credits.fl_balance} disabled={editingUser.emp_stat === 'COSW'} required={editingUser.emp_stat !== 'COSW'} className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all disabled:bg-slate-100 disabled:text-slate-400" />
+                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Forced Leave (FL)</label>
+                    <input type="number" step="0.01" name="fl" defaultValue={editingUser.emp_stat === 'COSW' ? '' : editingUser.credits.fl_balance} disabled={editingUser.emp_stat === 'COSW'} required={editingUser.emp_stat !== 'COSW'} className="w-full px-3 py-2 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 text-slate-800 dark:text-slate-100 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all disabled:bg-slate-100 dark:disabled:bg-slate-800 disabled:text-slate-400 dark:disabled:text-slate-500" />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-1">Wellness Leave (WL)</label>
-                    <input type="number" step="0.01" name="wl" defaultValue={editingUser.credits.wl_balance} required className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all" />
+                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Wellness Leave (WL)</label>
+                    <input type="number" step="0.01" name="wl" defaultValue={editingUser.credits.wl_balance} required className="w-full px-3 py-2 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 text-slate-800 dark:text-slate-100 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all" />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-1">USE Leave</label>
-                    <input type="number" step="0.01" name="use" defaultValue={editingUser.emp_stat === 'COSW' ? '' : editingUser.credits.use_balance} disabled={editingUser.emp_stat === 'COSW'} required={editingUser.emp_stat !== 'COSW'} className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all disabled:bg-slate-100 disabled:text-slate-400" />
+                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">USE Leave</label>
+                    <input type="number" step="0.01" name="use" defaultValue={editingUser.emp_stat === 'COSW' ? '' : editingUser.credits.use_balance} disabled={editingUser.emp_stat === 'COSW'} required={editingUser.emp_stat !== 'COSW'} className="w-full px-3 py-2 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 text-slate-800 dark:text-slate-100 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all disabled:bg-slate-100 dark:disabled:bg-slate-800 disabled:text-slate-400 dark:disabled:text-slate-500" />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-1">Special Privilege (SPL)</label>
-                    <input type="number" step="0.01" name="spl" defaultValue={editingUser.emp_stat === 'COSW' ? '' : editingUser.credits.spl_balance} disabled={editingUser.emp_stat === 'COSW'} required={editingUser.emp_stat !== 'COSW'} className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all disabled:bg-slate-100 disabled:text-slate-400" />
+                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Special Privilege (SPL)</label>
+                    <input type="number" step="0.01" name="spl" defaultValue={editingUser.emp_stat === 'COSW' ? '' : editingUser.credits.spl_balance} disabled={editingUser.emp_stat === 'COSW'} required={editingUser.emp_stat !== 'COSW'} className="w-full px-3 py-2 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 text-slate-800 dark:text-slate-100 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all disabled:bg-slate-100 dark:disabled:bg-slate-800 disabled:text-slate-400 dark:disabled:text-slate-500" />
                   </div>
                 </div>
               </div>
-              <div className="px-6 py-4 bg-slate-50 border-t border-slate-100 flex justify-end gap-3 shrink-0">
+              <div className="px-6 py-4 bg-slate-50 dark:bg-slate-800/50 border-t border-slate-100 dark:border-slate-800 flex justify-end gap-3 shrink-0">
                 <button
                   type="button"
                   onClick={() => setEditingUser(null)}
-                  className="px-4 py-2 text-sm font-medium text-slate-700 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 transition-colors"
+                  className="px-4 py-2 text-sm font-medium text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors"
                 >
                   Cancel
                 </button>
@@ -1864,18 +1870,18 @@ export default function LeaveCredits() {
 
       {/* Transmission Overlay */}
       {transmittingRecordId && (
-        <div className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm">
-          <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm overflow-hidden flex flex-col p-6 animate-in fade-in zoom-in-95 duration-200">
+        <div className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-slate-900/50 dark:bg-slate-950/80 backdrop-blur-sm">
+          <div className="bg-white dark:bg-slate-900 border dark:border-slate-800 rounded-2xl shadow-xl w-full max-w-sm overflow-hidden flex flex-col p-6 animate-in fade-in zoom-in-95 duration-200">
             <div className="flex flex-col items-center gap-4 py-4">
-              <div className="w-14 h-14 bg-blue-50 rounded-full flex items-center justify-center">
-                <svg className="w-8 h-8 text-blue-500 animate-spin" fill="none" viewBox="0 0 24 24">
+              <div className="w-14 h-14 bg-blue-50 dark:bg-blue-900/30 rounded-full flex items-center justify-center">
+                <svg className="w-8 h-8 text-blue-500" fill="none" viewBox="0 0 24 24">
                   <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                   <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                 </svg>
               </div>
               <div className="text-center w-full">
-                <p className="font-semibold text-slate-800 mb-3">Transmitting Document...</p>
-                <div className="w-full bg-slate-200 rounded-full h-2 overflow-hidden">
+                <p className="font-semibold text-slate-800 dark:text-white mb-3">Transmitting Document...</p>
+                <div className="w-full bg-slate-200 dark:bg-slate-700 rounded-full h-2 overflow-hidden">
                   <div className="bg-blue-600 h-full rounded-full transition-all duration-300" style={{ width: `${transmitProgress}%` }}></div>
                 </div>
               </div>
@@ -1886,18 +1892,18 @@ export default function LeaveCredits() {
 
       {/* Processing Disapproval Overlay */}
       {isProcessingDisapproval && (
-        <div className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm">
-          <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm overflow-hidden flex flex-col p-6 animate-in fade-in zoom-in-95 duration-200">
+        <div className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-slate-900/50 dark:bg-slate-950/80 backdrop-blur-sm">
+          <div className="bg-white dark:bg-slate-900 border dark:border-slate-800 rounded-2xl shadow-xl w-full max-w-sm overflow-hidden flex flex-col p-6 animate-in fade-in zoom-in-95 duration-200">
             <div className="flex flex-col items-center gap-4 py-4">
-              <div className="w-14 h-14 bg-red-50 rounded-full flex items-center justify-center">
+              <div className="w-14 h-14 bg-red-50 dark:bg-red-900/30 rounded-full flex items-center justify-center">
                 <svg className="w-8 h-8 text-red-500 animate-spin" fill="none" viewBox="0 0 24 24">
                   <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                   <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                 </svg>
               </div>
               <div className="text-center w-full">
-                <p className="font-semibold text-slate-800 mb-1">Processing Disapproval...</p>
-                <p className="text-sm text-slate-500">Updating records, emailing applicant, and cleaning up storage.</p>
+                <p className="font-semibold text-slate-800 dark:text-white mb-1">Processing Disapproval...</p>
+                <p className="text-sm text-slate-500 dark:text-slate-400">Updating records, emailing applicant, and cleaning up storage.</p>
               </div>
             </div>
           </div>
@@ -1906,18 +1912,18 @@ export default function LeaveCredits() {
 
       {/* Processing Approval Overlay */}
       {isProcessingApproval && (
-        <div className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm">
-          <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm overflow-hidden flex flex-col p-6 animate-in fade-in zoom-in-95 duration-200">
+        <div className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-slate-900/50 dark:bg-slate-950/80 backdrop-blur-sm">
+          <div className="bg-white dark:bg-slate-900 border dark:border-slate-800 rounded-2xl shadow-xl w-full max-w-sm overflow-hidden flex flex-col p-6 animate-in fade-in zoom-in-95 duration-200">
             <div className="flex flex-col items-center gap-4 py-4">
-              <div className="w-14 h-14 bg-emerald-50 rounded-full flex items-center justify-center">
+              <div className="w-14 h-14 bg-emerald-50 dark:bg-emerald-900/30 rounded-full flex items-center justify-center">
                 <svg className="w-8 h-8 text-emerald-500 animate-spin" fill="none" viewBox="0 0 24 24">
                   <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                   <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                 </svg>
               </div>
               <div className="text-center w-full">
-                <p className="font-semibold text-slate-800 mb-1">Processing Approval...</p>
-                <p className="text-sm text-slate-500">Updating records, emailing applicant, and cleaning up storage.</p>
+                <p className="font-semibold text-slate-800 dark:text-white mb-1">Processing Approval...</p>
+                <p className="text-sm text-slate-500 dark:text-slate-400">Updating records, emailing applicant, and cleaning up storage.</p>
               </div>
             </div>
           </div>
@@ -1933,24 +1939,24 @@ export default function LeaveCredits() {
         />
       )}
       {recordToDelete && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
-          <div className="bg-white rounded-xl shadow-2xl max-w-md w-full p-6 border border-slate-100">
+        <div className="fixed inset-0 bg-black/60 dark:bg-black/80 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
+          <div className="bg-white dark:bg-slate-900 rounded-xl shadow-2xl max-w-md w-full p-6 border border-slate-100 dark:border-slate-800">
             <div className="flex items-center gap-3 mb-4">
-              <div className="h-10 w-10 rounded-full bg-red-100 flex items-center justify-center shrink-0">
-                <svg className="w-5 h-5 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <div className="h-10 w-10 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center shrink-0">
+                <svg className="w-5 h-5 text-red-600 dark:text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                 </svg>
               </div>
-              <h3 className="text-lg font-bold text-slate-800">Delete Leave Record</h3>
+              <h3 className="text-lg font-bold text-slate-800 dark:text-white">Delete Leave Record</h3>
             </div>
-            <p className="text-slate-600 mb-6 ml-[52px]">
+            <p className="text-slate-600 dark:text-slate-300 mb-6 ml-[52px]">
               Are you sure you want to delete this <strong>{recordToDelete.leave_type}</strong> record?
               The <strong>{recordToDelete.days_applied}</strong> day(s) will be immediately restored to your balance.
             </p>
             <div className="flex justify-end gap-3">
               <button
                 onClick={() => setRecordToDelete(null)}
-                className="px-4 py-2 text-slate-600 hover:bg-slate-100 rounded-lg transition-colors font-medium"
+                className="px-4 py-2 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors font-medium"
               >
                 Cancel
               </button>
@@ -1969,11 +1975,11 @@ export default function LeaveCredits() {
       )}
       {/* Application Details Modal */}
       {selectedApplication && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm">
-          <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg overflow-hidden flex flex-col max-h-[100dvh] sm:max-h-[90vh] animate-in fade-in zoom-in-95 duration-200">
-            <div className="px-6 py-4 bg-slate-50 border-b border-slate-100 flex justify-between items-center shrink-0">
-              <h3 className="text-lg font-bold text-slate-800">Leave Application Details</h3>
-              <button onClick={() => { setSelectedApplication(null); setIsDisapproving(false); setDisapprovalReason(""); }} className="text-slate-400 hover:text-slate-600 transition-colors">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/50 dark:bg-slate-950/80 backdrop-blur-sm">
+          <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-xl w-full max-w-lg overflow-hidden border dark:border-slate-800 flex flex-col max-h-[100dvh] sm:max-h-[90vh] animate-in fade-in zoom-in-95 duration-200">
+            <div className="px-6 py-4 bg-slate-50 dark:bg-slate-800/50 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center shrink-0">
+              <h3 className="text-lg font-bold text-slate-800 dark:text-white">Leave Application Details</h3>
+              <button onClick={() => { setSelectedApplication(null); setIsDisapproving(false); setDisapprovalReason(""); }} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors">
                 <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
                 </svg>
@@ -1983,63 +1989,63 @@ export default function LeaveCredits() {
             <div className="p-6 overflow-y-auto space-y-6">
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <p className="text-sm font-medium text-slate-500">Applicant</p>
-                  <p className="font-semibold text-slate-800">{selectedApplication.First_Name} {selectedApplication.Last_Name}</p>
+                  <p className="text-sm font-medium text-slate-500 dark:text-slate-400">Applicant</p>
+                  <p className="font-semibold text-slate-800 dark:text-slate-100">{selectedApplication.First_Name} {selectedApplication.Last_Name}</p>
                 </div>
                 <div>
-                  <p className="text-sm font-medium text-slate-500">Leave Type</p>
-                  <p className="font-semibold text-slate-800">{selectedApplication.leave_type}</p>
+                  <p className="text-sm font-medium text-slate-500 dark:text-slate-400">Leave Type</p>
+                  <p className="font-semibold text-slate-800 dark:text-slate-100">{selectedApplication.leave_type}</p>
                 </div>
                 <div>
-                  <p className="text-sm font-medium text-slate-500">Dates</p>
-                  <p className="font-semibold text-slate-800">{selectedApplication.start_date}</p>
+                  <p className="text-sm font-medium text-slate-500 dark:text-slate-400">Dates</p>
+                  <p className="font-semibold text-slate-800 dark:text-slate-100">{selectedApplication.start_date}</p>
                 </div>
                 <div>
-                  <p className="text-sm font-medium text-slate-500">Days Applied</p>
-                  <p className="font-semibold text-slate-800">{selectedApplication.days_applied}</p>
+                  <p className="text-sm font-medium text-slate-500 dark:text-slate-400">Days Applied</p>
+                  <p className="font-semibold text-slate-800 dark:text-slate-100">{selectedApplication.days_applied}</p>
                 </div>
                 {selectedApplication.reason && (
                   <div className="col-span-2">
-                    <p className="text-sm font-medium text-slate-500">Reason</p>
-                    <p className="font-semibold text-slate-800">{selectedApplication.reason}</p>
+                    <p className="text-sm font-medium text-slate-500 dark:text-slate-400">Reason</p>
+                    <p className="font-semibold text-slate-800 dark:text-slate-100">{selectedApplication.reason}</p>
                   </div>
                 )}
               </div>
 
-              <div className="border-t border-slate-100 pt-6">
-                <h4 className="text-sm font-bold text-slate-800 uppercase tracking-wider mb-4">Documents</h4>
+              <div className="border-t border-slate-100 dark:border-slate-800 pt-6">
+                <h4 className="text-sm font-bold text-slate-800 dark:text-white uppercase tracking-wider mb-4">Documents</h4>
 
                 <div className="flex flex-col gap-3">
-                  <div className="flex items-center justify-between p-3 bg-slate-50 rounded-lg border border-slate-200">
+                  <div className="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-800/50 rounded-lg border border-slate-200 dark:border-slate-700">
                     <div className="flex items-center gap-3">
-                      <div className="p-2 bg-indigo-100 text-indigo-600 rounded-lg">
+                      <div className="p-2 bg-indigo-100 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 rounded-lg">
                         <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
                           <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                         </svg>
                       </div>
                       <div>
-                        <p className="font-medium text-slate-800 text-sm">Applicant's Signed Document</p>
-                        <p className="text-xs text-slate-500">{selectedApplication.has_document ? 'Uploaded by employee' : 'No document uploaded'}</p>
+                        <p className="font-medium text-slate-800 dark:text-slate-200 text-sm">Applicant's Signed Document</p>
+                        <p className="text-xs text-slate-500 dark:text-slate-400">{selectedApplication.has_document ? 'Uploaded by employee' : 'No document uploaded'}</p>
                       </div>
                     </div>
                     {selectedApplication.has_document === 1 && (
-                      <button onClick={() => handleViewDocument(selectedApplication)} className="px-3 py-1.5 text-sm font-medium text-indigo-600 bg-indigo-50 hover:bg-indigo-100 rounded-lg transition-colors">
+                      <button onClick={() => handleViewDocument(selectedApplication)} className="px-3 py-1.5 text-sm font-medium text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-900/30 hover:bg-indigo-100 dark:hover:bg-indigo-900/50 rounded-lg transition-colors">
                         View
                       </button>
                     )}
                   </div>
 
                   {!(selectedApplication.Position && selectedApplication.Position.toLowerCase().includes('chief statistical')) && (
-                    <div className="flex items-center justify-between p-3 bg-emerald-50 rounded-lg border border-emerald-200">
+                    <div className="flex items-center justify-between p-3 bg-emerald-50 dark:bg-emerald-900/10 rounded-lg border border-emerald-200 dark:border-emerald-800/30">
                       <div className="flex items-center gap-3">
-                        <div className="p-2 bg-emerald-100 text-emerald-600 rounded-lg shrink-0">
+                        <div className="p-2 bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 rounded-lg shrink-0">
                           <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
                             <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
                           </svg>
                         </div>
                         <div>
-                          <p className="font-medium text-slate-800 text-sm">HR/SSS/CSS Final Document</p>
-                          <p className="text-xs text-slate-500">{(selectedApplication.status === 'Disapproved' || selectedApplication.status === 'Approved') ? `Upload disabled (${selectedApplication.status})` : 'Required for approval'}</p>
+                          <p className="font-medium text-slate-800 dark:text-slate-200 text-sm">HR/SSS/CSS Final Document</p>
+                          <p className="text-xs text-slate-500 dark:text-slate-400">{(selectedApplication.status === 'Disapproved' || selectedApplication.status === 'Approved') ? `Upload disabled (${selectedApplication.status})` : 'Required for approval'}</p>
                         </div>
                       </div>
 
@@ -2063,10 +2069,10 @@ export default function LeaveCredits() {
               </div>
             </div>
             {isDisapproving ? (
-              <div className="px-6 py-4 bg-slate-50 border-t border-slate-100 flex flex-col gap-3 shrink-0">
-                <label className="text-sm font-medium text-slate-700">Reason for Disapproval</label>
+              <div className="px-6 py-4 bg-slate-50 dark:bg-slate-800/50 border-t border-slate-100 dark:border-slate-800 flex flex-col gap-3 shrink-0">
+                <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Reason for Disapproval</label>
                 <textarea
-                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500 outline-none transition-all resize-none h-20"
+                  className="w-full px-3 py-2 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 text-slate-800 dark:text-slate-100 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500 outline-none transition-all resize-none h-20"
                   placeholder="Please provide a reason..."
                   value={disapprovalReason}
                   onChange={(e) => setDisapprovalReason(e.target.value)}
@@ -2077,7 +2083,7 @@ export default function LeaveCredits() {
                       setIsDisapproving(false);
                       setDisapprovalReason("");
                     }}
-                    className="px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-200 rounded-lg transition-colors"
+                    className="px-4 py-2 text-sm font-medium text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-lg transition-colors"
                   >
                     Cancel
                   </button>
@@ -2096,15 +2102,15 @@ export default function LeaveCredits() {
                 </div>
               </div>
             ) : (
-              <div className="px-6 py-4 bg-slate-50 border-t border-slate-100 flex justify-between items-center shrink-0">
+              <div className="px-6 py-4 bg-slate-50 dark:bg-slate-800/50 border-t border-slate-100 dark:border-slate-800 flex justify-between items-center shrink-0">
                 {selectedApplication.status === 'Disapproved' || selectedApplication.status === 'Approved' ? (
                   <div className="flex w-full items-center justify-between">
-                    <span className={`text-sm font-medium ${selectedApplication.status === 'Approved' ? 'text-emerald-600' : 'text-red-600'}`}>
+                    <span className={`text-sm font-medium ${selectedApplication.status === 'Approved' ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'}`}>
                       Application {selectedApplication.status}
                     </span>
                     <button
                       onClick={() => setSelectedApplication(null)}
-                      className="px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-200 rounded-lg transition-colors"
+                      className="px-4 py-2 text-sm font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-lg transition-colors"
                     >
                       Close
                     </button>
@@ -2146,23 +2152,23 @@ export default function LeaveCredits() {
 
       {/* Viewing Reason Modal */}
       {viewingReason && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
-          <div className="bg-white rounded-xl shadow-2xl max-w-md w-full p-6 border border-slate-100 animate-in fade-in zoom-in-95 duration-200">
+        <div className="fixed inset-0 bg-black/60 dark:bg-black/80 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
+          <div className="bg-white dark:bg-slate-900 rounded-xl shadow-2xl max-w-md w-full p-6 border border-slate-100 dark:border-slate-800 animate-in fade-in zoom-in-95 duration-200">
             <div className="flex items-center gap-3 mb-4">
-              <div className="h-10 w-10 rounded-full bg-red-100 flex items-center justify-center shrink-0">
-                <svg className="w-5 h-5 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <div className="h-10 w-10 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center shrink-0">
+                <svg className="w-5 h-5 text-red-600 dark:text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
               </div>
-              <h3 className="text-lg font-bold text-slate-800">Disapproval Reason</h3>
+              <h3 className="text-lg font-bold text-slate-800 dark:text-white">Disapproval Reason</h3>
             </div>
-            <div className="bg-slate-50 border border-slate-200 rounded-lg p-4 mb-6 ml-[52px]">
-              <p className="text-slate-700 text-sm whitespace-pre-wrap">{viewingReason}</p>
+            <div className="bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-lg p-4 mb-6 ml-[52px]">
+              <p className="text-slate-700 dark:text-slate-300 text-sm whitespace-pre-wrap">{viewingReason}</p>
             </div>
             <div className="flex justify-end">
               <button
                 onClick={() => setViewingReason(null)}
-                className="px-4 py-2 bg-slate-800 text-white rounded-lg hover:bg-slate-900 transition-colors font-medium shadow-sm"
+                className="px-4 py-2 bg-slate-800 dark:bg-slate-700 text-white rounded-lg hover:bg-slate-900 dark:hover:bg-slate-600 transition-colors font-medium shadow-sm"
               >
                 Close
               </button>
@@ -2172,22 +2178,22 @@ export default function LeaveCredits() {
       )}
       {/* Confirm Approval Modal */}
       {approvingApplication && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[110] flex items-center justify-center p-4">
-          <div className="bg-white rounded-xl shadow-2xl max-w-sm w-full p-6 border border-slate-100 animate-in fade-in zoom-in-95 duration-200">
+        <div className="fixed inset-0 bg-black/60 dark:bg-black/80 backdrop-blur-sm z-[110] flex items-center justify-center p-4">
+          <div className="bg-white dark:bg-slate-900 rounded-xl shadow-2xl max-w-sm w-full p-6 border border-slate-100 dark:border-slate-800 animate-in fade-in zoom-in-95 duration-200">
             <div className="flex flex-col items-center text-center">
-              <div className="h-16 w-16 rounded-full bg-emerald-100 flex items-center justify-center mb-4">
-                <svg className="w-8 h-8 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <div className="h-16 w-16 rounded-full bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center mb-4">
+                <svg className="w-8 h-8 text-emerald-600 dark:text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
               </div>
-              <h3 className="text-xl font-bold text-slate-800 mb-2">Approve Leave</h3>
-              <p className="text-slate-500 text-sm mb-6">
+              <h3 className="text-xl font-bold text-slate-800 dark:text-white mb-2">Approve Leave</h3>
+              <p className="text-slate-500 dark:text-slate-400 text-sm mb-6">
                 Are you sure you want to approve this leave application for <strong>{approvingApplication.First_Name} {approvingApplication.Last_Name}</strong>?
               </p>
               <div className="flex gap-3 w-full">
                 <button
                   onClick={() => setApprovingApplication(null)}
-                  className="flex-1 px-4 py-2 bg-slate-100 text-slate-700 hover:bg-slate-200 font-medium rounded-lg transition-colors"
+                  className="flex-1 px-4 py-2 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 font-medium rounded-lg transition-colors"
                 >
                   Cancel
                 </button>

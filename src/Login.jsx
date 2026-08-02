@@ -178,41 +178,45 @@ export default function Login() {
 
    return (
       // Main container centering the form vertically and horizontally
-      <main className="px-4 md:px-8 min-h-screen flex flex-col items-center justify-center">
+      <main className="px-4 md:px-8 min-h-screen flex flex-col items-center justify-center bg-slate-50 dark:bg-slate-950">
          <div className="py-4 max-w-md w-full">
             <div
-               className="p-6 rounded-lg bg-white border border-slate-300 shadow-xs md:p-8  ">
+               className="p-6 rounded-lg bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-800 shadow-xs md:p-8">
 
-               {/* Logo Section */}
                <div className="mb-4 flex justify-center">
-                  <a href="#"><img src="/logo.png" alt="logo" className="w-45 min-h-8" />
+                  <a href="#" className="flex flex-col items-center">
+                     <img src="/logo-icon.png" alt="logo" className="w-20 md:w-24 min-h-8 dark:[filter:drop-shadow(1px_1px_0_#fff)_drop-shadow(-1px_-1px_0_#fff)_drop-shadow(1px_-1px_0_#fff)_drop-shadow(-1px_1px_0_#fff)]" />
+                     <div className="text-center mt-3">
+                        <h1 className="text-xl md:text-2xl font-extrabold text-slate-800 dark:text-white tracking-tight leading-none">Operations Hub</h1>
+                        <p className="text-xs md:text-sm font-bold text-teal-600 dark:text-teal-400 mt-1">(OpsHUB)</p>
+                     </div>
                   </a>
                </div>
                <div className="text-center">
-                  {/* <h1 className="text-slate-900 text-center text-xl font-semibold mb-2 ">Welcome back</h1> */}
-                  <p className="text-sm text-slate-600 ">Enter your email and password to sign in.</p>
+                  {/* <h1 className="text-slate-900 dark:text-white text-center text-xl font-semibold mb-2 ">Welcome back</h1> */}
+                  <p className="text-sm text-slate-600 dark:text-slate-400">Enter your email and password to sign in.</p>
                </div>
 
                {/* Conditional Forms based on resetState */}
                {resetState === 'email_sent' ? (
                   <form className="space-y-6 mt-6" onSubmit={handleResetPassword}>
                      <div className="text-center mb-4">
-                        <p className="text-sm text-slate-600">A reset code has been sent to <strong>{email}</strong></p>
+                        <p className="text-sm text-slate-600 dark:text-slate-400">A reset code has been sent to <strong>{email}</strong></p>
                      </div>
                      <Alert message={error} onClose={() => setError('')} />
                      <div>
-                        <label htmlFor="code" className="mb-2 text-slate-900 font-medium text-sm inline-block">Reset Code</label>
-                        <input type="text" id="code" value={resetCode} onChange={(e) => setResetCode(e.target.value)} className="px-3 py-2.5 text-sm text-slate-900 rounded-md bg-white w-full outline-1 -outline-offset-1 outline-slate-300 focus:outline-2 focus:-outline-offset-2 focus:outline-teal-600" required />
+                        <label htmlFor="code" className="mb-2 text-slate-900 dark:text-white font-medium text-sm inline-block">Reset Code</label>
+                        <input type="text" id="code" value={resetCode} onChange={(e) => setResetCode(e.target.value)} className="px-3 py-2.5 text-sm text-slate-900 dark:text-white rounded-md bg-white dark:bg-slate-800 w-full outline-1 -outline-offset-1 outline-slate-300 dark:outline-slate-700 focus:outline-2 focus:-outline-offset-2 focus:outline-teal-600" required />
                      </div>
                      <div className="relative">
-                        <label htmlFor="newPassword" className="mb-2 text-slate-900 font-medium text-sm inline-block">New Password</label>
+                        <label htmlFor="newPassword" className="mb-2 text-slate-900 dark:text-white font-medium text-sm inline-block">New Password</label>
                         <button type="button" onClick={toggleVisibility} className="absolute top-1 right-2 p-0.5 flex cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-600 rounded">
-                           <svg xmlns="http://www.w3.org/2000/svg" className="size-[18px] fill-slate-400 text-slate-400" viewBox="0 0 128 128">
+                           <svg xmlns="http://www.w3.org/2000/svg" className="size-[18px] fill-slate-400 dark:fill-slate-500 text-slate-400 dark:text-slate-500" viewBox="0 0 128 128">
                               <path d="M64 104C22.127 104 1.367 67.496.504 65.943a4 4 0 0 1 0-3.887C1.367 60.504 22.127 24 64 24s62.633 36.504 63.496 38.057a4 4 0 0 1 0 3.887C126.633 67.496 105.873 104 64 104zM8.707 63.994C13.465 71.205 32.146 96 64 96c31.955 0 50.553-24.775 55.293-31.994C114.535 56.795 95.854 32 64 32 32.045 32 13.447 56.775 8.707 63.994zM64 88c-13.234 0-24-10.766-24-24s10.766-24 24-24 24 10.766 24 24-10.766 24-24 24zm0-40c-8.822 0-16 7.178-16 16s7.178 16 16 16 16-7.178 16-16-7.178-16-16-16z"></path>
-                              {!isVisible && <path d="M15 15l98 98" stroke="currentColor" strokeWidth="10" strokeLinecap="round" className="stroke-slate-400" />}
+                              {!isVisible && <path d="M15 15l98 98" stroke="currentColor" strokeWidth="10" strokeLinecap="round" className="stroke-slate-400 dark:stroke-slate-500" />}
                            </svg>
                         </button>
-                        <input type={isVisible ? "text" : "password"} id="newPassword" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} className="px-3 py-2.5 text-sm text-slate-900 rounded-md bg-white w-full outline-1 -outline-offset-1 outline-slate-300 focus:outline-2 focus:-outline-offset-2 focus:outline-teal-600" required />
+                        <input type={isVisible ? "text" : "password"} id="newPassword" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} className="px-3 py-2.5 text-sm text-slate-900 dark:text-white rounded-md bg-white dark:bg-slate-800 w-full outline-1 -outline-offset-1 outline-slate-300 dark:outline-slate-700 focus:outline-2 focus:-outline-offset-2 focus:outline-teal-600" required />
                      </div>
                      <button type="submit" disabled={isLoading} className={`w-full py-2 px-3.5 text-sm rounded-md font-semibold tracking-wide text-white border border-teal-600 bg-teal-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-500 flex items-center justify-center gap-2 ${isLoading ? "opacity-70 cursor-not-allowed scale-[0.98]" : "hover:bg-teal-700 transition-all cursor-pointer"}`}>
                         {isLoading && loadingAction === 'reset_submit' ? "Resetting..." : "Reset Password"}
@@ -223,8 +227,8 @@ export default function Login() {
                   </form>
                ) : resetState === 'success' ? (
                   <div className="space-y-6 mt-6 text-center">
-                     <div className="p-4 bg-emerald-50 text-emerald-700 rounded-md border border-emerald-200">
-                        <svg className="size-8 mx-auto mb-2 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                     <div className="p-4 bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 rounded-md border border-emerald-200 dark:border-emerald-800/30">
+                        <svg className="size-8 mx-auto mb-2 text-emerald-500 dark:text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                         </svg>
                         <p className="font-medium">Password Reset Successful!</p>
@@ -242,7 +246,7 @@ export default function Login() {
                         {/* Email Input Field */}
                         <div>
                            <label htmlFor="email"
-                              className="mb-2 text-slate-900 font-medium text-sm inline-block ">Email</label>
+                              className="mb-2 text-slate-900 dark:text-white font-medium text-sm inline-block ">Email</label>
                            <input
                               type="email"
                               id="email"
@@ -250,7 +254,7 @@ export default function Login() {
                               value={email}
                               onChange={(e) => setEmail(e.target.value)}
                               placeholder="officialchano18@gmail.com"
-                              className="px-3 py-2.5 text-sm text-slate-900 rounded-md bg-white w-full outline-1 -outline-offset-1 outline-slate-300 focus:outline-2 focus:-outline-offset-2 focus:outline-teal-600   "
+                              className="px-3 py-2.5 text-sm text-slate-900 dark:text-white rounded-md bg-white dark:bg-slate-800 w-full outline-1 -outline-offset-1 outline-slate-300 dark:outline-slate-700 focus:outline-2 focus:-outline-offset-2 focus:outline-teal-600"
                               required
                            />
                         </div>
@@ -258,7 +262,7 @@ export default function Login() {
                         {/* Password Input Field with Toggle */}
                         <div className="relative">
                            <label htmlFor="password"
-                              className="mb-2 text-slate-900 font-medium text-sm inline-block ">Password</label>
+                              className="mb-2 text-slate-900 dark:text-white font-medium text-sm inline-block ">Password</label>
 
                            {/* Button to toggle password visibility */}
                            <button
@@ -269,7 +273,7 @@ export default function Login() {
                               aria-pressed={isVisible}
                               className="absolute top-1 right-2 p-0.5 flex cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-600 rounded">
                               <svg xmlns="http://www.w3.org/2000/svg"
-                                 className="size-[18px] fill-slate-400 text-slate-400 overflow-visible" viewBox="0 0 128 128">
+                                 className="size-[18px] fill-slate-400 dark:fill-slate-500 text-slate-400 dark:text-slate-500 overflow-visible" viewBox="0 0 128 128">
                                  <path
                                     d="M64 104C22.127 104 1.367 67.496.504 65.943a4 4 0 0 1 0-3.887C1.367 60.504 22.127 24 64 24s62.633 36.504 63.496 38.057a4 4 0 0 1 0 3.887C126.633 67.496 105.873 104 64 104zM8.707 63.994C13.465 71.205 32.146 96 64 96c31.955 0 50.553-24.775 55.293-31.994C114.535 56.795 95.854 32 64 32 32.045 32 13.447 56.775 8.707 63.994zM64 88c-13.234 0-24-10.766-24-24s10.766-24 24-24 24 10.766 24 24-10.766 24-24 24zm0-40c-8.822 0-16 7.178-16 16s7.178 16 16 16 16-7.178 16-16-7.178-16-16-16z">
                                  </path>
@@ -279,7 +283,7 @@ export default function Login() {
                                        stroke="currentColor"
                                        strokeWidth="10"
                                        strokeLinecap="round"
-                                       className="stroke-slate-400"
+                                       className="stroke-slate-400 dark:stroke-slate-500"
                                     />
                                  )}
                               </svg>
@@ -292,18 +296,18 @@ export default function Login() {
                               value={password}
                               onChange={(e) => setPassword(e.target.value)}
                               placeholder="••••••••"
-                              className="px-3 py-2.5 text-sm text-slate-900 rounded-md bg-white w-full outline-1 -outline-offset-1 outline-slate-300 focus:outline-2 focus:-outline-offset-2 focus:outline-teal-600   "
+                              className="px-3 py-2.5 text-sm text-slate-900 dark:text-white rounded-md bg-white dark:bg-slate-800 w-full outline-1 -outline-offset-1 outline-slate-300 dark:outline-slate-700 focus:outline-2 focus:-outline-offset-2 focus:outline-teal-600"
                               required
                            />
                         </div>
 
                         {/* Form Actions (Remember me & Forgot password) */}
                         <div className="flex items-start flex-wrap gap-2">
-                           <label className="flex items-center group has-[input:checked]:text-slate-900">
+                           <label className="flex items-center group has-[input:checked]:text-slate-900 dark:has-[input:checked]:text-white">
                               <input id="remember" name="remember" type="checkbox" className="sr-only" />
                               {/* Custom box */}
-                              <span className="flex h-4 w-4 shrink-0 items-center justify-center rounded outline-1 outline-slate-300 
-                                    bg-white 
+                              <span className="flex h-4 w-4 shrink-0 items-center justify-center rounded outline-1 outline-slate-300 dark:outline-slate-600 
+                                    bg-white dark:bg-slate-800
                                     group-has-[input:checked]:bg-teal-600
                                     group-has-[input:checked]:outline-teal-600
                                     group-focus-within:outline-2
@@ -314,7 +318,7 @@ export default function Login() {
                                     <path d="M1 5l3 3 7-7" />
                                  </svg>
                               </span>
-                              <span className="ml-3 text-sm text-slate-700 ">
+                              <span className="ml-3 text-sm text-slate-700 dark:text-slate-300">
                                  Remember me
                               </span>
                            </label>
@@ -342,9 +346,9 @@ export default function Login() {
 
                      {/* Divider */}
                      <div className="flex items-center gap-4 my-6">
-                        <hr className="w-full border-slate-300 " />
-                        <p className="text-sm text-slate-700 text-center ">or</p>
-                        <hr className="w-full border-slate-300 " />
+                        <hr className="w-full border-slate-300 dark:border-slate-700" />
+                        <p className="text-sm text-slate-700 dark:text-slate-400 text-center">or</p>
+                        <hr className="w-full border-slate-300 dark:border-slate-700" />
                      </div>
                   </>
                )}
@@ -355,7 +359,7 @@ export default function Login() {
                      onClick={handleGoogleSignIn}
                      type="button"
                      disabled={isLoading}
-                     className={`w-full flex items-center justify-center gap-2.5 py-2 px-3.5 text-sm rounded-md font-semibold text-slate-900 border border-slate-300 bg-white focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-500 ${isLoading ? "opacity-70 cursor-not-allowed scale-[0.98]" : "hover:bg-gray-50 transition-all cursor-pointer"
+                     className={`w-full flex items-center justify-center gap-2.5 py-2 px-3.5 text-sm rounded-md font-semibold text-slate-900 dark:text-white border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-500 ${isLoading ? "opacity-70 cursor-not-allowed scale-[0.98]" : "hover:bg-gray-50 dark:hover:bg-slate-700 transition-all cursor-pointer"
                         }`}>
                      {isLoading && loadingAction === 'google' ? (
                         <svg className="animate-spin h-4 w-4 text-slate-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
@@ -391,9 +395,16 @@ export default function Login() {
             </div>
 
             {/* App Footer */}
-            <footer className="mt-2 flex justify-between text-slate-500 text-sm font-medium px-2">
-               <span>TechCraft by Chano</span>
-               <span>v1.1</span>
+            <footer className="mt-2 flex justify-between text-slate-500 dark:text-slate-400 text-sm font-medium px-2">
+               <a 
+                 href="https://www.facebook.com/chanotot" 
+                 target="_blank" 
+                 rel="noopener noreferrer" 
+                 className="hover:text-teal-600 dark:hover:text-teal-400 hover:underline transition-colors"
+               >
+                 TechCraft by Chano
+               </a>
+               <span>{__APP_VERSION__}</span>
             </footer>
          </div>
       </main>
