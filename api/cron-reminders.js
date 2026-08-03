@@ -7,8 +7,8 @@ export default async function handler(req, res) {
     return res.status(401).json({ error: 'Unauthorized' });
   }
 
-  const url = process.env.TURSO_DB_URL;
-  const authToken = process.env.TURSO_DB_AUTH_TOKEN;
+  const url = process.env['TURSO_DB_URL'];
+  const authToken = process.env['TURSO_DB_AUTH_TOKEN'];
 
   if (!url) {
     return res.status(500).json({ error: "Database URL not configured" });

@@ -17,8 +17,11 @@
 @custom-variant dark (&:is(.dark *));
 
 @layer base {
+  *, ::before, ::after {
+    @apply transition-colors duration-150 ease-in-out;
+  }
   body {
-    @apply bg-white dark:bg-slate-950 text-slate-900 dark:text-slate-100 transition-colors duration-300 ease-in-out;
+    @apply bg-white dark:bg-slate-950 text-slate-900 dark:text-slate-100;
   }
 }
 
