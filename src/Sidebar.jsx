@@ -1,19 +1,46 @@
-import React from 'react';
-import { useAuth } from '@clerk/clerk-react';
+import React, { useState, useEffect } from 'react';
+import { useAuth, useUser } from '@clerk/clerk-react';
 import { NavLink } from 'react-router-dom';
 import { useTheme } from './contexts/ThemeContext';
 
 export default function Sidebar({ isOpen, setIsOpen }) {
-  const { signOut } = useAuth();
+  const { signOut, getToken } = useAuth();
+  const { user } = useUser();
   const { theme, setTheme } = useTheme();
+  
+  const [userRole, setUserRole] = useState(null);
+
+  useEffect(() => {
+    const fetchRole = async () => {
+      if (user?.primaryEmailAddress?.emailAddress) {
+        try {
+          const token = await getToken();
+          const res = await fetch(`/api/activities?email=${encodeURIComponent(user.primaryEmailAddress.emailAddress)}`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+          });
+          const data = await res.json();
+          setUserRole(data.user?.Role);
+        } catch(e) {
+          console.error(e);
+        }
+      }
+    };
+    fetchRole();
+  }, [user, getToken]);
+
   const navItems = [
     { name: 'Office Activities', icon: '💼', path: '/office-activities' },
     { name: 'Digital Logbook', icon: '📖', path: '/digital-logbook' },
     { name: 'Daily Time Record', icon: '⏱️', path: '/daily-time-record' },
     { name: 'Leave Credits', icon: '🏖️', path: '/leave-credits' },
     { name: 'Personal Calendar', icon: '📅', path: '/personal-calendar' },
-    { name: 'Profile', icon: '👤', path: '/profile' },
   ];
+
+  if (['Super Admin', 'Admin', 'Focal Person'].includes(userRole)) {
+    navItems.push({ name: 'COSW Evaluation', icon: '📋', path: '/cosw-evaluation' });
+  }
+
+  navItems.push({ name: 'Profile', icon: '👤', path: '/profile' });
 
   return (
     <>

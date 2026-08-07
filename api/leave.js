@@ -206,6 +206,15 @@ export default async function handler(req, res) {
           ORDER BY lh.created_at DESC
         `);
         return res.status(200).json({ leaves: rs.rows });
+      } else if (action === 'getPendingLeaves') {
+        const rs = await turso.execute(`
+          SELECT lh.id, lh.user_email, lh.leave_type, lh.start_date, lh.created_at, up.First_Name, up.Last_Name
+          FROM Leave_History lh
+          LEFT JOIN User_Permissions up ON LOWER(lh.user_email) = LOWER(up.Email)
+          WHERE lh.status = 'Pending'
+          ORDER BY lh.created_at DESC
+        `);
+        return res.status(200).json({ pendingLeaves: rs.rows });
       }
       
       return res.status(400).json({ error: 'Invalid GET action' });

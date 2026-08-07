@@ -206,11 +206,54 @@ export default async function handler(req, res) {
       } 
       else if (action === 'updateActivity') {
         const assignedJson = JSON.stringify(formData.assigned_to);
+        
+        // Fetch old activity details to find old title and start_date
+        const oldActRes = await turso.execute({
+          sql: "SELECT title, start_date FROM Office_Activities WHERE id = ?",
+          args: [id]
+        });
+
+        if (oldActRes.rows.length > 0) {
+          const oldTitle = oldActRes.rows[0].title;
+          const oldStartDate = oldActRes.rows[0].start_date;
+          
+          // Delete old entries in Personal_Calendar
+          await turso.execute({
+            sql: "DELETE FROM Personal_Calendar WHERE title = ? AND event_type = 'Office Activity' AND start_date = ?",
+            args: [oldTitle, oldStartDate]
+          });
+        }
+
         await turso.execute({
           sql: "UPDATE Office_Activities SET title = ?, description = ?, start_date = ?, end_date = ?, assigned_to = ?, status = ? WHERE id = ?",
           args: [formData.title, formData.description, formData.start_date, formData.end_date, assignedJson, formData.status, id]
         });
         
+        // Add new entries for all newly assigned users
+        let emails = [];
+        const assignedNames = formData.assigned_to;
+        if (assignedNames.includes('All')) {
+          const allRes = await turso.execute("SELECT Email FROM User_Permissions WHERE (LOWER(Status) != 'inactive' OR Status IS NULL) AND IFNULL(is_regional, 0) != 1");
+          emails = allRes.rows.map(r => r.Email).filter(Boolean);
+        } else {
+          const allRes = await turso.execute("SELECT Email, First_Name, Middle_Name, Last_Name FROM User_Permissions WHERE (LOWER(Status) != 'inactive' OR Status IS NULL) AND IFNULL(is_regional, 0) != 1");
+          emails = allRes.rows.filter(r => {
+            const fullName = `${r.First_Name} ${r.Middle_Name ? r.Middle_Name.charAt(0) + '. ' : ''}${r.Last_Name}`.trim();
+            return assignedNames.includes(fullName);
+          }).map(r => r.Email).filter(Boolean);
+        }
+
+        if (emails.length > 0) {
+          const calendarPromises = emails.map(assigneeEmail => 
+            turso.execute({
+              sql: `INSERT INTO Personal_Calendar (user_email, title, event_type, start_date, end_date, description)
+                    VALUES (?, ?, ?, ?, ?, ?)`,
+              args: [assigneeEmail, formData.title, 'Office Activity', formData.start_date, formData.end_date || formData.start_date, formData.description]
+            }).catch(e => console.error("Calendar insert failed for", assigneeEmail, e))
+          );
+          await Promise.all(calendarPromises);
+        }
+
         const actRes = await turso.execute("SELECT * FROM Office_Activities ORDER BY start_date DESC, created_at DESC");
         return res.status(200).json({ success: true, activities: actRes.rows });
       }

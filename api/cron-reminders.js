@@ -96,7 +96,45 @@ export default async function handler(req, res) {
       }
     }
 
-    res.status(200).json({ success: true, message: `Sent ${emailsSentCount} reminder(s) for ${activities.length} activity(s).` });
+    // 6. Fetch personal calendar events starting tomorrow (exclude Office Activities to prevent duplicate emails)
+    const calRes = await client.execute({
+      sql: "SELECT * FROM Personal_Calendar WHERE start_date = ? AND event_type != 'Office Activity'",
+      args: [dateString]
+    });
+    const personalEvents = calRes.rows;
+    
+    // 7. Send emails for personal events
+    for (const event of personalEvents) {
+      if (event.user_email) {
+        await transporter.sendMail({
+          from: process.env.SMTP_FROM || '"OpsHUB" <noreply@opshub.local>',
+          to: event.user_email,
+          subject: `Reminder: Upcoming Personal Event - ${event.title}`,
+          text: `Reminder: You have an upcoming personal event starting tomorrow.\n\nTitle: ${event.title}\nDates: ${event.start_date} to ${event.end_date || event.start_date}\n\nDescription: ${event.description || 'No description provided.'}\n\n---\nPlease do not reply to this message. This is an automated notification from OpsHUB.`,
+          html: `
+            <div style="font-family: sans-serif; padding: 20px;">
+              <h2 style="color: #0f766e;">Upcoming Personal Event Reminder</h2>
+              <p>You have an upcoming event scheduled in your Personal Calendar for tomorrow.</p>
+              <p><strong>Title:</strong> ${event.title}</p>
+              <p><strong>Type:</strong> ${event.event_type}</p>
+              <p><strong>Dates:</strong> ${event.start_date} to ${event.end_date || event.start_date}</p>
+              <p><strong>Description:</strong></p>
+              <p style="white-space: pre-wrap;">${event.description || 'No description provided.'}</p>
+              <div style="margin-top: 25px; margin-bottom: 25px;">
+                <a href="https://operations-hub-iota.vercel.app/personal-calendar" style="display: inline-block; padding: 10px 20px; background-color: #0f172a; color: #ffffff; text-decoration: none; border-radius: 6px; font-weight: 500;">View Calendar</a>
+              </div>
+              <hr style="border: none; border-top: 1px solid #e2e8f0; margin: 20px 0;" />
+              <p style="font-size: 12px; color: #64748b; margin-bottom: 4px;"><strong>Please do not reply to this email.</strong></p>
+              <p style="font-size: 12px; color: #64748b;">This is an automated notification from OpsHUB.</p>
+            </div>
+          `
+        });
+        
+        emailsSentCount++;
+      }
+    }
+
+    res.status(200).json({ success: true, message: `Sent ${emailsSentCount} reminder(s) for ${activities.length} activity(s) and ${personalEvents.length} personal event(s).` });
   } catch (err) {
     console.error("Cron Reminder Error:", err);
     res.status(500).json({ success: false, error: err.message });
