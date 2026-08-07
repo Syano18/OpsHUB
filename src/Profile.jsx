@@ -826,7 +826,7 @@ export default function Profile() {
                                       </div>
                                       {isUserRoleDropdownOpen && (
                                         <div className="absolute z-10 w-full mt-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg shadow-lg max-h-60 overflow-auto py-1">
-                                          {(userData.Role === 'Super Admin' ? ["Super Admin", "Admin", "PACD", "Staff", "External Signatory"] : ["PACD", "Staff"])
+                                          {(userData.Role === 'Super Admin' ? ["Super Admin", "Admin", "PACD", "Staff", "Focal Person", "External Signatory"] : ["PACD", "Staff", "Focal Person"])
                                             .filter(role => role.toLowerCase().includes((selectedUserRole || "").toLowerCase()))
                                             .map((role) => (
                                               <button
@@ -998,7 +998,7 @@ export default function Profile() {
                                   </div>
                                   {isNewUserRoleDropdownOpen && (
                                     <div className="absolute z-10 w-full mt-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg shadow-lg max-h-60 overflow-auto py-1">
-                                      {(userData.Role === 'Super Admin' ? ["Super Admin", "Admin", "PACD", "Staff"] : ["PACD", "Staff"])
+                                      {(userData.Role === 'Super Admin' ? ["Super Admin", "Admin", "PACD", "Staff", "Focal Person"] : ["PACD", "Staff", "Focal Person"])
                                         .filter(role => role.toLowerCase().includes((newUserRole || "").toLowerCase()))
                                         .map((role) => (
                                           <button

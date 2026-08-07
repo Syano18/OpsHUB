@@ -191,7 +191,7 @@ export default async function handler(req, res) {
         }
         
       } else if (action === 'getAllUsersData') {
-        const usersRs = await turso.execute("SELECT First_Name, Middle_Name, Last_Name, Email, Role, emp_stat, Status FROM User_Permissions WHERE IFNULL(Status, '') != 'Inactive' AND IFNULL(is_regional, 0) != 1");
+        const usersRs = await turso.execute("SELECT First_Name, Middle_Name, Last_Name, Email, Role, emp_stat, Status FROM User_Permissions WHERE IFNULL(Status, '') != 'Inactive' AND IFNULL(is_regional, 0) != 1 AND IFNULL(Role, '') != 'Super Admin'");
         const creditsRs = await turso.execute("SELECT * FROM Leave_Credits");
         return res.status(200).json({ users: usersRs.rows, credits: creditsRs.rows });
       } else if (action === 'getAllLeaves') {

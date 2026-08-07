@@ -36,6 +36,7 @@ const { user } = useUser();
   const [referenceOverride, setReferenceOverride] = useState(null);
   const [timestampOverride, setTimestampOverride] = useState(null);
   const [userRole, setUserRole] = useState(null);
+  const canInsertRecord = userRole === 'Admin' || userRole === 'Super Admin' || userRole === 'PACD';
 
   // Export State
   const [showExportModal, setShowExportModal] = useState(false);
@@ -323,7 +324,11 @@ const { user } = useUser();
     );
     return filtered.map((entry) => (
       <div key={entry.id} className="relative p-4 rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/50 flex flex-col gap-3 hover:bg-teal-50/50 dark:hover:bg-teal-900/20 hover:border-teal-300 dark:hover:border-teal-700 hover:shadow-md cursor-pointer [content-visibility:auto]"
-        onClick={() => setActiveMenuId(activeMenuId === entry.id ? null : entry.id)}
+        onClick={() => {
+          if (canInsertRecord || entry.ENCODED_BY === (user?.primaryEmailAddress?.emailAddress || user?.fullName || user?.id)) {
+            setActiveMenuId(activeMenuId === entry.id ? null : entry.id);
+          }
+        }}
       >
         <div className="flex justify-between items-start gap-3">
           <div className="flex-1 min-w-0">
@@ -336,18 +341,20 @@ const { user } = useUser();
             <span className="text-[10px] sm:text-xs text-slate-500 dark:text-slate-400 text-right">
               {entry.Timestamp}
             </span>
-            <button
-              onClick={(e) => { e.stopPropagation(); setActiveMenuId(activeMenuId === entry.id ? null : entry.id); }}
-              className="p-1 rounded-md text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-800 transition-colors"
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="size-5">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M12 6.75a.75.75 0 1 1 0-1.5.75.75 0 0 1 0 1.5ZM12 12.75a.75.75 0 1 1 0-1.5.75.75 0 0 1 0 1.5ZM12 18.75a.75.75 0 1 1 0-1.5.75.75 0 0 1 0 1.5Z" />
-              </svg>
-            </button>
+            {(canInsertRecord || entry.ENCODED_BY === (user?.primaryEmailAddress?.emailAddress || user?.fullName || user?.id)) && (
+              <button
+                onClick={(e) => { e.stopPropagation(); setActiveMenuId(activeMenuId === entry.id ? null : entry.id); }}
+                className="p-1 rounded-md text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-800 transition-colors"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="size-5">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 6.75a.75.75 0 1 1 0-1.5.75.75 0 0 1 0 1.5ZM12 12.75a.75.75 0 1 1 0-1.5.75.75 0 0 1 0 1.5ZM12 18.75a.75.75 0 1 1 0-1.5.75.75 0 0 1 0 1.5Z" />
+                </svg>
+              </button>
+            )}
           </div>
         </div>
 
-        {activeMenuId === entry.id && (
+        {activeMenuId === entry.id && (canInsertRecord || entry.ENCODED_BY === (user?.primaryEmailAddress?.emailAddress || user?.fullName || user?.id)) && (
           <div className="absolute right-4 top-14 mt-2 w-48 bg-white dark:bg-slate-800 rounded-md shadow-lg border border-slate-200 dark:border-slate-700 z-10 overflow-hidden"
             onClick={(e) => e.stopPropagation()}
           >
@@ -362,6 +369,7 @@ const { user } = useUser();
                   Edit Record
                 </button>
               )}
+              {canInsertRecord && (
                 <button
                   onClick={() => handleInsertEntry(entry)}
                   className="w-full text-left px-4 py-2 text-sm text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700 flex items-center gap-2 transition-colors">
@@ -369,7 +377,9 @@ const { user } = useUser();
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.5v15m7.5-7.5h-15" />
                   </svg>
                   Insert Record
-                </button>                        </div>
+                </button>
+              )}
+              </div>
           </div>
         )}
 

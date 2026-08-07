@@ -71,7 +71,7 @@ export default async function handler(req, res) {
       });
 
       const mailOptions = {
-        from: process.env.SMTP_FROM || '"OpsHUB" <noreply@opshub.local>',
+        from: { name: 'OpsHUB Notifier', address: process.env.SMTP_USER || 'kalinga@psa.gov.ph' },
         to: email,
         subject: 'Welcome to OpsHUB - Your Account Details',
         html: `

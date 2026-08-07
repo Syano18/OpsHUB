@@ -53,7 +53,7 @@ export default async function handler(req, res) {
       });
 
       // Fetch Employees for Dropdown
-      const empRes = await turso.execute("SELECT First_Name, Middle_Name, Last_Name FROM User_Permissions WHERE (LOWER(Status) != 'inactive' OR Status IS NULL) AND IFNULL(is_regional, 0) != 1 ORDER BY First_Name ASC");
+      const empRes = await turso.execute("SELECT First_Name, Middle_Name, Last_Name FROM User_Permissions WHERE (LOWER(Status) != 'inactive' OR Status IS NULL) AND IFNULL(is_regional, 0) != 1 AND IFNULL(Role, '') != 'Super Admin' ORDER BY First_Name ASC");
       const uniqueEmps = new Set();
       empRes.rows.forEach(row => {
         if (row.First_Name && row.Last_Name) {
@@ -149,7 +149,7 @@ export default async function handler(req, res) {
 
         const mailPromises = emails.map(targetEmail => {
           return transporter.sendMail({
-            from: process.env.SMTP_FROM || '"OpsHUB Notifier" <kalinga@psa.gov.ph>',
+            from: { name: 'OpsHUB Notifier', address: process.env.SMTP_USER || 'kalinga@psa.gov.ph' },
             to: targetEmail,
             subject: `New Activity Assigned: ${formData.title}`,
             text: `You have been assigned to a new activity: ${formData.title}\nDates: ${formData.start_date} to ${formData.end_date || formData.start_date}\n\nDescription: ${formData.description}\n\n---\nPlease do not reply to this message. This is an automated notification from OpsHUB.`,
@@ -211,6 +211,78 @@ export default async function handler(req, res) {
           args: [formData.title, formData.description, formData.start_date, formData.end_date, assignedJson, formData.status, id]
         });
         
+        const actRes = await turso.execute("SELECT * FROM Office_Activities ORDER BY start_date DESC, created_at DESC");
+        return res.status(200).json({ success: true, activities: actRes.rows });
+      }
+      else if (action === 'cancelActivity') {
+        const { reason, title, start_date, assigned_to } = req.body;
+        
+        await turso.execute({
+          sql: "UPDATE Office_Activities SET status = 'Canceled', cancel_reason = ? WHERE id = ?",
+          args: [reason, id]
+        });
+
+        if (title && start_date) {
+          await turso.execute({
+            sql: "DELETE FROM Personal_Calendar WHERE title = ? AND event_type = 'Office Activity' AND start_date = ?",
+            args: [title, start_date]
+          });
+        }
+
+        // Send cancellation emails
+        let assignedNames = [];
+        try {
+          assignedNames = JSON.parse(assigned_to);
+        } catch {
+          assignedNames = ['All'];
+        }
+        
+        let emails = [];
+        if (assignedNames.includes('All')) {
+          const allRes = await turso.execute("SELECT Email FROM User_Permissions WHERE (LOWER(Status) != 'inactive' OR Status IS NULL) AND IFNULL(is_regional, 0) != 1");
+          emails = allRes.rows.map(r => r.Email).filter(Boolean);
+        } else {
+          const allRes = await turso.execute("SELECT Email, First_Name, Middle_Name, Last_Name FROM User_Permissions WHERE (LOWER(Status) != 'inactive' OR Status IS NULL) AND IFNULL(is_regional, 0) != 1");
+          emails = allRes.rows.filter(r => {
+            const fullName = `${r.First_Name} ${r.Middle_Name ? r.Middle_Name.charAt(0) + '. ' : ''}${r.Last_Name}`.trim();
+            return assignedNames.includes(fullName);
+          }).map(r => r.Email).filter(Boolean);
+        }
+
+        if (emails.length > 0) {
+          const transporter = nodemailer.createTransport({
+            host: process.env.SMTP_HOST,
+            port: parseInt(process.env.SMTP_PORT || '587'),
+            secure: process.env.SMTP_PORT === '465',
+            auth: { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS },
+          });
+
+          const mailPromises = emails.map(targetEmail => {
+            return transporter.sendMail({
+              from: { name: 'OpsHUB Notifier', address: process.env.SMTP_USER || 'kalinga@psa.gov.ph' },
+              to: targetEmail,
+              subject: `Activity Canceled: ${title}`,
+              text: `The activity "${title}" has been canceled.\n\nReason: ${reason}\n\n---\nPlease do not reply to this message.`,
+              html: `
+                <div style="font-family: sans-serif; padding: 20px;">
+                  <h2 style="color: #e11d48;">Activity Canceled</h2>
+                  <p><strong>Title:</strong> ${title}</p>
+                  <p><strong>Reason:</strong></p>
+                  <p style="white-space: pre-wrap;">${reason || 'No reason provided.'}</p>
+                  <div style="margin-top: 25px; margin-bottom: 25px;">
+                  <a href="https://operations-hub-iota.vercel.app" style="display: inline-block; padding: 10px 20px; background-color: #0f172a; color: #ffffff; text-decoration: none; border-radius: 6px; font-weight: 500;">Go to OpsHUB</a>
+                  </div>
+                  <hr style="border: none; border-top: 1px solid #e2e8f0; margin: 20px 0;" />
+                  <p style="font-size: 12px; color: #64748b; margin-bottom: 4px;"><strong>Please do not reply to this email.</strong></p>
+                  <p style="font-size: 12px; color: #64748b;">This is an automated notification from OpsHUB.</p>
+                </div>
+              `
+            }).catch(e => console.error("Failed to email", targetEmail, e));
+          });
+          
+          await Promise.all(mailPromises);
+        }
+
         const actRes = await turso.execute("SELECT * FROM Office_Activities ORDER BY start_date DESC, created_at DESC");
         return res.status(200).json({ success: true, activities: actRes.rows });
       }
