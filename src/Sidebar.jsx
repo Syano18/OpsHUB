@@ -29,35 +29,21 @@ export default function Sidebar({ isOpen, setIsOpen }) {
   }, [user, getToken]);
 
   const navItems = [
-    { name: 'Office Activities', icon: '💼', path: '/office-activities' },
-    { name: 'Digital Logbook', icon: '📖', path: '/digital-logbook' },
-    { name: 'Daily Time Record', icon: '⏱️', path: '/daily-time-record' },
-    { name: 'Leave Credits', icon: '🏖️', path: '/leave-credits' },
-    { name: 'Personal Calendar', icon: '📅', path: '/personal-calendar' },
+    { name: 'Office Activities', shortName: 'Activities', icon: '💼', path: '/office-activities' },
+    { name: 'Digital Logbook', shortName: 'Logbook', icon: '📖', path: '/digital-logbook' },
+    { name: 'Daily Time Record', shortName: 'DTR', icon: '⏱️', path: '/daily-time-record' },
+    { name: 'Leave Credits', shortName: 'Leave', icon: '🏖️', path: '/leave-credits' },
+    { name: 'Personal Calendar', shortName: 'Calendar', icon: '📅', path: '/personal-calendar' },
   ];
 
   if (['Super Admin', 'Admin', 'Focal Person'].includes(userRole)) {
-    navItems.push({ name: 'COSW Evaluation', icon: '📋', path: '/cosw-evaluation' });
+    navItems.push({ name: 'COSW Evaluation', shortName: 'Evaluation', icon: '📋', path: '/cosw-evaluation' });
   }
-
-  navItems.push({ name: 'Profile', icon: '👤', path: '/profile' });
 
   return (
     <>
-      {/* Mobile Overlay */}
-      {isOpen && (
-        <div 
-          className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-30 md:hidden transition-opacity"
-          onClick={() => setIsOpen(false)}
-        />
-      )}
-
-      {/* Sidebar Content */}
-      <aside className={`
-        fixed inset-y-0 left-0 z-40 w-64 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 flex flex-col min-h-screen border-r border-slate-200 dark:border-slate-800 shadow-[4px_0_24px_rgba(0,0,0,0.02)]
-        transform transition-transform duration-300 ease-in-out md:translate-x-0 md:static md:z-10
-        ${isOpen ? 'translate-x-0' : '-translate-x-full'}
-      `}>
+      {/* Desktop Sidebar */}
+      <aside className="hidden md:flex flex-col z-10 w-64 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 min-h-screen border-r border-slate-200 dark:border-slate-800 shadow-[4px_0_24px_rgba(0,0,0,0.02)]">
         {/* Logo Section */}
         <div className="p-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-center">
           <a href="#" className="flex flex-col items-center">
@@ -75,7 +61,6 @@ export default function Sidebar({ isOpen, setIsOpen }) {
             <NavLink
               key={index}
               to={item.path}
-              onClick={() => setIsOpen(false)}
               className={({ isActive }) => `flex items-center gap-3 px-4 py-3 rounded-lg border shadow-sm transition-all group cursor-pointer ${
               isActive 
                 ? 'bg-teal-50 dark:bg-teal-900/40 text-teal-700 dark:text-teal-400 border-teal-200 dark:border-teal-800' 
@@ -86,53 +71,79 @@ export default function Sidebar({ isOpen, setIsOpen }) {
             <span className="font-medium text-sm">{item.name}</span>
           </NavLink>
         ))}
-      </nav>
+        </nav>
 
-      {/* Theme Toggle & Logout */}
-      <div className="px-4 mb-4 space-y-2">
-        <div className="hidden md:flex items-center justify-between bg-slate-50 dark:bg-slate-800 p-3 rounded-lg border border-slate-200 dark:border-slate-700 shadow-sm">
-          <span className="text-sm font-medium text-slate-600 dark:text-slate-400 flex items-center gap-2">
-            {theme === 'dark' ? '🌙 Dark Mode' : '☀️ Light Mode'}
-          </span>
-          <button
-            onClick={() => setTheme(theme === 'light' ? 'dark' : 'light')}
-            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-offset-2 ${
-              theme === 'dark' ? 'bg-teal-500' : 'bg-slate-300'
-            }`}
-          >
-            <span
-              className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                theme === 'dark' ? 'translate-x-6' : 'translate-x-1'
+        {/* Theme Toggle & Logout */}
+        <div className="px-4 mb-4 space-y-2">
+          <div className="flex items-center justify-between bg-slate-50 dark:bg-slate-800 p-3 rounded-lg border border-slate-200 dark:border-slate-700 shadow-sm">
+            <span className="text-sm font-medium text-slate-600 dark:text-slate-400 flex items-center gap-2">
+              {theme === 'dark' ? '🌙 Dark Mode' : '☀️ Light Mode'}
+            </span>
+            <button
+              onClick={() => {
+                document.body.classList.add('disable-transitions');
+                setTheme(theme === 'light' ? 'dark' : 'light');
+                setTimeout(() => {
+                  document.body.classList.remove('disable-transitions');
+                }, 50);
+              }}
+              className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-offset-2 ${
+                theme === 'dark' ? 'bg-teal-500' : 'bg-slate-300'
               }`}
-            />
+            >
+              <span
+                className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                  theme === 'dark' ? 'translate-x-6' : 'translate-x-1'
+                }`}
+              />
+            </button>
+          </div>
+
+          <button
+            onClick={() => signOut()}
+            className="flex items-center gap-3 w-full px-4 py-3 rounded-lg bg-slate-50 dark:bg-slate-800/50 text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-700 shadow-sm hover:border-red-200 dark:hover:border-red-900 hover:bg-red-50 dark:hover:bg-red-900/30 hover:text-red-600 dark:hover:text-red-400 transition-all group cursor-pointer"
+          >
+            <span className="group-hover:scale-110 transition-transform flex items-center justify-center text-slate-400 group-hover:text-red-500">
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="size-5">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0 0 13.5 3h-6a2.25 2.25 0 0 0-2.25 2.25v13.5A2.25 2.25 0 0 0 7.5 21h6a2.25 2.25 0 0 0 2.25-2.25V15m3 0 3-3m0 0-3-3m3 3H9" />
+              </svg>
+            </span>
+            <span className="font-medium text-sm">Logout</span>
           </button>
+
+          <footer className="pt-2 flex items-center justify-center gap-1.5 text-slate-400 dark:text-slate-500 text-[10px] font-medium">
+             <a 
+               href="https://www.facebook.com/chanotot" 
+               target="_blank" 
+               rel="noopener noreferrer" 
+               className="hover:text-teal-600 dark:hover:text-teal-400 hover:underline transition-colors"
+             >
+               TechCraft by Chano
+             </a>
+             <span className="opacity-80">                {__APP_VERSION__}</span>
+          </footer>
         </div>
+      </aside>
 
-        <button
-          onClick={() => signOut()}
-          className="flex items-center gap-3 w-full px-4 py-3 rounded-lg bg-slate-50 dark:bg-slate-800/50 text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-700 shadow-sm hover:border-red-200 dark:hover:border-red-900 hover:bg-red-50 dark:hover:bg-red-900/30 hover:text-red-600 dark:hover:text-red-400 transition-all group cursor-pointer"
-        >
-          <span className="group-hover:scale-110 transition-transform flex items-center justify-center text-slate-400 group-hover:text-red-500">
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="size-5">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0 0 13.5 3h-6a2.25 2.25 0 0 0-2.25 2.25v13.5A2.25 2.25 0 0 0 7.5 21h6a2.25 2.25 0 0 0 2.25-2.25V15m3 0 3-3m0 0-3-3m3 3H9" />
-            </svg>
-          </span>
-          <span className="font-medium text-sm">Logout</span>
-        </button>
-
-        <footer className="pt-2 flex items-center justify-center gap-1.5 text-slate-400 dark:text-slate-500 text-[10px] font-medium">
-           <a 
-             href="https://www.facebook.com/chanotot" 
-             target="_blank" 
-             rel="noopener noreferrer" 
-             className="hover:text-teal-600 dark:hover:text-teal-400 hover:underline transition-colors"
-           >
-             TechCraft by Chano
-           </a>
-           <span className="opacity-80">                {__APP_VERSION__}</span>
-        </footer>
-      </div>
-    </aside>
+      {/* Mobile Bottom Navigation */}
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-white dark:bg-slate-950 border-t border-slate-200 dark:border-slate-800 flex items-center shadow-[0_-4px_24px_rgba(0,0,0,0.05)]">
+        <div className="flex justify-around w-full pb-[env(safe-area-inset-bottom)]">
+          {navItems.map((item, index) => (
+            <NavLink
+              key={index}
+              to={item.path}
+              className={({ isActive }) => `flex flex-col items-center justify-center p-1 sm:p-2 min-w-0 flex-1 ${
+                isActive 
+                  ? 'text-teal-600 dark:text-teal-400 bg-teal-50/50 dark:bg-teal-900/20' 
+                  : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-900/50'
+              }`}
+            >
+              <span className="text-xl mb-1">{item.icon}</span>
+              <span className="text-[10px] sm:text-xs text-center leading-tight truncate w-full px-0.5">{item.shortName || item.name}</span>
+            </NavLink>
+          ))}
+        </div>
+      </nav>
     </>
   );
 }

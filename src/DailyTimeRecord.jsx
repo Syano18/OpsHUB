@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useOutletContext } from 'react-router-dom';
-import { UserButton, useUser, useAuth } from '@clerk/clerk-react';
+import { useUser, useAuth } from '@clerk/clerk-react';
 import Alert from './Alert';
 import Loading from './components/Loading';
-import ThemeToggleIcon from './ThemeToggleIcon';
+import CustomUserButton from './CustomUserButton';
 import NotificationBell from './NotificationBell';
 export default function DailyTimeRecord() {
     const { setIsSidebarOpen } = useOutletContext();
@@ -138,12 +138,59 @@ const { user } = useUser();
   const isAdmin = userRole === 'Admin' || userRole === 'Super Admin';
   const uniqueEmployees = [...new Set(attendance.map(row => row.display_name).filter(Boolean))].sort();
 
+  const getBadgeColor = (name) => {
+    if (!name) return "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700";
+    const colors = [
+      "bg-blue-50 dark:bg-blue-500/10 text-blue-700 dark:text-blue-400 border-blue-200 dark:border-blue-500/20",
+      "bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-200 dark:border-emerald-500/20",
+      "bg-violet-50 dark:bg-violet-500/10 text-violet-700 dark:text-violet-400 border-violet-200 dark:border-violet-500/20",
+      "bg-amber-50 dark:bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-200 dark:border-amber-500/20",
+      "bg-rose-50 dark:bg-rose-500/10 text-rose-700 dark:text-rose-400 border-rose-200 dark:border-rose-500/20",
+      "bg-cyan-50 dark:bg-cyan-500/10 text-cyan-700 dark:text-cyan-400 border-cyan-200 dark:border-cyan-500/20",
+      "bg-pink-50 dark:bg-pink-500/10 text-pink-700 dark:text-pink-400 border-pink-200 dark:border-pink-500/20",
+      "bg-fuchsia-50 dark:bg-fuchsia-500/10 text-fuchsia-700 dark:text-fuchsia-400 border-fuchsia-200 dark:border-fuchsia-500/20",
+      "bg-orange-50 dark:bg-orange-500/10 text-orange-700 dark:text-orange-400 border-orange-200 dark:border-orange-500/20",
+      "bg-teal-50 dark:bg-teal-500/10 text-teal-700 dark:text-teal-400 border-teal-200 dark:border-teal-500/20",
+    ];
+    let hash = 0;
+    for (let i = 0; i < name.length; i++) {
+      hash = name.charCodeAt(i) + ((hash << 5) - hash);
+    }
+    const index = Math.abs(hash) % colors.length;
+    return colors[index];
+  };
+
+  const renderStatus = (row) => {
+    if (row.error_message) {
+      return (
+        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] sm:text-xs font-semibold bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400 border border-red-200 dark:border-red-800/30">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-3.5 h-3.5"><path fillRule="evenodd" d="M9.401 3.003c1.155-2 4.043-2 5.197 0l7.355 12.748c1.154 2-.29 4.5-2.599 4.5H4.645c-2.309 0-3.752-2.5-2.598-4.5L9.4 3.003ZM12 8.25a.75.75 0 0 1 .75.75v3.75a.75.75 0 0 1-1.5 0V9a.75.75 0 0 1 .75-.75Zm0 8.25a.75.75 0 1 0 0-1.5.75.75 0 0 0 0 1.5Z" clipRule="evenodd" /></svg>
+          Punch Error
+        </span>
+      );
+    } else if (row.time_in_am && row.time_out_am && row.time_in_pm && row.time_out_pm) {
+      return (
+        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] sm:text-xs font-semibold bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800/30">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-3.5 h-3.5"><path fillRule="evenodd" d="M10 18a8 8 0 1 0 0-16 8 8 0 0 0 0 16Zm3.857-9.809a.75.75 0 0 0-1.214-.882l-3.483 4.79-1.88-1.88a.75.75 0 1 0-1.06 1.061l2.5 2.5a.75.75 0 0 0 1.137-.089l4-5.5Z" clipRule="evenodd" /></svg>
+          Complete
+        </span>
+      );
+    } else {
+      return (
+        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] sm:text-xs font-semibold bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-800/30">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-3.5 h-3.5"><path fillRule="evenodd" d="M18 10a8 8 0 1 1-16 0 8 8 0 0 1 16 0Zm-8-5a.75.75 0 0 1 .75.75v4.5a.75.75 0 0 1-1.5 0v-4.5A.75.75 0 0 1 10 5Zm0 10a1 1 0 1 0 0-2 1 1 0 0 0 0 2Z" clipRule="evenodd" /></svg>
+          Incomplete
+        </span>
+      );
+    }
+  };
+
   return (
     <div className="h-full flex flex-col overflow-hidden bg-slate-50/50 dark:bg-slate-950/50 text-slate-900 dark:text-slate-100">
       {/* Header */}
       <header className="shrink-0 h-16 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between pl-4 pr-2 md:pl-8 md:pr-4 shadow-sm sticky top-0 z-20">
         <div className="flex items-center gap-2">
-          <button onClick={() => setIsSidebarOpen(true)} className="md:hidden p-2 -ml-2 mr-1 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors">
+          <button onClick={() => setIsSidebarOpen(true)} className="hidden p-2 -ml-2 mr-1 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors">
             <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" /></svg>
           </button>
           <h2 className="text-xl font-bold text-slate-800 dark:text-white flex items-center gap-2">
@@ -154,19 +201,7 @@ const { user } = useUser();
           <div className="text-sm text-slate-600 dark:text-slate-300 font-medium hidden sm:block">
             {user?.firstName ? `Welcome back, ${user.firstName}!` : 'Welcome back!'}
           </div>
-          <ThemeToggleIcon />
-          <UserButton 
-            afterSignOutUrl="/" 
-            userProfileMode="navigation" 
-            userProfileUrl="/profile"
-            appearance={{
-              elements: {
-                userButtonPopoverActionButton__signOut: { display: "none" },
-                userButtonPopoverActionButtonIcon__signOut: { display: "none" },
-                userButtonPopoverFooter: { display: "none" }
-              }
-            }}
-          />
+          <CustomUserButton />
           <NotificationBell />
         </div>
       </header>
@@ -229,74 +264,62 @@ const { user } = useUser();
                     )}
                   </div>
                 </div>
-                <div className="overflow-x-auto flex-1">
-                  <table className="w-full text-sm text-left">
-                    <thead className="bg-slate-100 dark:bg-slate-800/50 text-slate-500 dark:text-slate-400 font-medium border-b border-slate-200 dark:border-slate-700 whitespace-nowrap sticky top-0 shadow-sm z-10">
-                      <tr>
-                        <th className="px-6 py-4">Date</th>
-                        {isAdmin && <th className="px-6 py-4">Name</th>}
-                        <th className="px-6 py-4 text-center">Time In (AM)</th>
-                        <th className="px-6 py-4 text-center">Time Out (AM)</th>
-                        <th className="px-6 py-4 text-center">Time In (PM)</th>
-                        <th className="px-6 py-4 text-center">Time Out (PM)</th>
-                        <th className="px-6 py-4">Status</th>
-                        <th className="px-6 py-4">Remarks</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-slate-100 dark:divide-slate-800/50">
-                      {filteredAttendance.length === 0 ? (
-                        <tr>
-                          <td colSpan={isAdmin ? 8 : 7} className="px-6 py-12 text-center text-slate-400 dark:text-slate-500">No attendance records found for this month.</td>
-                        </tr>
-                      ) : (
-                        filteredAttendance.map((row, idx) => (
-                          <tr
-                            key={`${row.id || 'no-id'}-${idx}`}
-                            onClick={() => handleRowClick(row)}
-                            className="hover:bg-teal-50/40 dark:hover:bg-teal-900/20 hover:cursor-pointer transition-colors group"
-                          >
-                            <td className="px-6 py-4 whitespace-nowrap font-medium text-slate-700 dark:text-slate-300">{formatDate(row.date)}</td>
-                            {isAdmin && (
-                              <td className="px-6 py-4 whitespace-nowrap font-bold text-slate-800 dark:text-slate-200">
-                                {row.display_name}
-                              </td>
-                            )}
-                            <td className="px-6 py-4 whitespace-nowrap text-slate-600 dark:text-slate-400 text-center">{row.time_in_am || '-'}</td>
-                            <td className="px-6 py-4 whitespace-nowrap text-slate-600 dark:text-slate-400 text-center">{row.time_out_am || '-'}</td>
-                            <td className="px-6 py-4 whitespace-nowrap text-slate-600 dark:text-slate-400 text-center">{row.time_in_pm || '-'}</td>
-                            <td className="px-6 py-4 whitespace-nowrap text-slate-600 dark:text-slate-400 text-center">{row.time_out_pm || '-'}</td>
-                            <td className="px-6 py-4 whitespace-nowrap">
-                              {row.error_message ? (
-                                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400 border border-red-200 dark:border-red-800/30">
-                                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-3.5 h-3.5">
-                                    <path fillRule="evenodd" d="M9.401 3.003c1.155-2 4.043-2 5.197 0l7.355 12.748c1.154 2-.29 4.5-2.599 4.5H4.645c-2.309 0-3.752-2.5-2.598-4.5L9.4 3.003ZM12 8.25a.75.75 0 0 1 .75.75v3.75a.75.75 0 0 1-1.5 0V9a.75.75 0 0 1 .75-.75Zm0 8.25a.75.75 0 1 0 0-1.5.75.75 0 0 0 0 1.5Z" clipRule="evenodd" />
-                                  </svg>
-                                  Punch Error
-                                </span>
-                              ) : row.time_in_am && row.time_out_am && row.time_in_pm && row.time_out_pm ? (
-                                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800/30">
-                                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-3.5 h-3.5">
-                                    <path fillRule="evenodd" d="M10 18a8 8 0 1 0 0-16 8 8 0 0 0 0 16Zm3.857-9.809a.75.75 0 0 0-1.214-.882l-3.483 4.79-1.88-1.88a.75.75 0 1 0-1.06 1.061l2.5 2.5a.75.75 0 0 0 1.137-.089l4-5.5Z" clipRule="evenodd" />
-                                  </svg>
-                                  Complete
-                                </span>
-                              ) : (
-                                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-800/30">
-                                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-3.5 h-3.5">
-                                    <path fillRule="evenodd" d="M18 10a8 8 0 1 1-16 0 8 8 0 0 1 16 0Zm-8-5a.75.75 0 0 1 .75.75v4.5a.75.75 0 0 1-1.5 0v-4.5A.75.75 0 0 1 10 5Zm0 10a1 1 0 1 0 0-2 1 1 0 0 0 0 2Z" clipRule="evenodd" />
-                                  </svg>
-                                  Incomplete
-                                </span>
-                              )}
-                            </td>
-                            <td className="px-6 py-4 text-slate-500 dark:text-slate-400 max-w-xs truncate group-hover:text-teal-700 dark:group-hover:text-teal-400 transition-colors">
-                              {row.remarks || <span className="text-slate-300 dark:text-slate-600 italic">Click to add remarks</span>}
-                            </td>
-                          </tr>
-                        ))
-                      )}
-                    </tbody>
-                  </table>
+                <div className="flex-1 overflow-y-auto p-4 bg-slate-50 dark:bg-slate-900/50">
+                  {filteredAttendance.length === 0 ? (
+                    <div className="text-center py-12 text-slate-400 dark:text-slate-500 font-medium">No attendance records found for this month.</div>
+                  ) : (
+                    <div className="flex flex-col gap-3">
+                      {filteredAttendance.map((row, idx) => (
+                        <div 
+                          key={`card-${row.id || 'no-id'}-${idx}`}
+                          onClick={() => handleRowClick(row)}
+                          className="bg-white dark:bg-slate-800 rounded-xl p-4 shadow-sm border border-slate-200 dark:border-slate-700 flex flex-col gap-3 hover:bg-teal-50/50 dark:hover:bg-teal-900/20 hover:border-teal-300 dark:hover:border-teal-700 hover:shadow-md cursor-pointer transition-all [content-visibility:auto]"
+                        >
+                          <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-3">
+                            <div>
+                              <div className="font-bold text-slate-800 dark:text-slate-200 text-lg flex items-center gap-3">
+                                {formatDate(row.date)}
+                                {isAdmin && <span className={`text-sm font-semibold px-2.5 py-0.5 rounded-md border ${getBadgeColor(row.display_name)}`}>{row.display_name}</span>}
+                              </div>
+                            </div>
+                            <div className="shrink-0 flex items-center gap-3">
+                              {renderStatus(row)}
+                            </div>
+                          </div>
+                          
+                          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 bg-slate-50 dark:bg-slate-900/50 p-3 rounded-lg border border-slate-100 dark:border-slate-700/50">
+                            <div className="flex flex-col">
+                              <span className="text-[10px] uppercase font-semibold text-slate-500 dark:text-slate-400 tracking-wider mb-1">AM In</span>
+                              <span className="font-medium text-slate-700 dark:text-slate-300">{row.time_in_am || '--:--'}</span>
+                            </div>
+                            <div className="flex flex-col">
+                              <span className="text-[10px] uppercase font-semibold text-slate-500 dark:text-slate-400 tracking-wider mb-1">AM Out</span>
+                              <span className="font-medium text-slate-700 dark:text-slate-300">{row.time_out_am || '--:--'}</span>
+                            </div>
+                            <div className="flex flex-col">
+                              <span className="text-[10px] uppercase font-semibold text-slate-500 dark:text-slate-400 tracking-wider mb-1">PM In</span>
+                              <span className="font-medium text-slate-700 dark:text-slate-300">{row.time_in_pm || '--:--'}</span>
+                            </div>
+                            <div className="flex flex-col">
+                              <span className="text-[10px] uppercase font-semibold text-slate-500 dark:text-slate-400 tracking-wider mb-1">PM Out</span>
+                              <span className="font-medium text-slate-700 dark:text-slate-300">{row.time_out_pm || '--:--'}</span>
+                            </div>
+                          </div>
+
+                          {(row.remarks) ? (
+                            <div className="text-sm mt-1 pt-2 border-t border-slate-100 dark:border-slate-800">
+                              <span className="font-medium text-slate-600 dark:text-slate-400">Remarks: </span>
+                              <span className="text-slate-700 dark:text-slate-300">{row.remarks}</span>
+                            </div>
+                          ) : (
+                            <div className="text-sm mt-1 pt-2 border-t border-slate-100 dark:border-slate-800">
+                              <span className="text-slate-400 dark:text-slate-500 italic">Click to add remarks</span>
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
               </div>
             </>
