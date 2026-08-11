@@ -70,8 +70,8 @@ export default async function handler(req, res) {
     }
 
     const turso = createClient({ 
-      url: process.env.TURSO_DB_URL, 
-      authToken: process.env.TURSO_DB_AUTH_TOKEN 
+      url: process.env['TURSO_DB_URL'], 
+      authToken: process.env['TURSO_DB_AUTH_TOKEN'] 
     });
 
     // Create tables if they don't exist
@@ -191,7 +191,7 @@ export default async function handler(req, res) {
         }
         
       } else if (action === 'getAllUsersData') {
-        const usersRs = await turso.execute("SELECT First_Name, Middle_Name, Last_Name, Email, Role, emp_stat, Status FROM User_Permissions WHERE IFNULL(Status, '') != 'Inactive' AND IFNULL(is_regional, 0) != 1");
+        const usersRs = await turso.execute("SELECT First_Name, Middle_Name, Last_Name, Email, Role, emp_stat, Status FROM User_Permissions WHERE IFNULL(Status, '') != 'Inactive' AND IFNULL(is_regional, 0) != 1 AND IFNULL(Role, '') != 'Super Admin'");
         const creditsRs = await turso.execute("SELECT * FROM Leave_Credits");
         return res.status(200).json({ users: usersRs.rows, credits: creditsRs.rows });
       } else if (action === 'getAllLeaves') {
@@ -206,6 +206,15 @@ export default async function handler(req, res) {
           ORDER BY lh.created_at DESC
         `);
         return res.status(200).json({ leaves: rs.rows });
+      } else if (action === 'getPendingLeaves') {
+        const rs = await turso.execute(`
+          SELECT lh.id, lh.user_email, lh.leave_type, lh.start_date, lh.created_at, up.First_Name, up.Last_Name
+          FROM Leave_History lh
+          LEFT JOIN User_Permissions up ON LOWER(lh.user_email) = LOWER(up.Email)
+          WHERE lh.status = 'Pending'
+          ORDER BY lh.created_at DESC
+        `);
+        return res.status(200).json({ pendingLeaves: rs.rows });
       }
       
       return res.status(400).json({ error: 'Invalid GET action' });

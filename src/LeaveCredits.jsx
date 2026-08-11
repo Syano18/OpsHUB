@@ -1,9 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useOutletContext } from 'react-router-dom';
-import { UserButton, useUser, useAuth } from '@clerk/clerk-react';
+import { useUser, useAuth } from '@clerk/clerk-react';
 import CscForm6Printable from './components/CscForm6Printable';
 import UseLeavePrintable from './components/UseLeavePrintable';
-import ThemeToggleIcon from './ThemeToggleIcon';
+import CustomUserButton from './CustomUserButton';
+import NotificationBell from './NotificationBell';
 import Alert from './Alert';
 import { toJpeg } from 'html-to-image';
 import { jsPDF } from 'jspdf';
@@ -117,7 +118,7 @@ export default function LeaveCredits() {
     chief: { name: '', position: 'Chief Statistical Specialist' }
   });
 
-  const [activeAdminTab, setActiveAdminTab] = useState('applications');
+  const [activeAdminTab, setActiveAdminTab] = useState('cards');
   const applicationsRef = useRef(null);
   const balancesRef = useRef(null);
 
@@ -847,9 +848,9 @@ export default function LeaveCredits() {
   return (
     <div className="h-full flex flex-col overflow-hidden bg-slate-50/50 dark:bg-slate-950/50 text-slate-900 dark:text-slate-100">
       {/* Header */}
-      <header className="shrink-0 h-16 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between px-4 md:px-8 shadow-sm sticky top-0 z-20">
+      <header className="shrink-0 h-16 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between pl-4 pr-2 md:pl-8 md:pr-4 shadow-sm sticky top-0 z-20">
         <div className="flex items-center gap-2">
-          <button onClick={() => setIsSidebarOpen(true)} className="md:hidden p-2 -ml-2 mr-1 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors">
+          <button onClick={() => setIsSidebarOpen(true)} className="hidden p-2 -ml-2 mr-1 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors">
             <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" /></svg>
           </button>
           <h2 className="text-xl font-bold text-slate-800 dark:text-white flex items-center gap-2">
@@ -860,25 +861,14 @@ export default function LeaveCredits() {
           <div className="text-sm text-slate-600 dark:text-slate-300 font-medium hidden sm:block">
             {user?.firstName ? `Welcome back, ${user.firstName}!` : 'Welcome back!'}
           </div>
-          <ThemeToggleIcon />
-          <UserButton
-            afterSignOutUrl="/"
-            userProfileMode="navigation"
-            userProfileUrl="/profile"
-            appearance={{
-              elements: {
-                userButtonPopoverActionButton__signOut: { display: "none" },
-                userButtonPopoverActionButtonIcon__signOut: { display: "none" },
-                userButtonPopoverFooter: { display: "none" }
-              }
-            }}
-          />
+          <CustomUserButton />
+          <NotificationBell />
         </div>
       </header>
 
       {/* Main Content Area */}
-      <div className="flex-1 overflow-y-auto p-2">
-        <div className="mb-2 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+      <div className="flex-1 overflow-y-auto p-2 flex flex-col">
+        <div className="mb-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <button
             onClick={() => setShowFileLeave(true)}
             className="px-5 py-2.5 bg-blue-600 text-white font-medium rounded-xl shadow-sm hover:bg-blue-700 transition-all active:scale-95 flex items-center gap-2"
@@ -896,244 +886,237 @@ export default function LeaveCredits() {
           </div>
         )}
 
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 mb-12">
-
-          {/* Vacation Leave */}
-          {empStat !== 'COSW' && (
-            <div onClick={() => handleCardClick('Vacation Leave')} className="cursor-pointer group relative overflow-hidden rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300">
-              <div className="absolute top-0 right-0 p-6 opacity-10 group-hover:opacity-20 transition-opacity">
-                <svg className="w-24 h-24 text-amber-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1"><path strokeLinecap="round" strokeLinejoin="round" d="M3 15a4 4 0 004 4h9a5 5 0 10-.1-9.999 5.002 5.002 0 10-9.78 2.096A4.001 4.001 0 003 15z" /></svg>
-              </div>
-              <div className="p-8 relative z-10">
-                <div className="w-12 h-12 bg-amber-50 dark:bg-amber-900/30 text-amber-600 dark:text-amber-500 rounded-xl flex items-center justify-center mb-6 shadow-sm border border-amber-100 dark:border-amber-800/30">
-                  <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M3 15a4 4 0 004 4h9a5 5 0 10-.1-9.999 5.002 5.002 0 10-9.78 2.096A4.001 4.001 0 003 15z" /></svg>
-                </div>
-                <h3 className="text-lg font-bold text-slate-800 dark:text-white mb-1">Vacation Leave</h3>
-                <p className="text-sm text-slate-500 dark:text-slate-400 font-medium mb-6">Rest & Recreation</p>
-                <div className="flex items-end gap-2">
-                  <span className="text-5xl font-black text-slate-800 dark:text-slate-100 tracking-tighter">{Number(userBalances.vl_balance).toFixed(2)}</span>
-                  <span className="text-sm font-bold text-slate-400 dark:text-slate-500 mb-2 uppercase tracking-wider">Days</span>
-                </div>
-              </div>
-              <div className="h-1.5 w-full bg-gradient-to-r from-amber-400 to-orange-500"></div>
-            </div>
-          )}
-
-          {/* Forced Leave */}
-          {empStat !== 'COSW' && (
-            <div onClick={() => handleCardClick('Forced Leave')} className="cursor-pointer group relative overflow-hidden rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300">
-              <div className="absolute top-0 right-0 p-6 opacity-10 group-hover:opacity-20 transition-opacity">
-                <svg className="w-24 h-24 text-rose-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1"><path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
-              </div>
-              <div className="p-8 relative z-10">
-                <div className="w-12 h-12 bg-rose-50 dark:bg-rose-900/30 text-rose-600 dark:text-rose-500 rounded-xl flex items-center justify-center mb-6 shadow-sm border border-rose-100 dark:border-rose-800/30">
-                  <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
-                </div>
-                <h3 className="text-lg font-bold text-slate-800 dark:text-white mb-1">Forced Leave</h3>
-                <p className="text-sm text-slate-500 dark:text-slate-400 font-medium mb-6">Mandatory Time Off</p>
-                <div className="flex items-end gap-2">
-                  <span className="text-5xl font-black text-slate-800 dark:text-slate-100 tracking-tighter">{Number(userBalances.fl_balance).toFixed(2)}</span>
-                  <span className="text-sm font-bold text-slate-400 dark:text-slate-500 mb-2 uppercase tracking-wider">Days</span>
-                </div>
-              </div>
-              <div className="h-1.5 w-full bg-gradient-to-r from-rose-400 to-red-600"></div>
-            </div>
-          )}
-
-          {/* Sick Leave */}
-          {empStat !== 'COSW' && (
-            <div onClick={() => handleCardClick('Sick Leave')} className="cursor-pointer group relative overflow-hidden rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300">
-              <div className="absolute top-0 right-0 p-6 opacity-10 group-hover:opacity-20 transition-opacity">
-                <svg className="w-24 h-24 text-teal-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1"><path strokeLinecap="round" strokeLinejoin="round" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z" /></svg>
-              </div>
-              <div className="p-8 relative z-10">
-                <div className="w-12 h-12 bg-teal-50 dark:bg-teal-900/30 text-teal-600 dark:text-teal-500 rounded-xl flex items-center justify-center mb-6 shadow-sm border border-teal-100 dark:border-teal-800/30">
-                  <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z" /></svg>
-                </div>
-                <h3 className="text-lg font-bold text-slate-800 dark:text-white mb-1">Sick Leave</h3>
-                <p className="text-sm text-slate-500 dark:text-slate-400 font-medium mb-6">Medical & Recovery</p>
-                <div className="flex items-end gap-2">
-                  <span className="text-5xl font-black text-slate-800 dark:text-slate-100 tracking-tighter">{Number(userBalances.sl_balance).toFixed(2)}</span>
-                  <span className="text-sm font-bold text-slate-400 dark:text-slate-500 mb-2 uppercase tracking-wider">Days</span>
-                </div>
-              </div>
-              <div className="h-1.5 w-full bg-gradient-to-r from-teal-400 to-emerald-500"></div>
-            </div>
-          )}
-
-          {/* Special Privilege Leave */}
-          {empStat !== 'COSW' && (
-            <div onClick={() => handleCardClick('Special Privilege Leave')} className="cursor-pointer group relative overflow-hidden rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300">
-              <div className="absolute top-0 right-0 p-6 opacity-10 group-hover:opacity-20 transition-opacity">
-                <svg className="w-24 h-24 text-indigo-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1"><path strokeLinecap="round" strokeLinejoin="round" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" /></svg>
-              </div>
-              <div className="p-8 relative z-10">
-                <div className="w-12 h-12 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-500 rounded-xl flex items-center justify-center mb-6 shadow-sm border border-indigo-100 dark:border-indigo-800/30">
-                  <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" /></svg>
-                </div>
-                <h3 className="text-lg font-bold text-slate-800 dark:text-white mb-1">Special Privilege Leave</h3>
-                <p className="text-sm text-slate-500 dark:text-slate-400 font-medium mb-6">Personal Milestones</p>
-                <div className="flex items-end gap-2">
-                  <span className="text-5xl font-black text-slate-800 dark:text-slate-100 tracking-tighter">{Number(userBalances.spl_balance).toFixed(2)}</span>
-                  <span className="text-sm font-bold text-slate-400 dark:text-slate-500 mb-2 uppercase tracking-wider">Days</span>
-                </div>
-              </div>
-              <div className="h-1.5 w-full bg-gradient-to-r from-indigo-400 to-blue-600"></div>
-            </div>
-          )}
-
-          {/* Wellness Leave */}
-          <div onClick={() => handleCardClick('Wellness Leave')} className="cursor-pointer group relative overflow-hidden rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300">
-            <div className="absolute top-0 right-0 p-6 opacity-10 group-hover:opacity-20 transition-opacity">
-              <svg className="w-24 h-24 text-fuchsia-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1"><path strokeLinecap="round" strokeLinejoin="round" d="M14.828 14.828a4 4 0 01-5.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-            </div>
-            <div className="p-8 relative z-10">
-              <div className="w-12 h-12 bg-fuchsia-50 dark:bg-fuchsia-900/30 text-fuchsia-600 dark:text-fuchsia-500 rounded-xl flex items-center justify-center mb-6 shadow-sm border border-fuchsia-100 dark:border-fuchsia-800/30">
-                <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M14.828 14.828a4 4 0 01-5.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-              </div>
-              <h3 className="text-lg font-bold text-slate-800 dark:text-white mb-1">Wellness Leave</h3>
-              <p className="text-sm text-slate-500 dark:text-slate-400 font-medium mb-6">Mental & Physical Health</p>
-              <div className="flex items-end gap-2">
-                <span className="text-5xl font-black text-slate-800 dark:text-slate-100 tracking-tighter">{Number(userBalances.wl_balance).toFixed(2)}</span>
-                <span className="text-sm font-bold text-slate-400 dark:text-slate-500 mb-2 uppercase tracking-wider">Days</span>
-              </div>
-            </div>
-            <div className="h-1.5 w-full bg-gradient-to-r from-fuchsia-400 to-pink-600"></div>
+        {/* Admin Tabs */}
+        {isAdmin && (
+          <div className="flex gap-4 mb-6 flex-wrap">
+            <button
+              onClick={() => setActiveAdminTab('cards')}
+              className={`px-4 py-2 rounded-lg font-medium transition-colors ${activeAdminTab === 'cards' ? 'bg-indigo-600 text-white shadow-sm' : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700'}`}
+            >
+              Leave Cards
+            </button>
+            <button
+              onClick={() => setActiveAdminTab('applications')}
+              className={`px-4 py-2 rounded-lg font-medium transition-colors ${activeAdminTab === 'applications' ? 'bg-indigo-600 text-white shadow-sm' : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700'}`}
+            >
+              Leave Applications
+            </button>
+            <button
+              onClick={() => setActiveAdminTab('balances')}
+              className={`px-4 py-2 rounded-lg font-medium transition-colors ${activeAdminTab === 'balances' ? 'bg-indigo-600 text-white shadow-sm' : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700'}`}
+            >
+              Leave Balances
+            </button>
+            <div className="flex-1 hidden sm:block"></div>
+            <button
+              onClick={handleExportData}
+              className="px-4 py-2 bg-green-600 text-white rounded-lg font-medium shadow-sm hover:bg-green-700 transition-colors flex items-center gap-2"
+            >
+              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+              </svg>
+              Export Data
+            </button>
           </div>
+        )}
 
-          {/* USE Leave */}
-          {(empStat !== 'COSW' && !(userPosition && userPosition.toLowerCase().includes('chief statistical'))) && (
-            <div onClick={() => handleCardClick('USE Leave')} className="cursor-pointer group relative overflow-hidden rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300">
-              <div className="absolute top-0 right-0 p-6 opacity-10 group-hover:opacity-20 transition-opacity">
-                <svg className="w-24 h-24 text-sky-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1"><path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
-              </div>
-              <div className="p-8 relative z-10">
-                <div className="w-12 h-12 bg-sky-50 dark:bg-sky-900/30 text-sky-600 dark:text-sky-500 rounded-xl flex items-center justify-center mb-6 shadow-sm border border-sky-100 dark:border-sky-800/30">
-                  <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
+        {/* Leave Cards Section */}
+        {(!isAdmin || activeAdminTab === 'cards') && (
+          <div className="flex-1 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 lg:gap-6 pb-2">
+            {isLoading ? (
+              [...Array(6)].map((_, i) => (
+                <div key={`loading-card-${i}`} className="animate-pulse rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm h-[256px]">
+                  <div className="p-8">
+                    <div className="w-12 h-12 bg-slate-200 dark:bg-slate-800 rounded-xl mb-6"></div>
+                    <div className="h-6 bg-slate-200 dark:bg-slate-800 rounded w-3/4 mb-4"></div>
+                    <div className="h-4 bg-slate-200 dark:bg-slate-800 rounded w-1/2 mb-6"></div>
+                    <div className="h-12 bg-slate-200 dark:bg-slate-800 rounded w-1/3"></div>
+                  </div>
                 </div>
-                <h3 className="text-lg font-bold text-slate-800 dark:text-white mb-1">USE Leave</h3>
-                <p className="text-sm text-slate-500 dark:text-slate-400 font-medium mb-6">Union of Statistics Employees</p>
-                <div className="flex items-end gap-2">
-                  <span className="text-5xl font-black text-slate-800 dark:text-slate-100 tracking-tighter">{Number(userBalances.use_balance).toFixed(2)}</span>
-                  <span className="text-sm font-bold text-slate-400 dark:text-slate-500 mb-2 uppercase tracking-wider">Days</span>
+              ))
+            ) : (
+            <>
+              {/* Vacation Leave */}
+              {empStat !== 'COSW' && (
+                <div onClick={() => handleCardClick('Vacation Leave')} className="cursor-pointer flex flex-col group relative overflow-hidden rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300">
+                  <div className="absolute top-0 right-0 p-6 opacity-10 group-hover:opacity-20 transition-opacity">
+                    <svg className="w-24 h-24 text-amber-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1"><path strokeLinecap="round" strokeLinejoin="round" d="M3 15a4 4 0 004 4h9a5 5 0 10-.1-9.999 5.002 5.002 0 10-9.78 2.096A4.001 4.001 0 003 15z" /></svg>
+                  </div>
+                  <div className="p-8 relative z-10 flex flex-col flex-1">
+                    <div className="w-12 h-12 bg-amber-50 dark:bg-amber-900/30 text-amber-600 dark:text-amber-500 rounded-xl flex items-center justify-center mb-6 shadow-sm border border-amber-100 dark:border-amber-800/30">
+                      <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M3 15a4 4 0 004 4h9a5 5 0 10-.1-9.999 5.002 5.002 0 10-9.78 2.096A4.001 4.001 0 003 15z" /></svg>
+                    </div>
+                    <h3 className="text-lg font-bold text-slate-800 dark:text-white mb-1">Vacation Leave</h3>
+                    <p className="text-sm text-slate-500 dark:text-slate-400 font-medium mb-6">Rest & Recreation</p>
+                    <div className="mt-auto flex items-end gap-2">
+                      <span className="text-5xl font-black text-slate-800 dark:text-slate-100 tracking-tighter">{Number(userBalances.vl_balance).toFixed(2)}</span>
+                      <span className="text-sm font-bold text-slate-400 dark:text-slate-500 mb-2 uppercase tracking-wider">Days</span>
+                    </div>
+                  </div>
+                  <div className="h-1.5 w-full bg-gradient-to-r from-amber-400 to-orange-500"></div>
                 </div>
+              )}
+
+              {/* Forced Leave */}
+              {empStat !== 'COSW' && (
+                <div onClick={() => handleCardClick('Forced Leave')} className="cursor-pointer flex flex-col group relative overflow-hidden rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300">
+                  <div className="absolute top-0 right-0 p-6 opacity-10 group-hover:opacity-20 transition-opacity">
+                    <svg className="w-24 h-24 text-rose-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1"><path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
+                  </div>
+                  <div className="p-8 relative z-10 flex flex-col flex-1">
+                    <div className="w-12 h-12 bg-rose-50 dark:bg-rose-900/30 text-rose-600 dark:text-rose-500 rounded-xl flex items-center justify-center mb-6 shadow-sm border border-rose-100 dark:border-rose-800/30">
+                      <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
+                    </div>
+                    <h3 className="text-lg font-bold text-slate-800 dark:text-white mb-1">Forced Leave</h3>
+                    <p className="text-sm text-slate-500 dark:text-slate-400 font-medium mb-6">Mandatory Time Off</p>
+                    <div className="mt-auto flex items-end gap-2">
+                      <span className="text-5xl font-black text-slate-800 dark:text-slate-100 tracking-tighter">{Number(userBalances.fl_balance).toFixed(2)}</span>
+                      <span className="text-sm font-bold text-slate-400 dark:text-slate-500 mb-2 uppercase tracking-wider">Days</span>
+                    </div>
+                  </div>
+                  <div className="h-1.5 w-full bg-gradient-to-r from-rose-400 to-red-600"></div>
+                </div>
+              )}
+
+              {/* Sick Leave */}
+              {empStat !== 'COSW' && (
+                <div onClick={() => handleCardClick('Sick Leave')} className="cursor-pointer flex flex-col group relative overflow-hidden rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300">
+                  <div className="absolute top-0 right-0 p-6 opacity-10 group-hover:opacity-20 transition-opacity">
+                    <svg className="w-24 h-24 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1"><path strokeLinecap="round" strokeLinejoin="round" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z" /></svg>
+                  </div>
+                  <div className="p-8 relative z-10 flex flex-col flex-1">
+                    <div className="w-12 h-12 bg-teal-50 dark:bg-teal-900/30 text-teal-600 dark:text-teal-500 rounded-xl flex items-center justify-center mb-6 shadow-sm border border-teal-100 dark:border-teal-800/30">
+                      <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z" /></svg>
+                    </div>
+                    <h3 className="text-lg font-bold text-slate-800 dark:text-white mb-1">Sick Leave</h3>
+                    <p className="text-sm text-slate-500 dark:text-slate-400 font-medium mb-6">Medical & Recovery</p>
+                    <div className="mt-auto flex items-end gap-2">
+                      <span className="text-5xl font-black text-slate-800 dark:text-slate-100 tracking-tighter">{Number(userBalances.sl_balance).toFixed(2)}</span>
+                      <span className="text-sm font-bold text-slate-400 dark:text-slate-500 mb-2 uppercase tracking-wider">Days</span>
+                    </div>
+                  </div>
+                  <div className="h-1.5 w-full bg-gradient-to-r from-teal-400 to-emerald-500"></div>
+                </div>
+              )}
+
+              {/* Special Privilege Leave */}
+              {empStat !== 'COSW' && (
+                <div onClick={() => handleCardClick('Special Privilege Leave')} className="cursor-pointer flex flex-col group relative overflow-hidden rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300">
+                  <div className="absolute top-0 right-0 p-6 opacity-10 group-hover:opacity-20 transition-opacity">
+                    <svg className="w-24 h-24 text-indigo-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1"><path strokeLinecap="round" strokeLinejoin="round" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" /></svg>
+                  </div>
+                  <div className="p-8 relative z-10 flex flex-col flex-1">
+                    <div className="w-12 h-12 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-500 rounded-xl flex items-center justify-center mb-6 shadow-sm border border-indigo-100 dark:border-indigo-800/30">
+                      <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" /></svg>
+                    </div>
+                    <h3 className="text-lg font-bold text-slate-800 dark:text-white mb-1">Special Privilege Leave</h3>
+                    <p className="text-sm text-slate-500 dark:text-slate-400 font-medium mb-6">Personal Milestones</p>
+                    <div className="mt-auto flex items-end gap-2">
+                      <span className="text-5xl font-black text-slate-800 dark:text-slate-100 tracking-tighter">{Number(userBalances.spl_balance).toFixed(2)}</span>
+                      <span className="text-sm font-bold text-slate-400 dark:text-slate-500 mb-2 uppercase tracking-wider">Days</span>
+                    </div>
+                  </div>
+                  <div className="h-1.5 w-full bg-gradient-to-r from-indigo-400 to-blue-600"></div>
+                </div>
+              )}
+
+              {/* Wellness Leave */}
+              <div onClick={() => handleCardClick('Wellness Leave')} className="cursor-pointer flex flex-col group relative overflow-hidden rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300">
+                <div className="absolute top-0 right-0 p-6 opacity-10 group-hover:opacity-20 transition-opacity">
+                  <svg className="w-24 h-24 text-fuchsia-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1"><path strokeLinecap="round" strokeLinejoin="round" d="M14.828 14.828a4 4 0 01-5.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                </div>
+                <div className="p-8 relative z-10 flex flex-col flex-1">
+                  <div className="w-12 h-12 bg-fuchsia-50 dark:bg-fuchsia-900/30 text-fuchsia-600 dark:text-fuchsia-500 rounded-xl flex items-center justify-center mb-6 shadow-sm border border-fuchsia-100 dark:border-fuchsia-800/30">
+                    <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M14.828 14.828a4 4 0 01-5.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                  </div>
+                  <h3 className="text-lg font-bold text-slate-800 dark:text-white mb-1">Wellness Leave</h3>
+                  <p className="text-sm text-slate-500 dark:text-slate-400 font-medium mb-6">Mental & Physical Health</p>
+                  <div className="mt-auto flex items-end gap-2">
+                    <span className="text-5xl font-black text-slate-800 dark:text-slate-100 tracking-tighter">{Number(userBalances.wl_balance).toFixed(2)}</span>
+                    <span className="text-sm font-bold text-slate-400 dark:text-slate-500 mb-2 uppercase tracking-wider">Days</span>
+                  </div>
+                </div>
+                <div className="h-1.5 w-full bg-gradient-to-r from-fuchsia-400 to-pink-600"></div>
               </div>
-              <div className="h-1.5 w-full bg-gradient-to-r from-sky-400 to-cyan-500"></div>
-            </div>
-          )}
 
-        </div>
-
-        {/* Admin Management Table */}
+              {/* USE Leave */}
+              {(empStat !== 'COSW' && !(userPosition && userPosition.toLowerCase().includes('chief statistical'))) && (
+                <div onClick={() => handleCardClick('USE Leave')} className="cursor-pointer flex flex-col group relative overflow-hidden rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300">
+                  <div className="absolute top-0 right-0 p-6 opacity-10 group-hover:opacity-20 transition-opacity">
+                    <svg className="w-24 h-24 text-sky-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1"><path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
+                  </div>
+                  <div className="p-8 relative z-10 flex flex-col flex-1">
+                    <div className="w-12 h-12 bg-sky-50 dark:bg-sky-900/30 text-sky-600 dark:text-sky-500 rounded-xl flex items-center justify-center mb-6 shadow-sm border border-sky-100 dark:border-sky-800/30">
+                      <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
+                    </div>
+                    <h3 className="text-lg font-bold text-slate-800 dark:text-white mb-1">USE Leave</h3>
+                    <p className="text-sm text-slate-500 dark:text-slate-400 font-medium mb-6">Union of Statistics Employees</p>
+                    <div className="mt-auto flex items-end gap-2">
+                      <span className="text-5xl font-black text-slate-800 dark:text-slate-100 tracking-tighter">{Number(userBalances.use_balance).toFixed(2)}</span>
+                      <span className="text-sm font-bold text-slate-400 dark:text-slate-500 mb-2 uppercase tracking-wider">Days</span>
+                    </div>
+                  </div>
+                  <div className="h-1.5 w-full bg-gradient-to-r from-sky-400 to-cyan-500"></div>
+                </div>
+              )}
+            </>
+            )}
+          </div>
+        )}
+        {/* Admin Management Sections */}
         {isAdmin && (
           <div className="mt-8">
-            <div className="flex gap-4 mb-6 flex-wrap">
-              <button
-                onClick={() => setActiveAdminTab('applications')}
-                className={`px-4 py-2 rounded-lg font-medium transition-colors ${activeAdminTab === 'applications' ? 'bg-indigo-600 text-white shadow-sm' : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700'}`}
-              >
-                Leave Applications Management
-              </button>
-              <button
-                onClick={() => setActiveAdminTab('balances')}
-                className={`px-4 py-2 rounded-lg font-medium transition-colors ${activeAdminTab === 'balances' ? 'bg-indigo-600 text-white shadow-sm' : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700'}`}
-              >
-                Leave Balances Management
-              </button>
-              <div className="flex-1 hidden sm:block"></div>
-              <button
-                onClick={handleExportData}
-                className="px-4 py-2 bg-green-600 text-white rounded-lg font-medium shadow-sm hover:bg-green-700 transition-colors flex items-center gap-2"
-              >
-                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                </svg>
-                Export Data
-              </button>
-            </div>
 
             {/* Leave Applications Management */}
             {activeAdminTab === 'applications' && (
               <div ref={applicationsRef} className="scroll-mt-8">
-                <div className="bg-white dark:bg-slate-900 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800 overflow-x-auto">
-                  <table className="w-full text-left border-collapse min-w-[1000px]">
-                    <thead>
-                      <tr className="bg-slate-50 dark:bg-slate-800/50 border-b border-slate-200 dark:border-slate-800 text-sm uppercase tracking-wider text-slate-500 dark:text-slate-400">
-                        <th className="px-6 py-4 font-semibold sticky left-0 bg-slate-50 dark:bg-slate-800/50 z-10 shadow-[1px_0_0_0_#e2e8f0] dark:shadow-[1px_0_0_0_#1e293b]">Employee</th>
-                        <th className="px-6 py-4 font-semibold">Leave Type</th>
-                        <th className="px-6 py-4 font-semibold">Dates</th>
-                        <th className="px-6 py-4 font-semibold">Days</th>
-                        <th className="px-6 py-4 font-semibold">Processing</th>
-                        <th className="px-6 py-4 font-semibold">Status</th>
-                        <th className="px-6 py-4 font-semibold text-right">Actions</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-                      {allFiledLeaves.map((leave, idx) => (
-                        <tr key={idx} className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors group">
-                          <td className="px-6 py-4 sticky left-0 bg-white dark:bg-slate-900 group-hover:bg-slate-50 dark:group-hover:bg-slate-800/50 z-10 shadow-[1px_0_0_0_#e2e8f0] dark:shadow-[1px_0_0_0_#1e293b]">
-                            <div className="font-semibold text-slate-800 dark:text-white">{leave.First_Name} {leave.Last_Name}</div>
-                            <div className="text-sm text-slate-500 dark:text-slate-400">{leave.user_email}</div>
-                          </td>
-                          <td className="px-6 py-4 text-slate-700 dark:text-slate-300">
-                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                              {leave.leave_type}
-                            </span>
-                          </td>
-                          <td className="px-6 py-4 text-slate-700 dark:text-slate-300 text-sm whitespace-pre-wrap">{leave.start_date}</td>
-                          <td className="px-6 py-4 text-slate-700 dark:text-slate-300 font-medium">{leave.days_applied}</td>
-                          <td className="px-6 py-4">
-                            <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${leave.has_document === 1 ? 'bg-purple-100 text-purple-800' : 'bg-orange-100 text-orange-800'}`}>
-                              {leave.has_document === 1 ? 'Digital' : 'Manual'}
-                            </span>
-                          </td>
-                          <td className="px-6 py-4">
-                            <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${leave.status === 'Approved' ? 'bg-emerald-100 text-emerald-800' :
-                              leave.status === 'Disapproved' ? 'bg-red-100 text-red-800' :
-                                leave.status === 'Transmitted' ? 'bg-amber-100 text-amber-800' :
-                                  'bg-slate-100 text-slate-800'
-                              }`}>
-                              {leave.status || 'Pending'}
-                            </span>
-                          </td>
-                          <td className="px-6 py-4 text-right">
-                            <button
-                              onClick={() => setSelectedApplication(leave)}
-                              className="p-2 rounded-lg text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 transition-colors inline-flex"
-                              title="View Application Details"
-                            >
-                              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-                                <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                                <path strokeLinecap="round" strokeLinejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                              </svg>
-                            </button>
-                          </td>
-                        </tr>
-                      ))}
-                      {isAllFiledLeavesLoading && [...Array(3)].map((_, i) => (
-                        <tr key={`loading-${i}`} className="animate-pulse bg-white border-b border-slate-100">
-                          <td className="px-6 py-4 sticky left-0 bg-white z-10 shadow-[1px_0_0_0_#e2e8f0]">
-                            <div className="h-5 bg-slate-200 rounded w-32 mb-2"></div>
-                            <div className="h-4 bg-slate-200 rounded w-48"></div>
-                          </td>
-                          <td className="px-6 py-4"><div className="h-6 bg-slate-200 rounded-full w-20"></div></td>
-                          <td className="px-6 py-4"><div className="h-4 bg-slate-200 rounded w-24"></div></td>
-                          <td className="px-6 py-4"><div className="h-4 bg-slate-200 rounded w-8"></div></td>
-                          <td className="px-6 py-4"><div className="h-6 bg-slate-200 rounded-full w-16"></div></td>
-                          <td className="px-6 py-4"><div className="h-8 bg-slate-200 rounded-lg w-20"></div></td>
-                          <td className="px-6 py-4"><div className="h-5 bg-slate-200 rounded-full w-24"></div></td>
-                          <td className="px-6 py-4 text-right">
-                            <div className="h-8 bg-slate-200 rounded w-8 inline-block"></div>
-                          </td>
-                        </tr>
-                      ))}
-                      {!isAllFiledLeavesLoading && allFiledLeaves.length === 0 && (
-                        <tr>
-                          <td colSpan="8" className="px-6 py-8 text-center text-slate-500">No leave applications found.</td>
-                        </tr>
-                      )}
-                    </tbody>
-                  </table>
+                <div className="flex flex-col gap-3">
+                  {allFiledLeaves.map((leave, idx) => (
+                    <div key={idx} className="bg-white dark:bg-slate-900 rounded-xl p-4 shadow-sm border border-slate-200 dark:border-slate-800 flex flex-col gap-4">
+                      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                        <div>
+                          <div className="font-bold text-slate-800 dark:text-white text-lg">{leave.First_Name} {leave.Last_Name}</div>
+                          <div className="text-sm text-slate-500 dark:text-slate-400">{leave.user_email}</div>
+                        </div>
+                        <div className="flex items-center gap-3">
+                          <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${leave.status === 'Approved' ? 'bg-emerald-100 text-emerald-800' :
+                            leave.status === 'Disapproved' ? 'bg-red-100 text-red-800' :
+                              leave.status === 'Transmitted' ? 'bg-amber-100 text-amber-800' :
+                                'bg-slate-100 text-slate-800'
+                            }`}>
+                            {leave.status || 'Pending'}
+                          </span>
+                          <button
+                            onClick={() => setSelectedApplication(leave)}
+                            className="px-3 py-1.5 rounded-lg text-indigo-600 font-medium hover:bg-indigo-50 dark:hover:bg-indigo-900/30 transition-colors inline-flex items-center gap-1 text-sm border border-indigo-100 dark:border-indigo-800/30"
+                          >
+                            View Details
+                          </button>
+                        </div>
+                      </div>
+                      
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 bg-slate-50 dark:bg-slate-800/50 p-3 rounded-lg border border-slate-100 dark:border-slate-800">
+                        <div className="flex flex-col">
+                          <span className="text-[10px] uppercase font-semibold text-slate-500 dark:text-slate-400 tracking-wider mb-1">Leave Type</span>
+                          <span className="font-medium text-slate-700 dark:text-slate-300">{leave.leave_type}</span>
+                        </div>
+                        <div className="flex flex-col">
+                          <span className="text-[10px] uppercase font-semibold text-slate-500 dark:text-slate-400 tracking-wider mb-1">Dates ({leave.days_applied} Days)</span>
+                          <span className="font-medium text-slate-700 dark:text-slate-300 text-sm whitespace-pre-wrap">{leave.start_date}</span>
+                        </div>
+                        <div className="flex flex-col">
+                          <span className="text-[10px] uppercase font-semibold text-slate-500 dark:text-slate-400 tracking-wider mb-1">Processing</span>
+                          <span className="font-medium text-slate-700 dark:text-slate-300">{leave.has_document === 1 ? 'Digital' : 'Manual'}</span>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                  {isAllFiledLeavesLoading && (
+                    <div className="animate-pulse bg-white dark:bg-slate-900 rounded-xl p-4 shadow-sm border border-slate-200 dark:border-slate-800 h-32"></div>
+                  )}
+                  {!isAllFiledLeavesLoading && allFiledLeaves.length === 0 && (
+                    <div className="text-center py-8 text-slate-500">No leave applications found.</div>
+                  )}
                 </div>
               </div>
             )}
@@ -1141,50 +1124,53 @@ export default function LeaveCredits() {
             {/* Leave Balances Management */}
             {activeAdminTab === 'balances' && (
               <div ref={balancesRef} className="scroll-mt-8">
-                <div className="bg-white dark:bg-slate-900 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800 overflow-x-auto">
-                  <table className="w-full text-left border-collapse min-w-[800px]">
-                    <thead>
-                      <tr className="bg-slate-50 dark:bg-slate-800/50 border-b border-slate-200 dark:border-slate-800 text-sm uppercase tracking-wider text-slate-500 dark:text-slate-400">
-                        <th className="px-6 py-4 font-semibold sticky left-0 bg-slate-50 dark:bg-slate-800/50 z-10 shadow-[1px_0_0_0_#e2e8f0] dark:shadow-[1px_0_0_0_#1e293b]">Employee</th>
-                        <th className="px-6 py-4 font-semibold">VL</th>
-                        <th className="px-6 py-4 font-semibold">SL</th>
-                        <th className="px-6 py-4 font-semibold">FL</th>
-                        <th className="px-6 py-4 font-semibold">WL</th>
-                        <th className="px-6 py-4 font-semibold">USE</th>
-                        <th className="px-6 py-4 font-semibold">SPL</th>
-                        <th className="px-6 py-4 font-semibold text-right">Actions</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-                      {allUsers.map((u, idx) => (
-                        <tr key={idx} className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors group">
-                          <td className="px-6 py-4 sticky left-0 bg-white dark:bg-slate-900 group-hover:bg-slate-50 dark:group-hover:bg-slate-800/50 z-10 shadow-[1px_0_0_0_#e2e8f0] dark:shadow-[1px_0_0_0_#1e293b]">
-                            <div className="font-semibold text-slate-800 dark:text-white">{u.Name}</div>
-                            <div className="text-sm text-slate-500 dark:text-slate-400">{u.Email}</div>
-                          </td>
-                          <td className="px-6 py-4 text-slate-700 dark:text-slate-300">{u.emp_stat === 'COSW' ? '-' : u.credits.vl_balance.toFixed(2)}</td>
-                          <td className="px-6 py-4 text-slate-700 dark:text-slate-300">{u.emp_stat === 'COSW' ? '-' : u.credits.sl_balance.toFixed(2)}</td>
-                          <td className="px-6 py-4 text-slate-700 dark:text-slate-300">{u.emp_stat === 'COSW' ? '-' : u.credits.fl_balance.toFixed(2)}</td>
-                          <td className="px-6 py-4 text-slate-700 dark:text-slate-300">{u.credits.wl_balance.toFixed(2)}</td>
-                          <td className="px-6 py-4 text-slate-700 dark:text-slate-300">{u.emp_stat === 'COSW' ? '-' : u.credits.use_balance.toFixed(2)}</td>
-                          <td className="px-6 py-4 text-slate-700 dark:text-slate-300">{u.emp_stat === 'COSW' ? '-' : u.credits.spl_balance.toFixed(2)}</td>
-                          <td className="px-6 py-4 text-right">
-                            <button
-                              onClick={() => setEditingUser(u)}
-                              className="text-sm text-indigo-600 font-medium hover:text-indigo-800 dark:hover:text-indigo-400 px-3 py-1.5 rounded-lg hover:bg-indigo-50 dark:hover:bg-indigo-900/30 transition-colors"
-                            >
-                              Edit Balances
-                            </button>
-                          </td>
-                        </tr>
-                      ))}
-                      {allUsers.length === 0 && (
-                        <tr>
-                          <td colSpan="8" className="px-6 py-8 text-center text-slate-500">No employees found.</td>
-                        </tr>
-                      )}
-                    </tbody>
-                  </table>
+                <div className="flex flex-col gap-3">
+                  {allUsers.map((u, idx) => (
+                    <div key={idx} className="bg-white dark:bg-slate-900 rounded-xl p-4 shadow-sm border border-slate-200 dark:border-slate-800 flex flex-col gap-4">
+                      <div className="flex justify-between items-start md:items-center">
+                        <div>
+                          <div className="font-bold text-slate-800 dark:text-white text-lg">{u.Name}</div>
+                          <div className="text-sm text-slate-500 dark:text-slate-400">{u.Email}</div>
+                        </div>
+                        <button
+                          onClick={() => setEditingUser(u)}
+                          className="px-3 py-1.5 rounded-lg text-indigo-600 dark:text-indigo-400 font-medium hover:bg-indigo-50 dark:hover:bg-indigo-900/30 transition-colors inline-flex items-center gap-1 text-sm border border-indigo-100 dark:border-indigo-800/30"
+                        >
+                          Edit Balances
+                        </button>
+                      </div>
+
+                      <div className="grid grid-cols-3 sm:grid-cols-6 gap-3 bg-slate-50 dark:bg-slate-800/50 p-3 rounded-lg border border-slate-100 dark:border-slate-800">
+                        <div className="flex flex-col items-center justify-center p-2 bg-white dark:bg-slate-900 rounded shadow-sm">
+                          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">VL</span>
+                          <span className="font-black text-slate-700 dark:text-slate-200">{u.emp_stat === 'COSW' ? '-' : u.credits.vl_balance.toFixed(2)}</span>
+                        </div>
+                        <div className="flex flex-col items-center justify-center p-2 bg-white dark:bg-slate-900 rounded shadow-sm">
+                          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">SL</span>
+                          <span className="font-black text-slate-700 dark:text-slate-200">{u.emp_stat === 'COSW' ? '-' : u.credits.sl_balance.toFixed(2)}</span>
+                        </div>
+                        <div className="flex flex-col items-center justify-center p-2 bg-white dark:bg-slate-900 rounded shadow-sm">
+                          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">FL</span>
+                          <span className="font-black text-slate-700 dark:text-slate-200">{u.emp_stat === 'COSW' ? '-' : u.credits.fl_balance.toFixed(2)}</span>
+                        </div>
+                        <div className="flex flex-col items-center justify-center p-2 bg-white dark:bg-slate-900 rounded shadow-sm">
+                          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">WL</span>
+                          <span className="font-black text-slate-700 dark:text-slate-200">{u.credits.wl_balance.toFixed(2)}</span>
+                        </div>
+                        <div className="flex flex-col items-center justify-center p-2 bg-white dark:bg-slate-900 rounded shadow-sm">
+                          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">USE</span>
+                          <span className="font-black text-slate-700 dark:text-slate-200">{u.emp_stat === 'COSW' ? '-' : u.credits.use_balance.toFixed(2)}</span>
+                        </div>
+                        <div className="flex flex-col items-center justify-center p-2 bg-white dark:bg-slate-900 rounded shadow-sm">
+                          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">SPL</span>
+                          <span className="font-black text-slate-700 dark:text-slate-200">{u.emp_stat === 'COSW' ? '-' : u.credits.spl_balance.toFixed(2)}</span>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                  {allUsers.length === 0 && (
+                    <div className="text-center py-8 text-slate-500">No employees found.</div>
+                  )}
                 </div>
               </div>
             )}
@@ -1226,8 +1212,8 @@ export default function LeaveCredits() {
                     </div>
 
                     {isLeaveTypeDropdownOpen && (
-                      <div className="absolute z-10 mt-1 w-full bg-white rounded-xl shadow-lg border border-slate-200 overflow-hidden">
-                        <ul className="max-h-60 overflow-auto py-1 text-base text-slate-700">
+                      <div className="absolute z-10 mt-1 w-full bg-white dark:bg-slate-800 rounded-xl shadow-lg border border-slate-200 dark:border-slate-700 overflow-hidden">
+                        <ul className="max-h-60 overflow-auto py-1 text-base text-slate-700 dark:text-slate-300">
                           {leaveOptions.map((opt) => (
                             <li
                               key={opt}
@@ -1238,7 +1224,7 @@ export default function LeaveCredits() {
                                 setIsLeaveTypeDropdownOpen(false);
                                 setFormErrors(prev => ({ ...prev, leaveType: false }));
                               }}
-                              className={`cursor-pointer select-none relative py-2.5 pl-4 pr-4 hover:bg-slate-50 transition-colors ${fileLeaveType === opt ? 'bg-teal-50 text-teal-700 font-semibold' : ''}`}
+                              className={`cursor-pointer select-none relative py-2.5 pl-4 pr-4 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors ${fileLeaveType === opt ? 'bg-teal-50 dark:bg-teal-900/30 text-teal-700 dark:text-teal-400 font-semibold' : ''}`}
                             >
                               {opt}
                             </li>
@@ -1257,59 +1243,59 @@ export default function LeaveCredits() {
 
                 {/* 6.B DETAILS OF LEAVE */}
                 {(fileLeaveType === "Vacation Leave" || fileLeaveType === "Special Privilege Leave") && (
-                  <div className="bg-slate-50 p-4 rounded-lg border border-slate-200">
-                    <label className="block text-sm font-bold text-slate-800 mb-3">DETAILS OF LEAVE</label>
-                    <p className="text-xs font-medium text-slate-500 mb-3 italic">In case of Vacation/Special Privilege Leave:</p>
+                  <div className="bg-slate-50 dark:bg-slate-800/50 p-4 rounded-lg border border-slate-200 dark:border-slate-700">
+                    <label className="block text-sm font-bold text-slate-800 dark:text-slate-200 mb-3">DETAILS OF LEAVE</label>
+                    <p className="text-xs font-medium text-slate-500 dark:text-slate-400 mb-3 italic">In case of Vacation/Special Privilege Leave:</p>
 
                     <div className="space-y-3">
                       <label className="flex items-center gap-3 cursor-pointer">
-                        <input type="radio" name="detail_type" value="Within the Philippines" checked={leaveDetailType === 'Within the Philippines'} onChange={(e) => setLeaveDetailType(e.target.value)} className="w-4 h-4 text-teal-600 focus:ring-teal-500 border-slate-300" required />
-                        <span className="text-sm font-medium text-slate-700">Within the Philippines</span>
+                        <input type="radio" name="detail_type" value="Within the Philippines" checked={leaveDetailType === 'Within the Philippines'} onChange={(e) => setLeaveDetailType(e.target.value)} className="w-4 h-4 text-teal-600 focus:ring-teal-500 border-slate-300 dark:border-slate-600 dark:bg-slate-800" required />
+                        <span className="text-sm font-medium text-slate-700 dark:text-slate-300">Within the Philippines</span>
                       </label>
                       <label className="flex items-center gap-3 cursor-pointer">
-                        <input type="radio" name="detail_type" value="Abroad (Specify)" checked={leaveDetailType === 'Abroad (Specify)'} onChange={(e) => setLeaveDetailType(e.target.value)} className="w-4 h-4 text-teal-600 focus:ring-teal-500 border-slate-300" required />
-                        <span className="text-sm font-medium text-slate-700">Abroad (Specify)</span>
+                        <input type="radio" name="detail_type" value="Abroad (Specify)" checked={leaveDetailType === 'Abroad (Specify)'} onChange={(e) => setLeaveDetailType(e.target.value)} className="w-4 h-4 text-teal-600 focus:ring-teal-500 border-slate-300 dark:border-slate-600 dark:bg-slate-800" required />
+                        <span className="text-sm font-medium text-slate-700 dark:text-slate-300">Abroad (Specify)</span>
                       </label>
                     </div>
                     {(leaveDetailType === 'Within the Philippines' || leaveDetailType === 'Abroad (Specify)') && (
                       <div className="mt-3">
-                        <input type="text" value={leaveDetailSpecify} onChange={(e) => setLeaveDetailSpecify(e.target.value)} required placeholder="Specify location..." className="w-full px-4 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 transition-shadow text-sm" />
+                        <input type="text" value={leaveDetailSpecify} onChange={(e) => setLeaveDetailSpecify(e.target.value)} required placeholder="Specify location..." className="w-full px-4 py-2 border border-slate-200 dark:border-slate-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 transition-shadow text-sm dark:bg-slate-900 dark:text-slate-100" />
                       </div>
                     )}
                   </div>
                 )}
 
                 {fileLeaveType === "Sick Leave" && (
-                  <div className="bg-slate-50 p-4 rounded-lg border border-slate-200">
-                    <label className="block text-sm font-bold text-slate-800 mb-3">DETAILS OF LEAVE</label>
-                    <p className="text-xs font-medium text-slate-500 mb-3 italic">In case of Sick Leave:</p>
+                  <div className="bg-slate-50 dark:bg-slate-800/50 p-4 rounded-lg border border-slate-200 dark:border-slate-700">
+                    <label className="block text-sm font-bold text-slate-800 dark:text-slate-200 mb-3">DETAILS OF LEAVE</label>
+                    <p className="text-xs font-medium text-slate-500 dark:text-slate-400 mb-3 italic">In case of Sick Leave:</p>
 
                     <div className="space-y-3">
                       <label className="flex items-center gap-3 cursor-pointer">
-                        <input type="radio" name="detail_type" value="In Hospital (Specify Illness)" checked={leaveDetailType === 'In Hospital (Specify Illness)'} onChange={(e) => setLeaveDetailType(e.target.value)} className="w-4 h-4 text-teal-600 focus:ring-teal-500 border-slate-300" required />
-                        <span className="text-sm font-medium text-slate-700">In Hospital (Specify Illness)</span>
+                        <input type="radio" name="detail_type" value="In Hospital (Specify Illness)" checked={leaveDetailType === 'In Hospital (Specify Illness)'} onChange={(e) => setLeaveDetailType(e.target.value)} className="w-4 h-4 text-teal-600 focus:ring-teal-500 border-slate-300 dark:border-slate-600 dark:bg-slate-800" required />
+                        <span className="text-sm font-medium text-slate-700 dark:text-slate-300">In Hospital (Specify Illness)</span>
                       </label>
                       <label className="flex items-center gap-3 cursor-pointer">
-                        <input type="radio" name="detail_type" value="Out Patient (Specify Illness)" checked={leaveDetailType === 'Out Patient (Specify Illness)'} onChange={(e) => setLeaveDetailType(e.target.value)} className="w-4 h-4 text-teal-600 focus:ring-teal-500 border-slate-300" required />
-                        <span className="text-sm font-medium text-slate-700">Out Patient (Specify Illness)</span>
+                        <input type="radio" name="detail_type" value="Out Patient (Specify Illness)" checked={leaveDetailType === 'Out Patient (Specify Illness)'} onChange={(e) => setLeaveDetailType(e.target.value)} className="w-4 h-4 text-teal-600 focus:ring-teal-500 border-slate-300 dark:border-slate-600 dark:bg-slate-800" required />
+                        <span className="text-sm font-medium text-slate-700 dark:text-slate-300">Out Patient (Specify Illness)</span>
                       </label>
                     </div>
                     {(leaveDetailType === 'In Hospital (Specify Illness)' || leaveDetailType === 'Out Patient (Specify Illness)') && (
                       <div className="mt-3">
-                        <input type="text" value={leaveDetailSpecify} onChange={(e) => setLeaveDetailSpecify(e.target.value)} required placeholder="Specify illness..." className="w-full px-4 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 transition-shadow text-sm" />
+                        <input type="text" value={leaveDetailSpecify} onChange={(e) => setLeaveDetailSpecify(e.target.value)} required placeholder="Specify illness..." className="w-full px-4 py-2 border border-slate-200 dark:border-slate-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 transition-shadow text-sm dark:bg-slate-900 dark:text-slate-100" />
                       </div>
                     )}
                   </div>
                 )}
 
                 {fileLeaveType === "USE Leave" && (
-                  <div className="bg-slate-50 p-4 rounded-lg border border-slate-200">
-                    <label className="block text-sm font-bold text-slate-800 mb-3">DETAILS OF LEAVE</label>
-                    <p className="text-xs font-medium text-slate-500 mb-3 italic">In case of USE Leave:</p>
+                  <div className="bg-slate-50 dark:bg-slate-800/50 p-4 rounded-lg border border-slate-200 dark:border-slate-700">
+                    <label className="block text-sm font-bold text-slate-800 dark:text-slate-200 mb-3">DETAILS OF LEAVE</label>
+                    <p className="text-xs font-medium text-slate-500 dark:text-slate-400 mb-3 italic">In case of USE Leave:</p>
 
                     <div>
-                      <label className="block text-sm font-medium text-slate-700 mb-1">Where Day-off will be spent:</label>
-                      <input type="text" value={leaveDetailSpecify} onChange={(e) => setLeaveDetailSpecify(e.target.value)} required placeholder="Specify location..." className="w-full px-4 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-shadow text-sm" />
+                      <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Where Day-off will be spent:</label>
+                      <input type="text" value={leaveDetailSpecify} onChange={(e) => setLeaveDetailSpecify(e.target.value)} required placeholder="Specify location..." className="w-full px-4 py-2 border border-slate-200 dark:border-slate-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-shadow text-sm dark:bg-slate-900 dark:text-slate-100" />
                     </div>
                   </div>
                 )}

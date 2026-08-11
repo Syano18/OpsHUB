@@ -178,7 +178,7 @@ export default function Login() {
 
    return (
       // Main container centering the form vertically and horizontally
-      <main className="px-4 md:px-8 min-h-screen flex flex-col items-center justify-center bg-slate-50 dark:bg-slate-950">
+      <main className="pl-4 pr-2 md:pl-8 md:pr-4 min-h-screen flex flex-col items-center justify-center bg-slate-50 dark:bg-slate-950">
          <div className="py-4 max-w-md w-full">
             <div
                className="p-6 rounded-lg bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-800 shadow-xs md:p-8">

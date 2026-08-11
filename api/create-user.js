@@ -29,7 +29,7 @@ export default async function handler(req, res) {
     const { email, firstName, lastName, middleName, suffix, role, empStat, position, isRegional } = req.body;
 
     const clerkClient = createClerkClient({ secretKey: process.env.CLERK_SECRET_KEY });
-    const turso = createClient({ url: process.env.TURSO_DB_URL, authToken: process.env.TURSO_DB_AUTH_TOKEN });
+    const turso = createClient({ url: process.env['TURSO_DB_URL'], authToken: process.env['TURSO_DB_AUTH_TOKEN'] });
 
     // 1. Check Turso DB
     const checkRes = await turso.execute({
@@ -71,7 +71,7 @@ export default async function handler(req, res) {
       });
 
       const mailOptions = {
-        from: process.env.SMTP_FROM || '"OpsHUB" <noreply@opshub.local>',
+        from: { name: 'OpsHUB Notifier', address: process.env.SMTP_USER || 'kalinga@psa.gov.ph' },
         to: email,
         subject: 'Welcome to OpsHUB - Your Account Details',
         html: `

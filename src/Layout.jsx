@@ -46,9 +46,9 @@ export default function Layout() {
   }
 
   return (
-    <div className="flex h-[100dvh] bg-slate-50 dark:bg-slate-950 overflow-hidden relative text-slate-900 dark:text-slate-100">
+    <div className="flex h-[100dvh] bg-slate-50 dark:bg-slate-950 overflow-hidden relative text-slate-900 dark:text-slate-100 flex-col md:flex-row">
       <Sidebar isOpen={isSidebarOpen} setIsOpen={setIsSidebarOpen} />
-      <main className="flex-1 flex flex-col overflow-hidden min-h-0 relative">
+      <main className="flex-1 flex flex-col overflow-hidden min-h-0 relative pb-[4.5rem] md:pb-0">
         <Outlet context={{ setIsSidebarOpen }} />
       </main>
     </div>

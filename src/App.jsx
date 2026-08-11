@@ -9,6 +9,7 @@ import DailyTimeRecord from './DailyTimeRecord';
 import PersonalCalendar from './PersonalCalendar';
 import LeaveCredits from './LeaveCredits';
 import Profile from './Profile';
+import COSWEvaluation from './COSWEvaluation';
 import { ThemeProvider } from './contexts/ThemeContext';
 import UpdatePrompt from './UpdatePrompt';
 
@@ -29,6 +30,7 @@ export default function App() {
             <Route path="personal-calendar" element={<PersonalCalendar />} />
             <Route path="leave-credits" element={<LeaveCredits />} />
             <Route path="profile" element={<Profile />} />
+            <Route path="cosw-evaluation" element={<COSWEvaluation />} />
             <Route path="*" element={<Navigate to="/office-activities" replace />} />
           </Route>
         </Routes>

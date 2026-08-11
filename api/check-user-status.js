@@ -11,7 +11,7 @@ export default async function handler(req, res) {
       return res.status(400).json({ success: false, error: 'Email is required' });
     }
 
-    const turso = createClient({ url: process.env.TURSO_DB_URL, authToken: process.env.TURSO_DB_AUTH_TOKEN });
+    const turso = createClient({ url: process['env'].TURSO_DB_URL, authToken: process['env'].TURSO_DB_AUTH_TOKEN });
 
     const checkRes = await turso.execute({
       sql: "SELECT Status FROM User_Permissions WHERE LOWER(Email) = LOWER(?)",
