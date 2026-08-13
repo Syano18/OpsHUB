@@ -66,10 +66,10 @@ export default function Login() {
 
       try {
          // Check if user is active in DB before authenticating using the backend endpoint
-         const statusRes = await fetch('/api/check-user-status', {
+         const statusRes = await fetch('/api/auth', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ email })
+            body: JSON.stringify({ action: 'check_status', email })
          });
          let statusData;
          try {
@@ -92,10 +92,10 @@ export default function Login() {
          }
 
          // Verify Turnstile Token
-         const turnstileRes = await fetch('/api/verify-turnstile', {
+         const turnstileRes = await fetch('/api/auth', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ token: turnstileToken })
+            body: JSON.stringify({ action: 'verify_turnstile', token: turnstileToken })
          });
          
          const turnstileData = await turnstileRes.json();
@@ -140,10 +140,10 @@ export default function Login() {
 
       try {
          // Verify Turnstile Token before redirecting
-         const turnstileRes = await fetch('/api/verify-turnstile', {
+         const turnstileRes = await fetch('/api/auth', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ token: turnstileToken })
+            body: JSON.stringify({ action: 'verify_turnstile', token: turnstileToken })
          });
          
          const turnstileData = await turnstileRes.json();
