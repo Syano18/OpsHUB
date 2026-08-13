@@ -1,5 +1,7 @@
 # OpsHUB Web App
 
+**Developed by TechCraft by Chano**
+
 OpsHUB is a comprehensive, centralized internal operations and HR management system designed to streamline administrative workflows. It modernizes tracking, scheduling, and evaluations by moving them from manual spreadsheets to a fully automated digital workspace.
 
 ## 🚀 Key Features
@@ -18,3 +20,7 @@ OpsHUB is a comprehensive, centralized internal operations and HR management sys
 *   **Database:** Turso (Edge SQLite)
 *   **Authentication:** Clerk
 *   **Storage:** Cloudflare R2 / AWS S3
+
+## 👨‍💻 Developer
+
+Built with ❤️ by **TechCraft by Chano**
