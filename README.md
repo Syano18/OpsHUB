@@ -1,16 +1,20 @@
-# React + Vite
+# OpsHUB Web App
 
-This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
+OpsHUB is a comprehensive, centralized internal operations and HR management system designed to streamline administrative workflows. It modernizes tracking, scheduling, and evaluations by moving them from manual spreadsheets to a fully automated digital workspace.
 
-Currently, two official plugins are available:
+## 🚀 Key Features
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+*   **Role-Based Access Control (RBAC):** Secure authentication powered by Clerk, featuring strict permissions for Super Admins, Admins, HR Designates, and standard users.
+*   **Digital Logbook & DTR:** Seamless daily time record tracking for employees with real-time status monitoring.
+*   **Leave Management System:** End-to-end leave tracking including automated monthly accruals (VL/SL) and yearly resets for special leave types using serverless cron jobs.
+*   **COSW Evaluations:** A dedicated, responsive module for evaluating Contract of Service Workers, generating printable records and managing performance data.
+*   **Centralized Scheduling:** Combined Office Activities and Personal Calendars with automated 24-hour email reminders via Nodemailer.
+*   **Cloud Storage Integration:** Secure document and signature uploads utilizing AWS S3/Cloudflare R2 for fast retrieval and signed URLs.
 
-## React Compiler
+## 🛠️ Tech Stack
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
-
-## Expanding the Oxlint configuration
-
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and Oxlint's TypeScript related rules in your project.
+*   **Frontend:** React (Vite), TailwindCSS, React Router
+*   **Backend:** Node.js (Serverless API routes on Vercel)
+*   **Database:** Turso (Edge SQLite)
+*   **Authentication:** Clerk
+*   **Storage:** Cloudflare R2 / AWS S3
