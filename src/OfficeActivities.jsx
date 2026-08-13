@@ -502,12 +502,13 @@ export default function OfficeActivities() {
             Office Activities
           </h2>
         </div>
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-3 md:gap-5">
           <div className="text-sm text-slate-600 dark:text-slate-300 font-medium hidden sm:block">
-            {user?.firstName ? `Welcome back, ${user.firstName}!` : 'Welcome back!'}
+            {user?.firstName ? `Hello, ${user.firstName} 👋` : 'Welcome back!'}
           </div>
-          <CustomUserButton />
+          <div className="h-6 w-px bg-slate-200 dark:bg-slate-700 hidden sm:block"></div>
           <NotificationBell />
+          <CustomUserButton />
         </div>
       </header>
 

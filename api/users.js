@@ -1,5 +1,7 @@
 import { createClient } from '@libsql/client';
-import { verifyToken } from '@clerk/backend';
+import { verifyToken, createClerkClient } from '@clerk/backend';
+import crypto from 'crypto';
+import nodemailer from 'nodemailer';
 
 export default async function handler(req, res) {
   try {
@@ -116,6 +118,46 @@ export default async function handler(req, res) {
       });
       
       return res.status(200).json({ success: true });
+    }
+
+    if (req.method === 'POST') {
+      const { action, email, firstName, lastName, middleName, suffix, role, empStat, position, isRegional } = req.body;
+      
+      if (action === 'check_status') {
+        if (!email) return res.status(400).json({ error: 'Email is required', success: false });
+        const rs = await turso.execute({ sql: 'SELECT Status FROM User_Permissions WHERE LOWER(Email) = LOWER(?)', args: [email] });
+        if (rs.rows.length === 0) return res.status(200).json({ success: true, status: 'active' }); 
+        return res.status(200).json({ success: true, status: rs.rows[0].Status || 'active' });
+      }
+      
+      if (action === 'create') {
+        if (!process.env.CLERK_SECRET_KEY) throw new Error("CLERK_SECRET_KEY is missing");
+        const clerkClient = createClerkClient({ secretKey: process.env.CLERK_SECRET_KEY });
+        const checkRes = await turso.execute({ sql: "SELECT * FROM User_Permissions WHERE LOWER(Email) = LOWER(?)", args: [email] });
+        if (checkRes.rows.length > 0) throw new Error("A user with this email already exists in the database.");
+
+        const tempPassword = crypto.randomBytes(6).toString('hex') + 'A1!';
+        let clerkUser = null;
+        if (role !== 'External Signatory') {
+          clerkUser = await clerkClient.users.createUser({ emailAddress: [email], password: tempPassword, firstName, lastName, skipPasswordRequirement: true });
+        }
+
+        await turso.execute({
+          sql: `INSERT INTO User_Permissions (Email, First_Name, Last_Name, Middle_Name, Suffix, Role, emp_stat, Position, is_regional) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          args: [email, firstName, lastName, middleName || '', suffix || '', role, empStat || '', position || '', isRegional ? 1 : 0]
+        });
+
+        if (role !== 'External Signatory') {
+          const transporter = nodemailer.createTransport({ host: process.env.SMTP_HOST, port: parseInt(process.env.SMTP_PORT || '587'), secure: process.env.SMTP_PORT === '465', auth: { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS }});
+          const mailOptions = {
+            from: { name: 'OpsHUB Notifier', address: process.env.SMTP_USER || 'kalinga@psa.gov.ph' },
+            to: email, subject: 'Welcome to OpsHUB - Your Account Details',
+            html: `<div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;"><h2 style="color: #0d9488;">Welcome to OpsHUB!</h2><p>Hello ${firstName} ${lastName},</p><p>An administrator has created an account for you with the role of <strong>${role}</strong>.</p><div style="background-color: #f8fafc; padding: 15px; border-radius: 8px; margin: 20px 0;"><p style="margin: 0 0 10px 0;"><strong>Your Login Email:</strong> ${email}</p><p style="margin: 0;"><strong>Your Temporary Password:</strong> <span style="font-family: monospace; background: #e2e8f0; padding: 2px 6px; border-radius: 4px;">${tempPassword}</span></p></div><p>Please log in and change your password as soon as possible.</p><p>Best regards,<br>The OpsHUB Admin</p></div>`
+          };
+          await transporter.sendMail(mailOptions);
+        }
+        return res.status(200).json({ success: true, clerkUserId: clerkUser ? clerkUser.id : null });
+      }
     }
 
     return res.status(405).json({ error: 'Method Not Allowed' });

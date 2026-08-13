@@ -84,7 +84,7 @@ const Loading = ({ type = "table", text = "Loading..." }) => {
 
   // Fallback to spinner
   return (
-    <div className="flex flex-col items-center justify-center w-full h-full min-h-[16rem] gap-4">
+    <div className="flex flex-col items-center justify-start pt-16 w-full h-full min-h-[16rem] gap-4">
       <div className="relative flex items-center justify-center w-12 h-12">
         <div className="absolute w-full h-full border-4 border-slate-200/50 dark:border-slate-700/50 rounded-full"></div>
         <div className="absolute w-full h-full border-4 border-teal-500 dark:border-teal-400 rounded-full border-t-transparent animate-spin"></div>

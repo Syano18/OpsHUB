@@ -187,78 +187,132 @@ export default function COSWEvaluation() {
             COSW Evaluation
           </h2>
         </div>
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-3 md:gap-5">
           <div className="text-sm text-slate-600 dark:text-slate-300 font-medium hidden sm:block">
-            {user?.firstName ? `Welcome back, ${user.firstName}!` : 'Welcome back!'}
+            {user?.firstName ? `Hello, ${user.firstName} 👋` : 'Welcome back!'}
           </div>
-          <CustomUserButton />
+          <div className="h-6 w-px bg-slate-200 dark:bg-slate-700 hidden sm:block"></div>
           <NotificationBell />
+          <CustomUserButton />
         </div>
       </header>
 
       <div className="flex-1 overflow-auto p-2">
         <div className="w-full h-full flex flex-col bg-white dark:bg-slate-900 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800 overflow-hidden">
           {isLoading ? (
-            <div className="flex-1 flex items-center justify-center">
+            <div className="flex-1 flex items-start justify-center pt-16">
               <Loading text="Loading COSW Evaluation..." />
             </div>
           ) : (
-            <div className="flex-1 overflow-auto">
-              <table className="w-full text-left text-sm text-slate-600 dark:text-slate-400">
-                <thead className="bg-slate-50 dark:bg-slate-800/50 text-xs uppercase font-semibold text-slate-700 dark:text-slate-300">
-                  <tr>
-                    <th className="px-6 py-4 w-[15%] min-w-[180px]">Employee Name</th>
-                    <th className="px-6 py-4 w-[15%] min-w-[150px]">Position</th>
-                    <th className="px-6 py-4 w-[25%] min-w-[200px]">Survey Name</th>
-                    <th className="px-6 py-4 w-[15%] min-w-[180px]">Contract Period</th>
-                    <th className="px-6 py-4 w-[15%] min-w-[150px]">Focal Person</th>
-                    <th className="px-6 py-4 w-[10%] min-w-[100px]">Rating</th>
-                    <th className="px-6 py-4 w-[5%] min-w-[100px] text-center">Actions</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-200 dark:divide-slate-800">
-                  {employments.length === 0 ? (
-                    <tr>
-                      <td colSpan="7" className="px-6 py-8 text-center text-slate-500 dark:text-slate-400 italic">
-                        No evaluations found.
-                      </td>
-                    </tr>
-                  ) : (
-                    employments.map(emp => (
-                      <tr key={emp.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
-                        <td className="px-6 py-4 font-medium text-slate-900 dark:text-slate-100">{emp.employee_name}</td>
-                        <td className="px-6 py-4">{emp.position}</td>
-                        <td className="px-6 py-4">{emp.survey_name}</td>
-                        <td className="px-6 py-4 text-xs whitespace-nowrap">
-                          {emp.contract_start_date} <span className="text-slate-400 mx-1">to</span> {emp.contract_end_date}
-                        </td>
-                        <td className="px-6 py-4">{focalPersons.find(f => f.email === emp.focal_person_email)?.name || emp.focal_person_email || '-'}</td>
-                        <td className="px-6 py-4">
-                          {emp.rating ? (
-                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-teal-100 text-teal-800 dark:bg-teal-900/30 dark:text-teal-400">
-                              {emp.rating}
-                            </span>
-                          ) : '-'}
-                        </td>
-                        <td className="px-6 py-4 text-center">
+            <div className="flex-1 overflow-auto bg-slate-50/50 dark:bg-slate-900/30 p-3 md:p-5">
+              {employments.length === 0 ? (
+                <div className="flex flex-col items-center justify-center h-full text-center py-20 opacity-70">
+                  <svg className="w-16 h-16 text-slate-300 dark:text-slate-600 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                  <p className="text-lg font-bold text-slate-500 dark:text-slate-400">No evaluations found.</p>
+                </div>
+              ) : (
+                <div className="flex flex-col gap-3 md:gap-2 max-w-7xl mx-auto">
+                  {/* Desktop Header Row */}
+                  <div className="hidden lg:grid grid-cols-12 gap-4 px-6 py-3 text-[11px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 bg-slate-100/50 dark:bg-slate-800/50 rounded-xl mb-1">
+                    <div className="col-span-2">Employee Name</div>
+                    <div className="col-span-2">Position</div>
+                    <div className="col-span-3">Survey Name</div>
+                    <div className="col-span-2">Contract Period</div>
+                    <div className="col-span-1">Focal Person</div>
+                    <div className="col-span-1 text-center">Rating</div>
+                    <div className="col-span-1 text-center">Actions</div>
+                  </div>
+
+                  {employments.map(emp => (
+                    <div key={emp.id} className="group flex flex-col lg:grid lg:grid-cols-12 gap-3 lg:gap-4 lg:items-center bg-white dark:bg-slate-800 rounded-2xl lg:rounded-xl p-5 lg:px-6 lg:py-4 shadow-sm border border-slate-200 dark:border-slate-700 hover:border-teal-300 dark:hover:border-teal-600/60 hover:shadow-md transition-all">
+                      
+                      {/* Name & Mobile Actions */}
+                      <div className="flex justify-between items-start lg:col-span-2 lg:items-center">
+                        <div className="w-full">
+                          <span className="lg:hidden text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1 block">Employee</span>
+                          <span className="font-bold text-slate-900 dark:text-slate-100 text-base">{emp.employee_name}</span>
+                        </div>
+                        <div className="lg:hidden shrink-0 ml-4">
                           <button 
                             onClick={() => openRatingModal(emp)} 
                             disabled={!!emp.rating}
-                            className={`p-2 rounded-full transition-colors ${
+                            className={`p-2 rounded-xl transition-all shadow-sm ${
                               emp.rating 
-                                ? 'text-slate-400 dark:text-slate-600 cursor-not-allowed'
-                                : 'text-amber-500 hover:text-amber-600 dark:text-amber-400 dark:hover:text-amber-300 hover:bg-amber-50 dark:hover:bg-amber-900/20'
+                                ? 'text-slate-300 dark:text-slate-600 bg-slate-50 dark:bg-slate-800/50 cursor-not-allowed border border-transparent'
+                                : 'text-amber-600 hover:text-amber-700 dark:text-amber-400 dark:hover:text-amber-300 bg-amber-50 dark:bg-amber-900/20 hover:bg-amber-100 dark:hover:bg-amber-900/40 border border-amber-200 dark:border-amber-800/50 active:scale-95'
                             }`}
                             title={emp.rating ? "Rating already provided" : "Rate Performance"}
                           >
                             <svg className="w-5 h-5 mx-auto" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" /></svg>
                           </button>
-                        </td>
-                      </tr>
-                    ))
-                  )}
-                </tbody>
-              </table>
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-3 lg:contents">
+                        <div className="lg:col-span-2 flex flex-col justify-center">
+                          <span className="lg:hidden text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1 block">Position</span>
+                          <span className="text-sm text-slate-700 dark:text-slate-300 font-medium">{emp.position}</span>
+                        </div>
+                        
+                        <div className="lg:col-span-3 flex flex-col justify-center">
+                          <span className="lg:hidden text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1 block">Survey Name</span>
+                          <span className="text-sm text-slate-600 dark:text-slate-400 truncate" title={emp.survey_name}>{emp.survey_name}</span>
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-3 lg:contents mt-2 lg:mt-0 pt-3 lg:pt-0 border-t border-slate-100 dark:border-slate-700/50 lg:border-none">
+                        <div className="lg:col-span-2 flex flex-col justify-center">
+                          <span className="lg:hidden text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1 block">Contract Period</span>
+                          <span className="text-[11px] font-semibold text-slate-600 dark:text-slate-400 bg-slate-50 dark:bg-slate-900/50 w-fit px-2 py-1 rounded-md border border-slate-100 dark:border-slate-800">
+                            {emp.contract_start_date} <span className="text-slate-400 mx-0.5">to</span> {emp.contract_end_date}
+                          </span>
+                        </div>
+
+                        <div className="lg:col-span-1 flex flex-col justify-center">
+                          <span className="lg:hidden text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1 block">Focal Person</span>
+                          <span className="text-sm text-slate-700 dark:text-slate-300 flex items-center gap-2">
+                            <div className="w-5 h-5 rounded-full bg-indigo-100 dark:bg-indigo-900/40 text-indigo-600 dark:text-indigo-400 flex items-center justify-center text-[10px] font-bold shrink-0">
+                              {(focalPersons.find(f => f.email === emp.focal_person_email)?.name || emp.focal_person_email || '?').charAt(0).toUpperCase()}
+                            </div>
+                            <span className="truncate" title={focalPersons.find(f => f.email === emp.focal_person_email)?.name || emp.focal_person_email || '-'}>
+                              {focalPersons.find(f => f.email === emp.focal_person_email)?.name || emp.focal_person_email || '-'}
+                            </span>
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Rating */}
+                      <div className="flex items-center justify-between lg:justify-center lg:col-span-1 mt-2 lg:mt-0 pt-3 lg:pt-0 border-t border-slate-100 dark:border-slate-700/50 lg:border-none">
+                        <span className="lg:hidden text-[10px] font-bold text-slate-400 uppercase tracking-wider">Rating</span>
+                        {emp.rating ? (
+                          <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold bg-teal-100 text-teal-800 dark:bg-teal-900/40 dark:text-teal-400 border border-teal-200 dark:border-teal-800/40">
+                            ⭐ {emp.rating}
+                          </span>
+                        ) : (
+                          <span className="text-xs font-medium text-slate-400 dark:text-slate-500 italic">Not Rated</span>
+                        )}
+                      </div>
+
+                      {/* Desktop Action */}
+                      <div className="hidden lg:flex items-center justify-center lg:col-span-1">
+                         <button 
+                            onClick={() => openRatingModal(emp)} 
+                            disabled={!!emp.rating}
+                            className={`p-2 rounded-xl transition-all shadow-sm ${
+                              emp.rating 
+                                ? 'text-slate-300 dark:text-slate-600 bg-slate-50 dark:bg-slate-800/50 cursor-not-allowed border border-transparent'
+                                : 'text-amber-600 hover:text-amber-700 dark:text-amber-400 dark:hover:text-amber-300 bg-amber-50 dark:bg-amber-900/20 hover:bg-amber-100 dark:hover:bg-amber-900/40 border border-amber-200 dark:border-amber-800/50 active:scale-95'
+                            }`}
+                            title={emp.rating ? "Rating already provided" : "Rate Performance"}
+                          >
+                            <svg className="w-5 h-5 mx-auto" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" /></svg>
+                          </button>
+                      </div>
+
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           )}
         </div>

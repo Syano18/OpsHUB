@@ -246,13 +246,14 @@ export default function Profile() {
     setCreateUserSuccess('');
     try {
       const token = await getToken();
-      const response = await fetch('/api/create-user', {
+      const response = await fetch('/api/users', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
         },
         body: JSON.stringify({
+          action: 'create',
           email: newUserEmail,
           firstName: newUserFirstName,
           lastName: newUserLastName,
