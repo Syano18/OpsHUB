@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useSignIn } from '@clerk/clerk-react';
 import Alert from './Alert';
+import { Turnstile } from '@marsidev/react-turnstile';
 
 export default function Login() {
    const { isLoaded, signIn, setActive } = useSignIn();
@@ -9,6 +10,7 @@ export default function Login() {
    const [error, setError] = useState('');
    const [isLoading, setIsLoading] = useState(false);
    const [loadingAction, setLoadingAction] = useState(null);
+   const [turnstileToken, setTurnstileToken] = useState(null);
 
    // Forgot Password State
    const [resetState, setResetState] = useState('none');
@@ -53,6 +55,11 @@ export default function Login() {
       e.preventDefault();
       if (!isLoaded) return;
 
+      if (!turnstileToken) {
+         setError("Please complete the security check.");
+         return;
+      }
+
       setError('');
       setIsLoading(true);
       setLoadingAction('manual');
@@ -84,6 +91,21 @@ export default function Login() {
             }
          }
 
+         // Verify Turnstile Token
+         const turnstileRes = await fetch('/api/verify-turnstile', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ token: turnstileToken })
+         });
+         
+         const turnstileData = await turnstileRes.json();
+         if (!turnstileRes.ok || !turnstileData.success) {
+             setError(turnstileData.error || "Security check failed. Please try again.");
+             setIsLoading(false);
+             setLoadingAction(null);
+             return;
+         }
+
          const result = await signIn.create({
             identifier: email,
             password,
@@ -108,10 +130,30 @@ export default function Login() {
       e.preventDefault();
       if (!isLoaded) return;
 
+      if (!turnstileToken) {
+         setError("Please complete the security check.");
+         return;
+      }
+
       setIsLoading(true);
       setLoadingAction('google');
 
       try {
+         // Verify Turnstile Token before redirecting
+         const turnstileRes = await fetch('/api/verify-turnstile', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ token: turnstileToken })
+         });
+         
+         const turnstileData = await turnstileRes.json();
+         if (!turnstileRes.ok || !turnstileData.success) {
+             setError(turnstileData.error || "Security check failed. Please try again.");
+             setIsLoading(false);
+             setLoadingAction(null);
+             return;
+         }
+
          await signIn.authenticateWithRedirect({
             strategy: "oauth_google",
             redirectUrl: "/",
@@ -178,15 +220,15 @@ export default function Login() {
 
    return (
       // Main container centering the form vertically and horizontally
-      <main className="pl-4 pr-2 md:pl-8 md:pr-4 min-h-screen flex flex-col items-center justify-center bg-slate-50 dark:bg-slate-950">
-         <div className="py-4 max-w-md w-full">
+      <main className="min-h-screen w-full bg-slate-50 dark:bg-slate-950 flex flex-col items-center py-4 md:py-8 px-4 md:px-8">
+         <div className="w-full max-w-md pb-4">
             <div
-               className="p-6 rounded-lg bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-800 shadow-xs md:p-8">
+               className="p-5 rounded-lg bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-800 shadow-xs md:p-6">
 
-               <div className="mb-4 flex justify-center">
+               <div className="mb-2 flex justify-center">
                   <a href="#" className="flex flex-col items-center">
-                     <img src="/logo-icon.png" alt="logo" className="w-20 md:w-24 min-h-8 dark:[filter:drop-shadow(1px_1px_0_#fff)_drop-shadow(-1px_-1px_0_#fff)_drop-shadow(1px_-1px_0_#fff)_drop-shadow(-1px_1px_0_#fff)]" />
-                     <div className="text-center mt-3">
+                     <img src="/logo-icon.png" alt="logo" className="w-16 md:w-20 min-h-8 dark:[filter:drop-shadow(1px_1px_0_#fff)_drop-shadow(-1px_-1px_0_#fff)_drop-shadow(1px_-1px_0_#fff)_drop-shadow(-1px_1px_0_#fff)]" />
+                     <div className="text-center mt-1">
                         <h1 className="text-xl md:text-2xl font-extrabold text-slate-800 dark:text-white tracking-tight leading-none">Operations Hub</h1>
                         <p className="text-xs md:text-sm font-bold text-teal-600 dark:text-teal-400 mt-1">(OpsHUB)</p>
                      </div>
@@ -238,7 +280,7 @@ export default function Login() {
                ) : (
                   <>
                      {/* Login Form */}
-                     <form className="space-y-6 mt-6" onSubmit={handleSubmit}>
+                     <form className="space-y-4 mt-4" onSubmit={handleSubmit}>
 
                         {/* Error Message */}
                         <Alert message={error} onClose={() => setError('')} />
@@ -329,6 +371,15 @@ export default function Login() {
                            </button>
                         </div>
 
+                        {/* Turnstile Widget */}
+                        <div className="flex justify-center w-full">
+                           <Turnstile 
+                              siteKey={import.meta.env.VITE_TURNSTILE_SITE_KEY} 
+                              onSuccess={(token) => setTurnstileToken(token)}
+                              options={{ theme: 'auto' }}
+                           />
+                        </div>
+
                         {/* Submit Button */}
                         <button type="submit"
                            disabled={isLoading}
@@ -345,7 +396,7 @@ export default function Login() {
                      </form>
 
                      {/* Divider */}
-                     <div className="flex items-center gap-4 my-6">
+                     <div className="flex items-center gap-4 my-4">
                         <hr className="w-full border-slate-300 dark:border-slate-700" />
                         <p className="text-sm text-slate-700 dark:text-slate-400 text-center">or</p>
                         <hr className="w-full border-slate-300 dark:border-slate-700" />
