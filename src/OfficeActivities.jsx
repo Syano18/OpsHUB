@@ -538,9 +538,11 @@ export default function OfficeActivities() {
 
             <button
               onClick={() => setIsAddModalOpen(true)}
-              className="px-5 py-2.5 bg-teal-600 hover:bg-teal-700 text-white font-medium rounded-xl shadow-sm transition-colors flex items-center gap-2 shrink-0"
+              className="group flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-teal-500 to-emerald-500 hover:from-teal-400 hover:to-emerald-400 text-white text-sm font-bold rounded-xl shadow-md hover:shadow-xl hover:-translate-y-0.5 transition-all whitespace-nowrap shrink-0"
             >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4"></path></svg>
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+              </svg>
               New Activity
             </button>
           </div>
@@ -743,15 +745,15 @@ export default function OfficeActivities() {
             <div className="px-6 py-4 bg-slate-50 dark:bg-slate-800 border-t border-slate-100 dark:border-slate-700 flex gap-3 shrink-0">
               {modalStep === 1 ? (
                 <>
-                  <button type="button" onClick={handleCloseModal} className="flex-1 py-2.5 font-medium text-slate-600 hover:bg-slate-200 bg-slate-100 rounded-xl transition-colors">Cancel</button>
-                  <button type="submit" form="add-activity-form" disabled={formData.assigned_to.length === 0} className="flex-1 py-2.5 font-medium text-white bg-teal-600 hover:bg-teal-700 rounded-xl shadow-sm transition-colors disabled:opacity-50">
+                  <button type="button" onClick={handleCloseModal} className="flex-1 py-2.5 font-medium text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900/40 bg-red-50 dark:bg-red-900/20 rounded-xl transition-colors">Cancel</button>
+                  <button type="submit" form="add-activity-form" disabled={formData.assigned_to.length === 0} className="flex-1 py-2.5 font-medium text-white bg-gradient-to-r from-teal-500 to-emerald-500 hover:from-teal-400 hover:to-emerald-400 rounded-xl shadow-sm hover:shadow-md transition-all disabled:opacity-50 disabled:hover:translate-y-0 disabled:hover:shadow-sm">
                     Review Details
                   </button>
                 </>
               ) : (
                 <>
-                  <button type="button" onClick={() => setModalStep(1)} disabled={isSaving} className="flex-1 py-2.5 font-medium text-slate-600 hover:bg-slate-200 bg-slate-100 rounded-xl transition-colors disabled:opacity-50 disabled:cursor-not-allowed">Back to Edit</button>
-                  <button type="button" onClick={handleSaveActivity} disabled={isSaving} className="flex-1 py-2.5 font-medium text-white bg-teal-600 hover:bg-teal-700 rounded-xl shadow-sm transition-colors disabled:opacity-50">
+                  <button type="button" onClick={() => setModalStep(1)} disabled={isSaving} className="flex-1 py-2.5 font-medium text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900/40 bg-red-50 dark:bg-red-900/20 rounded-xl transition-colors disabled:opacity-50 disabled:cursor-not-allowed">Back to Edit</button>
+                  <button type="button" onClick={handleSaveActivity} disabled={isSaving} className="flex-1 py-2.5 font-medium text-white bg-gradient-to-r from-teal-500 to-emerald-500 hover:from-teal-400 hover:to-emerald-400 rounded-xl shadow-sm hover:shadow-md transition-all disabled:opacity-50 disabled:hover:translate-y-0 disabled:hover:shadow-sm">
                     {isSaving
                       ? (emailProgress.total > 0 ? `Sending emails (${emailProgress.current}/${emailProgress.total})...` : 'Assigning...')
                       : 'Confirm & Assign'}
@@ -778,7 +780,7 @@ export default function OfficeActivities() {
               <p className="text-slate-500 dark:text-slate-400 text-sm mb-1">You are proceeding without any supporting documents.</p>
             </div>
             <div className="px-6 py-4 bg-slate-50 dark:bg-slate-800 border-t border-slate-100 dark:border-slate-700 flex gap-3 shrink-0">
-              <button onClick={() => setShowNoAttachmentWarning(false)} className="flex-1 py-2.5 font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 bg-slate-100 dark:bg-slate-800 rounded-xl transition-colors">Back to Edit</button>
+              <button onClick={() => setShowNoAttachmentWarning(false)} className="flex-1 py-2.5 font-medium text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900/40 bg-red-50 dark:bg-red-900/20 rounded-xl transition-colors">Back to Edit</button>
               <button onClick={() => { setShowNoAttachmentWarning(false); setModalStep(2); }} className="flex-1 py-2.5 font-medium text-white bg-amber-500 hover:bg-amber-600 rounded-xl shadow-sm transition-colors">Okay, Proceed</button>
             </div>
           </div>
@@ -800,7 +802,7 @@ export default function OfficeActivities() {
               <p className="text-slate-500 dark:text-slate-400 text-sm">This action cannot be undone.</p>
             </div>
             <div className="px-6 py-4 bg-slate-50 dark:bg-slate-800 border-t border-slate-100 dark:border-slate-700 flex gap-3 shrink-0">
-              <button onClick={() => setActivityToDelete(null)} className="flex-1 py-2.5 font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 bg-slate-100 dark:bg-slate-800 rounded-xl transition-colors">Cancel</button>
+              <button onClick={() => setActivityToDelete(null)} className="flex-1 py-2.5 font-medium text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900/40 bg-red-50 dark:bg-red-900/20 rounded-xl transition-colors">Cancel</button>
               <button onClick={executeDeleteActivity} className="flex-1 py-2.5 font-medium text-white bg-red-500 hover:bg-red-600 rounded-xl shadow-sm transition-colors">Delete</button>
             </div>
           </div>

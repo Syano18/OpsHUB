@@ -356,7 +356,7 @@ const { user } = useUser();
             </div>
             
             <div className="p-4 border-t border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 flex justify-end">
-              <button onClick={() => { setSelectedDayYmd(null); handleCellClick(selectedDayYmd); }} className="px-4 py-2 bg-teal-600 text-white rounded-lg text-sm font-semibold hover:bg-teal-700 transition-colors flex items-center gap-2">
+              <button onClick={() => { setSelectedDayYmd(null); handleCellClick(selectedDayYmd); }} className="px-4 py-2 bg-gradient-to-r from-teal-500 to-emerald-500 text-white rounded-lg text-sm font-semibold hover:from-teal-400 hover:to-emerald-400 transition-all shadow-sm hover:shadow-md hover:-translate-y-0.5 flex items-center gap-2">
                 <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4"/></svg>
                 Add Event
               </button>
@@ -404,8 +404,8 @@ const { user } = useUser();
               </div>
 
               <div className="mt-4 flex gap-3">
-                <button type="button" onClick={() => { setIsAddModalOpen(false); setEditingEventId(null); }} className="flex-1 py-2.5 font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-colors">Cancel</button>
-                <button type="submit" disabled={isSaving} className="flex-1 py-2.5 font-medium text-white bg-teal-600 hover:bg-teal-700 rounded-xl shadow-sm transition-colors disabled:opacity-50">
+                <button type="button" onClick={() => { setIsAddModalOpen(false); setEditingEventId(null); }} className="flex-1 py-2.5 font-medium text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900/40 bg-red-50 dark:bg-red-900/20 rounded-xl transition-colors">Cancel</button>
+                <button type="submit" disabled={isSaving} className="flex-1 py-2.5 font-medium text-white bg-gradient-to-r from-teal-500 to-emerald-500 hover:from-teal-400 hover:to-emerald-400 rounded-xl shadow-sm hover:shadow-md transition-all disabled:opacity-50 disabled:hover:translate-y-0 disabled:hover:shadow-sm">
                   {isSaving ? 'Saving...' : 'Save Event'}
                 </button>
               </div>
@@ -490,7 +490,7 @@ const { user } = useUser();
               <p className="text-slate-500 dark:text-slate-400 text-sm">This action cannot be undone.</p>
             </div>
             <div className="px-6 py-4 bg-slate-50 dark:bg-slate-900/50 border-t border-slate-100 dark:border-slate-800 flex gap-3 shrink-0">
-              <button onClick={() => setEventToDelete(null)} className="flex-1 py-2.5 font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 bg-slate-100 dark:bg-slate-800 rounded-xl transition-colors">Cancel</button>
+              <button onClick={() => setEventToDelete(null)} className="flex-1 py-2.5 font-medium text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900/40 bg-red-50 dark:bg-red-900/20 rounded-xl transition-colors">Cancel</button>
               <button onClick={executeDeleteEvent} className="flex-1 py-2.5 font-medium text-white bg-red-500 hover:bg-red-600 rounded-xl shadow-sm transition-colors">Delete</button>
             </div>
           </div>

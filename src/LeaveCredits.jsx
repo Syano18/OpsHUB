@@ -10,7 +10,7 @@ import { toJpeg } from 'html-to-image';
 import { jsPDF } from 'jspdf';
 import { DayPicker } from "react-day-picker";
 import "react-day-picker/style.css";
-import { format } from "date-fns";
+import { format, addDays, subDays, isSameDay } from "date-fns";
 import * as XLSX from 'xlsx';
 
 // Helper to calculate sync
@@ -872,10 +872,10 @@ export default function LeaveCredits() {
         <div className="mb-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <button
             onClick={() => setShowFileLeave(true)}
-            className="px-5 py-2.5 bg-blue-600 text-white font-medium rounded-xl shadow-sm hover:bg-blue-700 transition-all active:scale-95 flex items-center gap-2"
+            className="group flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-teal-500 to-emerald-500 hover:from-teal-400 hover:to-emerald-400 text-white text-sm font-bold rounded-xl shadow-md hover:shadow-xl hover:-translate-y-0.5 transition-all whitespace-nowrap"
           >
-            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
             </svg>
             File Leave
           </button>
@@ -1302,25 +1302,107 @@ export default function LeaveCredits() {
                 )}
 
                 <div>
-                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Inclusive Dates</label>
-                  <div className={`w-full flex justify-center bg-white dark:bg-slate-900 border rounded-lg p-2 sm:p-4 shadow-sm leave-calendar ${formErrors.inclusiveDates ? 'border-red-500 ring-1 ring-red-500' : 'border-slate-200 dark:border-slate-700'}`}>
+                  <div className="flex justify-between items-center mb-2">
+                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">Inclusive Dates</label>
+                    {inclusiveDates.length > 0 && (
+                      <span className="text-xs font-semibold text-teal-600 dark:text-teal-400 bg-teal-50 dark:bg-teal-900/30 px-2.5 py-0.5 rounded-full border border-teal-100 dark:border-teal-800/50 shadow-sm transition-all duration-300 animate-in fade-in slide-in-from-right-2">
+                        {inclusiveDates.length} {inclusiveDates.length === 1 ? 'day' : 'days'} selected
+                      </span>
+                    )}
+                  </div>
+                  
+                  <div className={`w-full bg-white dark:bg-slate-900 border rounded-xl p-3 sm:p-5 shadow-sm transition-all duration-300 leave-calendar ${formErrors.inclusiveDates ? 'border-red-500 ring-2 ring-red-500/20' : 'border-slate-200 dark:border-slate-700 hover:border-teal-300 dark:hover:border-teal-700'}`}>
                     <style>{`
                       .leave-calendar {
-                        --rdp-day-width: 11.5vw;
-                        --rdp-day-height: 11.5vw;
+                        --rdp-accent-color: #0d9488;
+                        --rdp-background-color: #ccfbf1;
                         font-size: 0.95rem;
+                        width: 100%;
+                      }
+                      .leave-calendar .rdp {
+                        margin: 0;
+                        width: 100%;
+                      }
+                      .leave-calendar .rdp-months {
+                        max-width: none;
+                        width: 100%;
+                      }
+                      .leave-calendar .rdp-month {
+                        width: 100%;
+                      }
+                      .leave-calendar .rdp-month_grid {
+                        width: 100%;
+                      }
+                      .leave-calendar .rdp-day {
+                        width: auto;
+                        height: auto;
+                      }
+                      .leave-calendar .rdp-day_button {
+                        width: 100%;
+                        height: 100%;
+                        max-width: 42px;
+                        max-height: 42px;
+                        aspect-ratio: 1;
+                        border-radius: 50%;
+                        display: flex;
+                        justify-content: center;
+                        align-items: center;
+                        margin: 0 auto;
+                        transition: all 0.2s ease-in-out;
+                        border: 2px solid transparent !important;
+                        outline: none !important;
+                      }
+                      .leave-calendar .rdp-day_button:focus-visible {
+                        border-color: #0d9488 !important;
                       }
                       @media (min-width: 512px) {
                         .leave-calendar {
-                          --rdp-day-width: 62px;
-                          --rdp-day-height: 62px;
                           font-size: 1.1rem;
                         }
                       }
-                      /* Dark mode support for day picker */
+                      
+                      /* Dark mode support */
                       .dark .rdp-day { color: #f1f5f9; }
                       .dark .rdp-head_cell { color: #94a3b8; }
+                      .dark .leave-calendar { --rdp-background-color: #115e59; }
                       .dark .rdp-button:hover:not([disabled]):not(.rdp-day_selected) { background-color: #334155; }
+                      
+                      /* Custom selection styling */
+                      /* The solid teal circle for selected days */
+                      .rdp-selected .rdp-day_button { 
+                        background-color: #0d9488 !important; 
+                        color: white !important; 
+                        font-weight: bold; 
+                        border-radius: 50% !important; 
+                        box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1); 
+                        border-color: #0d9488 !important; 
+                      }
+                      
+                      /* Range connections */
+                      .rdp-day_range_middle { background-color: #ccfbf1 !important; }
+                      .rdp-day_range_start { background: linear-gradient(to right, transparent 50%, #ccfbf1 50%) !important; }
+                      .rdp-day_range_end { background: linear-gradient(to left, transparent 50%, #ccfbf1 50%) !important; }
+                      .rdp-day_range_start.rdp-day_range_end { background: transparent !important; }
+                      
+                      /* Middle days in a range just have text colored, no solid circle */
+                      .rdp-day_range_middle .rdp-day_button { 
+                        background-color: transparent !important; 
+                        color: #0f766e !important; 
+                        font-weight: 600; 
+                        box-shadow: none !important; 
+                        border-color: transparent !important;
+                      }
+
+                      /* Dark mode adjustments for ranges */
+                      .dark .rdp-day_range_middle { background-color: #115e59 !important; }
+                      .dark .rdp-day_range_start { background: linear-gradient(to right, transparent 50%, #115e59 50%) !important; }
+                      .dark .rdp-day_range_end { background: linear-gradient(to left, transparent 50%, #115e59 50%) !important; }
+                      .dark .rdp-day_range_start.rdp-day_range_end { background: transparent !important; }
+                      .dark .rdp-day_range_middle .rdp-day_button { color: #5eead4 !important; }
+                      
+                      /* Navigation Arrows */
+                      .leave-calendar .rdp-chevron { fill: #0d9488 !important; }
+                      .dark .leave-calendar .rdp-chevron { fill: #2dd4bf !important; }
                     `}</style>
                     <DayPicker
                       mode="multiple"
@@ -1330,9 +1412,16 @@ export default function LeaveCredits() {
                         setRequestedDays(dates ? dates.length : 0);
                         if (dates && dates.length > 0) setFormErrors(prev => ({ ...prev, inclusiveDates: false }));
                       }}
+                      modifiers={{
+                        range_start: (date) => inclusiveDates.some(d => isSameDay(d, date)) && !inclusiveDates.some(d => isSameDay(d, subDays(date, 1))),
+                        range_middle: (date) => inclusiveDates.some(d => isSameDay(d, date)) && inclusiveDates.some(d => isSameDay(d, subDays(date, 1))) && inclusiveDates.some(d => isSameDay(d, addDays(date, 1))),
+                        range_end: (date) => inclusiveDates.some(d => isSameDay(d, date)) && !inclusiveDates.some(d => isSameDay(d, addDays(date, 1))),
+                      }}
                       modifiersClassNames={{
-                        selected: "bg-blue-600 text-white font-bold rounded-lg shadow-md rdp-day_selected",
-                        today: "font-bold text-blue-600 dark:text-blue-400"
+                        range_start: "rdp-day_range_start",
+                        range_middle: "rdp-day_range_middle",
+                        range_end: "rdp-day_range_end",
+                        today: "font-bold text-teal-600 dark:text-teal-400"
                       }}
                     />
                   </div>
@@ -1344,10 +1433,10 @@ export default function LeaveCredits() {
               </div>
               <div className="p-6 bg-slate-50 dark:bg-slate-800/50 border-t border-slate-100 dark:border-slate-800 flex justify-end gap-3 shrink-0">
                 <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
-                  <button type="button" onClick={handleCloseFileLeave} disabled={isGeneratingPdf} className="w-full sm:w-auto px-4 py-2 text-sm font-medium text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors shadow-sm disabled:opacity-50">
+                  <button type="button" onClick={handleCloseFileLeave} disabled={isGeneratingPdf} className="w-full sm:w-auto px-4 py-2 text-sm font-medium text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 hover:bg-red-100 dark:hover:bg-red-900/40 rounded-xl transition-colors disabled:opacity-50">
                     Cancel
                   </button>
-                  <button type="submit" disabled={isGeneratingPdf || isBalanceZero} className="w-full sm:w-auto px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors shadow-sm flex items-center justify-center gap-2 disabled:opacity-75 disabled:cursor-not-allowed">
+                  <button type="submit" disabled={isGeneratingPdf || isBalanceZero} className="group w-full sm:w-auto px-4 py-2 text-sm font-medium text-white bg-gradient-to-r from-teal-500 to-emerald-500 hover:from-teal-400 hover:to-emerald-400 rounded-xl transition-all shadow-sm hover:shadow-md hover:-translate-y-0.5 flex items-center justify-center gap-2 disabled:opacity-75 disabled:cursor-not-allowed disabled:hover:translate-y-0 disabled:hover:shadow-sm">
                     {isGeneratingPdf ? (
                       <>
                         <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
@@ -1480,7 +1569,7 @@ export default function LeaveCredits() {
                       setShowFileLeave(false);
                     }}
                     disabled={uploadingRecordId === pendingUploadId || transmittingRecordId === pendingUploadId}
-                    className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors shadow-sm disabled:opacity-40 disabled:cursor-not-allowed"
+                    className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-gradient-to-r from-teal-500 to-emerald-500 hover:from-teal-400 hover:to-emerald-400 rounded-xl transition-all shadow-sm hover:shadow-md hover:-translate-y-0.5 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:translate-y-0 disabled:hover:shadow-sm"
                   >
                     <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
                       <path strokeLinecap="round" strokeLinejoin="round" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
@@ -1492,7 +1581,7 @@ export default function LeaveCredits() {
                 <button
                   onClick={() => { setPendingUploadId(null); setPendingUploadDoc(null); }}
                   disabled={uploadingRecordId === pendingUploadId || transmittingRecordId === pendingUploadId}
-                  className="px-4 py-2 text-sm font-medium text-slate-700 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 transition-colors shadow-sm disabled:opacity-40 disabled:cursor-not-allowed"
+                  className="px-4 py-2 text-sm font-medium text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 hover:bg-red-100 dark:hover:bg-red-900/40 rounded-xl transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
                 >
                   Upload Later
                 </button>
@@ -1773,7 +1862,7 @@ export default function LeaveCredits() {
                   setGeneratedPdfUrl(null);
                   setGeneratedRecordId(null);
                 }}
-                className="px-5 py-2.5 text-sm font-medium text-white bg-blue-600 border border-blue-600 rounded-lg hover:bg-blue-700 transition-colors shadow-sm"
+                className="px-5 py-2.5 text-sm font-medium text-white bg-gradient-to-r from-teal-500 to-emerald-500 hover:from-teal-400 hover:to-emerald-400 rounded-xl transition-all shadow-sm hover:shadow-md hover:-translate-y-0.5"
               >
                 Digital Sign
               </button>
@@ -1838,13 +1927,13 @@ export default function LeaveCredits() {
                 <button
                   type="button"
                   onClick={() => setEditingUser(null)}
-                  className="px-4 py-2 text-sm font-medium text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors"
+                  className="px-4 py-2 text-sm font-medium text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 hover:bg-red-100 dark:hover:bg-red-900/40 rounded-xl transition-colors"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 text-sm font-medium text-white bg-indigo-600 rounded-lg hover:bg-indigo-700 transition-colors shadow-sm"
+                  className="px-4 py-2 text-sm font-medium text-white bg-gradient-to-r from-teal-500 to-emerald-500 hover:from-teal-400 hover:to-emerald-400 rounded-xl transition-all shadow-sm hover:shadow-md hover:-translate-y-0.5"
                 >
                   Save Changes
                 </button>

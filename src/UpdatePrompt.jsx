@@ -43,7 +43,7 @@ export default function UpdatePrompt() {
   if (!showPrompt) return null;
 
   return (
-    <div className="fixed bottom-6 right-6 z-50 bg-white dark:bg-slate-800 p-4 rounded-xl shadow-2xl border border-slate-200 dark:border-slate-700 max-w-sm flex flex-col gap-3 animate-in slide-in-from-bottom-5 fade-in duration-300">
+    <div className="fixed bottom-4 left-4 right-4 md:bottom-6 md:left-auto md:right-6 z-50 mx-auto w-auto max-w-sm bg-white dark:bg-slate-800 p-4 rounded-xl shadow-2xl border border-slate-200 dark:border-slate-700 flex flex-col gap-3 animate-in slide-in-from-bottom-5 fade-in duration-300">
       <div className="flex gap-4 items-start">
         <div className="text-teal-500 bg-teal-50 dark:bg-teal-900/30 p-2 rounded-full mt-1">
           <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-6 h-6">
@@ -66,7 +66,7 @@ export default function UpdatePrompt() {
         </button>
         <button 
           onClick={() => window.location.reload(true)}
-          className="px-4 py-2 text-xs font-semibold bg-teal-600 hover:bg-teal-700 text-white rounded-lg transition-colors shadow-sm cursor-pointer"
+          className="px-4 py-2 text-xs font-semibold bg-gradient-to-r from-teal-500 to-emerald-500 hover:from-teal-400 hover:to-emerald-400 text-white rounded-lg transition-all shadow-sm hover:shadow-md hover:-translate-y-0.5 cursor-pointer"
         >
           Reload Now
         </button>

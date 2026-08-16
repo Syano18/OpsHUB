@@ -73,44 +73,8 @@ export default function Sidebar({ isOpen, setIsOpen }) {
         ))}
         </nav>
 
-        {/* Theme Toggle & Logout */}
-        <div className="px-4 mb-4 space-y-2">
-          <div className="flex items-center justify-between bg-slate-50 dark:bg-slate-800 p-3 rounded-lg border border-slate-200 dark:border-slate-700 shadow-sm">
-            <span className="text-sm font-medium text-slate-600 dark:text-slate-400 flex items-center gap-2">
-              {theme === 'dark' ? '🌙 Dark Mode' : '☀️ Light Mode'}
-            </span>
-            <button
-              onClick={() => {
-                document.body.classList.add('disable-transitions');
-                setTheme(theme === 'light' ? 'dark' : 'light');
-                setTimeout(() => {
-                  document.body.classList.remove('disable-transitions');
-                }, 50);
-              }}
-              className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-offset-2 ${
-                theme === 'dark' ? 'bg-teal-500' : 'bg-slate-300'
-              }`}
-            >
-              <span
-                className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                  theme === 'dark' ? 'translate-x-6' : 'translate-x-1'
-                }`}
-              />
-            </button>
-          </div>
-
-          <button
-            onClick={() => signOut()}
-            className="flex items-center gap-3 w-full px-4 py-3 rounded-lg bg-slate-50 dark:bg-slate-800/50 text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-700 shadow-sm hover:border-red-200 dark:hover:border-red-900 hover:bg-red-50 dark:hover:bg-red-900/30 hover:text-red-600 dark:hover:text-red-400 transition-all group cursor-pointer"
-          >
-            <span className="group-hover:scale-110 transition-transform flex items-center justify-center text-slate-400 group-hover:text-red-500">
-              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="size-5">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0 0 13.5 3h-6a2.25 2.25 0 0 0-2.25 2.25v13.5A2.25 2.25 0 0 0 7.5 21h6a2.25 2.25 0 0 0 2.25-2.25V15m3 0 3-3m0 0-3-3m3 3H9" />
-              </svg>
-            </span>
-            <span className="font-medium text-sm">Logout</span>
-          </button>
-
+        {/* Footer */}
+        <div className="px-4 mb-4">
           <footer className="pt-2 flex items-center justify-center gap-1.5 text-slate-400 dark:text-slate-500 text-[10px] font-medium">
              <a 
                href="https://www.facebook.com/chanotot" 

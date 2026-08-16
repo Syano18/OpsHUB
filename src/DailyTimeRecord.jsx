@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useOutletContext } from 'react-router-dom';
 import { useUser, useAuth } from '@clerk/clerk-react';
 import Alert from './Alert';
@@ -6,12 +6,60 @@ import Loading from './components/Loading';
 import CustomUserButton from './CustomUserButton';
 import NotificationBell from './NotificationBell';
 
-const TimeBlock = ({ label, time }) => (
-  <div className="flex flex-col bg-slate-50/50 dark:bg-slate-900/30 md:bg-transparent md:dark:bg-transparent p-3 md:p-0 rounded-xl md:rounded-none border border-slate-100 dark:border-slate-800/50 md:border-none items-center md:items-start justify-center transition-colors hover:bg-slate-100 dark:hover:bg-slate-800/50 md:hover:bg-transparent">
-    <span className="text-[10px] md:text-[11px] uppercase font-bold text-slate-500 dark:text-slate-400 tracking-wider mb-1 md:mb-1.5">{label}</span>
-    <span className={`font-semibold ${time ? 'text-slate-800 dark:text-slate-100' : 'text-slate-400 dark:text-slate-600'} text-sm md:text-base`}>{time || '--:--'}</span>
+const TimeBlock = ({ label, time, isEnd }) => (
+  <div className={`flex flex-col items-center justify-center flex-1 px-1 ${!isEnd ? 'border-r border-slate-200/60 dark:border-slate-700/50' : ''}`}>
+    <span className="text-[10px] md:text-xs uppercase font-black text-slate-400 tracking-widest mb-0.5">{label}</span>
+    <span className={`font-black ${time ? 'text-slate-800 dark:text-slate-100' : 'text-slate-300 dark:text-slate-600'} text-lg md:text-xl tracking-tight mt-0.5`}>{time || '--:--'}</span>
   </div>
 );
+
+const CustomSelect = ({ value, onChange, options }) => {
+  const [isOpen, setIsOpen] = useState(false);
+  const dropdownRef = useRef(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        setIsOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  const selectedOption = options.find(o => o.value === value) || options[0] || { label: 'Select' };
+
+  return (
+    <div className="relative" ref={dropdownRef}>
+      <div 
+        onClick={() => setIsOpen(!isOpen)}
+        className="flex items-center justify-between bg-transparent text-slate-700 dark:text-slate-200 py-2 pl-4 pr-3 rounded-xl focus:outline-none text-sm font-bold cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors gap-3 select-none min-w-[140px]"
+      >
+        <span className="truncate">{selectedOption.label}</span>
+        <svg className={`w-4 h-4 text-slate-500 shrink-0 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M19 9l-7 7-7-7"></path></svg>
+      </div>
+      
+      {isOpen && (
+        <div className="absolute z-50 mt-2 w-56 max-h-60 overflow-y-auto bg-white/95 dark:bg-slate-800/95 backdrop-blur-xl rounded-2xl shadow-xl border border-slate-200/50 dark:border-slate-700/50 py-2 animate-in fade-in slide-in-from-top-2 duration-200 custom-scrollbar">
+          {options.map(opt => (
+            <div 
+              key={opt.value}
+              onClick={() => { onChange(opt.value); setIsOpen(false); }}
+              className={`px-4 py-2.5 text-sm cursor-pointer transition-colors flex items-center justify-between mx-2 rounded-xl mb-1 last:mb-0 ${
+                opt.value === value 
+                  ? 'bg-teal-50 dark:bg-teal-500/20 text-teal-700 dark:text-teal-400 font-bold' 
+                  : 'text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700/50'
+              }`}
+            >
+              <span className="truncate">{opt.label}</span>
+              {opt.value === value && <svg className="w-4 h-4 shrink-0 text-teal-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+};
 
 export default function DailyTimeRecord() {
     const { setIsSidebarOpen } = useOutletContext();
@@ -80,6 +128,21 @@ const { user } = useUser();
     }
   };
 
+  const getMonthAndDay = (dateString) => {
+    try {
+      const d = formatDate(dateString);
+      const parts = d.split('-');
+      if (parts.length === 3) {
+        const dateObj = new Date(parts[0], parts[1] - 1, parts[2]);
+        return {
+          month: dateObj.toLocaleString('en-US', { month: 'short' }).toUpperCase(),
+          day: parts[2]
+        };
+      }
+    } catch (e) {}
+    return { month: 'DAY', day: '??' };
+  };
+
   const handleRowClick = (record) => {
     setSelectedRecord(record);
     setEditRemarks(record.remarks || '');
@@ -127,6 +190,10 @@ const { user } = useUser();
 
     return matchesMonth && matchesEmployee;
   });
+
+  const errorCount = filteredAttendance.filter(row => !!row.error_message).length;
+  const completeCount = filteredAttendance.filter(row => !row.error_message && row.time_in_am && row.time_out_am && row.time_in_pm && row.time_out_pm).length;
+  const incompleteCount = filteredAttendance.length - errorCount - completeCount;
 
   const months = [
     { value: 1, label: 'January' },
@@ -235,49 +302,44 @@ const { user } = useUser();
           ) : (
             <div className="bg-white/70 dark:bg-slate-900/70 backdrop-blur-xl rounded-3xl shadow-sm border border-slate-200/60 dark:border-slate-800/60 overflow-hidden flex-1 flex flex-col">
               {/* Filter Section */}
-              <div className="px-6 py-5 border-b border-slate-200/60 dark:border-slate-800/60 flex flex-col sm:flex-row items-start sm:items-center justify-between bg-white/50 dark:bg-slate-900/50 gap-4">
+              <div className="px-6 py-3 border-b border-slate-200/60 dark:border-slate-800/60 flex flex-col sm:flex-row items-start sm:items-center justify-between bg-white/50 dark:bg-slate-900/50 gap-4">
                 <div className="flex flex-wrap items-center gap-4">
                   <div className="flex items-center gap-3 bg-slate-50 dark:bg-slate-950/50 p-1.5 rounded-2xl border border-slate-200/80 dark:border-slate-800">
-                    <div className="relative">
-                      <select
-                        value={selectedMonth}
-                        onChange={(e) => setSelectedMonth(Number(e.target.value))}
-                        className="appearance-none bg-transparent text-slate-700 dark:text-slate-200 py-2 pl-4 pr-10 rounded-xl focus:outline-none focus:ring-0 text-sm font-bold cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
-                      >
-                        {months.map(m => (
-                          <option key={m.value} value={m.value}>{m.label}</option>
-                        ))}
-                      </select>
-                      <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-slate-500">
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M19 9l-7 7-7-7"></path></svg>
-                      </div>
-                    </div>
+                    <CustomSelect
+                      value={selectedMonth}
+                      onChange={(val) => setSelectedMonth(Number(val))}
+                      options={months}
+                    />
                   </div>
 
                   {isAdmin && (
                     <div className="flex items-center gap-3 bg-slate-50 dark:bg-slate-950/50 p-1.5 rounded-2xl border border-slate-200/80 dark:border-slate-800">
-                      <div className="relative">
-                        <select
+                        <CustomSelect
                           value={selectedEmployee}
-                          onChange={(e) => setSelectedEmployee(e.target.value)}
-                          className="appearance-none bg-transparent text-slate-700 dark:text-slate-200 py-2 pl-4 pr-10 rounded-xl focus:outline-none focus:ring-0 text-sm font-bold cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
-                        >
-                          <option value="All">All Employees</option>
-                          {uniqueEmployees.map(emp => (
-                            <option key={emp} value={emp}>{emp}</option>
-                          ))}
-                        </select>
-                        <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-slate-500">
-                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M19 9l-7 7-7-7"></path></svg>
-                        </div>
-                      </div>
+                          onChange={(val) => setSelectedEmployee(val)}
+                          options={[
+                            { value: 'All', label: 'All Employees' },
+                            ...uniqueEmployees.map(emp => ({ value: emp, label: emp }))
+                          ]}
+                        />
                     </div>
                   )}
                 </div>
                 
-                {/* Summary / Stats (Optional) */}
-                <div className="text-sm font-medium text-slate-500 dark:text-slate-400 bg-slate-50 dark:bg-slate-800/50 px-4 py-2 rounded-xl border border-slate-200/50 dark:border-slate-700/50">
-                  {filteredAttendance.length} {filteredAttendance.length === 1 ? 'Record' : 'Records'} Found
+                {/* Summary / Stats */}
+                <div className="flex flex-wrap items-center gap-2">
+                  <div className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800/30 flex items-center gap-1.5 shadow-sm">
+                    <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
+                    Complete: {completeCount}
+                  </div>
+                  <div className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-800/30 flex items-center gap-1.5 shadow-sm">
+                    <span className="w-2 h-2 rounded-full bg-amber-500"></span>
+                    Incomplete: {incompleteCount}
+                  </div>
+                  <div className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-400 border border-red-200 dark:border-red-800/30 flex items-center gap-1.5 shadow-sm">
+                    <span className="w-2 h-2 rounded-full bg-red-500"></span>
+                    Errors: {errorCount}
+                  </div>
                 </div>
               </div>
 
@@ -291,79 +353,65 @@ const { user } = useUser();
                   </div>
                 ) : (
                   <div className="flex flex-col gap-4">
-                    {/* Desktop Header Row (Hidden on mobile) */}
-                    <div className="hidden md:flex px-6 py-2 text-[11px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 mb-[-8px]">
-                      <div className="w-[30%]">Date & Employee</div>
-                      <div className="w-[50%] flex justify-between px-4">
-                        <span className="w-1/4 text-center">AM In</span>
-                        <span className="w-1/4 text-center">AM Out</span>
-                        <span className="w-1/4 text-center">PM In</span>
-                        <span className="w-1/4 text-center">PM Out</span>
-                      </div>
-                      <div className="w-[20%] text-right">Status</div>
-                    </div>
-
-                    {filteredAttendance.map((row, idx) => (
+                    {filteredAttendance.map((row, idx) => {
+                      const isError = !!row.error_message;
+                      const isComplete = !isError && row.time_in_am && row.time_out_am && row.time_in_pm && row.time_out_pm;
+                      const statusColor = isError ? 'red' : isComplete ? 'emerald' : 'amber';
+                      const monthDay = getMonthAndDay(row.date);
+                      
+                      return (
                       <div 
                         key={`card-${row.id || 'no-id'}-${idx}`}
                         onClick={() => handleRowClick(row)}
-                        className="group flex flex-col md:flex-row md:items-center gap-4 md:gap-0 bg-white dark:bg-slate-800/80 rounded-2xl p-5 md:px-6 md:py-4 shadow-sm border border-slate-200/60 dark:border-slate-700/50 hover:shadow-md hover:border-teal-300 dark:hover:border-teal-600/60 transition-all cursor-pointer relative overflow-hidden [content-visibility:auto]"
+                        className="group flex flex-col md:flex-row rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/50 hover:bg-teal-50/50 dark:hover:bg-teal-900/20 hover:border-teal-300 dark:hover:border-teal-700 hover:shadow-md cursor-pointer transition-colors overflow-hidden"
                       >
-                        {/* Interactive hover gradient */}
-                        <div className="absolute inset-0 bg-gradient-to-r from-teal-500/0 via-teal-500/0 to-teal-500/5 dark:from-teal-400/0 dark:via-teal-400/0 dark:to-teal-400/10 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none"></div>
-
-                        {/* Date & Name */}
-                        <div className="flex justify-between items-start md:items-center md:w-[30%] relative z-10">
-                          <div className="flex flex-col">
-                            <span className="md:hidden text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Date</span>
-                            <span className="font-bold text-slate-800 dark:text-slate-100 text-lg group-hover:text-teal-600 dark:group-hover:text-teal-400 transition-colors">{formatDate(row.date)}</span>
-                            {isAdmin && <span className={`mt-1.5 text-[10px] font-bold px-2 py-0.5 rounded-md border w-fit ${getBadgeColor(row.display_name)}`}>{row.display_name}</span>}
-                          </div>
-                          {/* Status Mobile Only */}
-                          <div className="md:hidden">
+                        {/* Date Block (Left Side) */}
+                        <div className={`flex flex-col items-center justify-center p-4 bg-${statusColor}-50/80 dark:bg-${statusColor}-900/20 border-b md:border-b-0 md:border-r border-${statusColor}-200/60 dark:border-${statusColor}-800/30 min-w-[130px] transition-colors group-hover:bg-${statusColor}-100 dark:group-hover:bg-${statusColor}-900/40 relative overflow-hidden`}>
+                          {/* Accent glow behind date */}
+                          <div className={`absolute inset-0 bg-gradient-to-b from-${statusColor}-500/0 to-${statusColor}-500/10 dark:to-${statusColor}-400/10 opacity-0 group-hover:opacity-100 transition-opacity duration-500`}></div>
+                          <span className={`text-xs font-black text-${statusColor}-600 dark:text-${statusColor}-400 tracking-widest uppercase relative z-10`}>{monthDay.month}</span>
+                          <span className={`text-[2.25rem] leading-none font-black text-${statusColor}-700 dark:text-${statusColor}-300 mt-1 mb-1 relative z-10`}>{monthDay.day}</span>
+                          <span className={`text-[9px] font-bold text-${statusColor}-500 dark:text-${statusColor}-500 relative z-10 opacity-70 mb-2`}>{formatDate(row.date).substring(0, 4)}</span>
+                          <div className="relative z-10 scale-90 origin-top">
                             {renderStatus(row)}
                           </div>
                         </div>
 
-                        {/* Time Blocks */}
-                        <div className="grid grid-cols-2 md:flex md:w-[50%] gap-3 md:gap-0 md:px-4 relative z-10">
-                          <div className="md:w-1/4 md:flex md:justify-center"><TimeBlock label="AM In" time={row.time_in_am} /></div>
-                          <div className="md:w-1/4 md:flex md:justify-center"><TimeBlock label="AM Out" time={row.time_out_am} /></div>
-                          <div className="md:w-1/4 md:flex md:justify-center"><TimeBlock label="PM In" time={row.time_in_pm} /></div>
-                          <div className="md:w-1/4 md:flex md:justify-center"><TimeBlock label="PM Out" time={row.time_out_pm} /></div>
-                        </div>
-
-                        {/* Status & Remarks Desktop */}
-                        <div className="hidden md:flex flex-col items-end md:w-[20%] gap-2 relative z-10">
-                          {renderStatus(row)}
-                          {(row.remarks) ? (
-                            <div className="flex items-center gap-1.5 text-xs text-slate-500 dark:text-slate-400 bg-slate-50 dark:bg-slate-900/50 px-2 py-1 rounded-md border border-slate-100 dark:border-slate-800 max-w-full">
-                              <svg className="w-3 h-3 shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M18 10c0 3.866-3.582 7-8 7a8.841 8.841 0 01-4.083-.98L2 17l1.338-3.123C2.493 12.767 2 11.434 2 10c0-3.866 3.582-7 8-7s8 3.134 8 7zM7 9H5v2h2V9zm8 0h-2v2h2V9zM9 9h2v2H9V9z" clipRule="evenodd" /></svg>
-                              <span className="truncate" title={row.remarks}>{row.remarks}</span>
+                        {/* Main Content Area */}
+                        <div className="flex flex-col flex-1 p-3 md:p-4 relative justify-center">
+                          {/* Admin Name Badge */}
+                          {isAdmin && (
+                            <div className="mb-2">
+                              <span className={`text-[10px] font-bold px-2.5 py-0.5 rounded-lg border shadow-sm ${getBadgeColor(row.display_name)}`}>
+                                {row.display_name}
+                              </span>
                             </div>
-                          ) : (
-                            <span className="text-xs font-medium text-teal-600/0 dark:text-teal-400/0 group-hover:text-teal-600 dark:group-hover:text-teal-400 transition-colors">
-                              + Add remarks
-                            </span>
                           )}
-                        </div>
 
-                        {/* Remarks Mobile Only */}
-                        <div className="md:hidden mt-1 pt-4 border-t border-slate-100 dark:border-slate-700/50 relative z-10">
-                          {(row.remarks) ? (
-                            <div className="text-sm bg-slate-50 dark:bg-slate-900/50 p-3 rounded-xl border border-slate-100 dark:border-slate-800/50">
-                              <span className="font-bold text-slate-600 dark:text-slate-400 block mb-1 text-[11px] uppercase tracking-wider">Remarks</span>
-                              <span className="text-slate-700 dark:text-slate-300 leading-relaxed">{row.remarks}</span>
+                          {/* Time Bar */}
+                          <div className="flex w-full mt-1">
+                            <TimeBlock label="AM IN" time={row.time_in_am} />
+                            <TimeBlock label="AM OUT" time={row.time_out_am} />
+                            <TimeBlock label="PM IN" time={row.time_in_pm} />
+                            <TimeBlock label="PM OUT" time={row.time_out_pm} isEnd={true} />
+                          </div>
+                          
+                          {/* Remarks */}
+                          {row.remarks ? (
+                            <div className="mt-3 flex items-start gap-2 text-xs md:text-sm text-slate-600 dark:text-slate-300 bg-slate-50/80 dark:bg-slate-800/30 p-3 rounded-xl border border-slate-100 dark:border-slate-800">
+                              <svg className="w-4 h-4 shrink-0 text-slate-400 mt-0.5" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M18 10c0 3.866-3.582 7-8 7a8.841 8.841 0 01-4.083-.98L2 17l1.338-3.123C2.493 12.767 2 11.434 2 10c0-3.866 3.582-7 8-7s8 3.134 8 7zM7 9H5v2h2V9zm8 0h-2v2h2V9zM9 9h2v2H9V9z" clipRule="evenodd" /></svg>
+                              <span className="leading-relaxed">{row.remarks}</span>
                             </div>
                           ) : (
-                            <div className="text-sm text-slate-400 dark:text-slate-500 italic flex items-center gap-2">
-                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg>
-                              Tap to add remarks
+                            <div className="mt-3 text-xs font-bold text-transparent group-hover:text-slate-400 dark:group-hover:text-slate-500 transition-colors flex items-center gap-1.5 opacity-0 group-hover:opacity-100">
+                              <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" /></svg>
+                              Add Remarks
                             </div>
                           )}
                         </div>
                       </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 )}
               </div>
@@ -433,14 +481,14 @@ const { user } = useUser();
               <button
                 onClick={() => setSelectedRecord(null)}
                 disabled={isSaving}
-                className="px-6 py-2.5 text-sm font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-800 rounded-xl transition-all disabled:opacity-50"
+                className="px-6 py-2.5 text-sm font-bold text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 hover:bg-red-100 dark:hover:bg-red-900/40 rounded-xl transition-all disabled:opacity-50"
               >
                 Cancel
               </button>
               <button
                 onClick={handleSaveRemarks}
                 disabled={isSaving}
-                className="px-6 py-2.5 text-sm font-bold text-white bg-gradient-to-r from-teal-500 to-emerald-500 hover:from-teal-600 hover:to-emerald-600 rounded-xl transition-all shadow-md hover:shadow-lg flex items-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed transform hover:-translate-y-0.5 active:translate-y-0"
+                className="group flex items-center justify-center gap-2 px-6 py-2.5 text-sm font-bold text-white bg-gradient-to-r from-teal-500 to-emerald-500 hover:from-teal-400 hover:to-emerald-400 rounded-xl shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all disabled:opacity-70 disabled:cursor-not-allowed disabled:hover:translate-y-0 disabled:hover:shadow-sm"
               >
                 {isSaving ? (
                   <>

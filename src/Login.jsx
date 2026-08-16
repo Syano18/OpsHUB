@@ -260,11 +260,11 @@ export default function Login() {
                         </button>
                         <input type={isVisible ? "text" : "password"} id="newPassword" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} className="px-3 py-2.5 text-sm text-slate-900 dark:text-white rounded-md bg-white dark:bg-slate-800 w-full outline-1 -outline-offset-1 outline-slate-300 dark:outline-slate-700 focus:outline-2 focus:-outline-offset-2 focus:outline-teal-600" required />
                      </div>
-                     <button type="submit" disabled={isLoading} className={`w-full py-2 px-3.5 text-sm rounded-md font-semibold tracking-wide text-white border border-teal-600 bg-teal-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-500 flex items-center justify-center gap-2 ${isLoading ? "opacity-70 cursor-not-allowed scale-[0.98]" : "hover:bg-teal-700 transition-all cursor-pointer"}`}>
+                     <button type="submit" disabled={isLoading} className={`w-full py-2 px-3.5 text-sm rounded-md font-semibold tracking-wide text-white border border-transparent bg-gradient-to-r from-teal-500 to-emerald-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-500 flex items-center justify-center gap-2 ${isLoading ? "opacity-70 cursor-not-allowed scale-[0.98]" : "hover:from-teal-400 hover:to-emerald-400 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all cursor-pointer"}`}>
                         {isLoading && loadingAction === 'reset_submit' ? "Resetting..." : "Reset Password"}
                      </button>
                      <div className="text-center mt-2">
-                        <button type="button" onClick={() => { setResetState('none'); setError(''); }} className="text-sm text-teal-600 hover:underline">Cancel</button>
+                        <button type="button" onClick={() => { setResetState('none'); setError(''); }} className="text-sm text-red-600 dark:text-red-400 hover:underline">Cancel</button>
                      </div>
                   </form>
                ) : resetState === 'success' ? (
@@ -383,8 +383,7 @@ export default function Login() {
                         {/* Submit Button */}
                         <button type="submit"
                            disabled={isLoading}
-                           className={`w-full py-2 px-3.5 text-sm rounded-md font-semibold tracking-wide text-white border border-teal-600 bg-teal-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-500 flex items-center justify-center gap-2 ${isLoading ? "opacity-70 cursor-not-allowed scale-[0.98]" : "hover:bg-teal-700 transition-all cursor-pointer"
-                              }`}>
+                           className={`w-full py-2 px-3.5 text-sm rounded-md font-semibold tracking-wide text-white border border-transparent bg-gradient-to-r from-teal-500 to-emerald-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-500 flex items-center justify-center gap-2 ${isLoading ? "opacity-70 cursor-not-allowed scale-[0.98]" : "hover:from-teal-400 hover:to-emerald-400 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all cursor-pointer"}`}>
                            {isLoading && loadingAction === 'manual' ? (
                               <svg className="animate-spin h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
