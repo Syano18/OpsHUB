@@ -19,9 +19,10 @@ export default function NotificationBell() {
         let role = '';
         let currentUserDisplayName = '';
         
-        // Fetch Activities
-        const resAct = await fetch(`/api/activities?email=${encodeURIComponent(email)}`, {
-          headers: { 'Authorization': `Bearer ${token}` }
+        // Fetch Activities with cache-busting
+        const resAct = await fetch(`/api/activities?email=${encodeURIComponent(email)}&t=${Date.now()}`, {
+          headers: { 'Authorization': `Bearer ${token}` },
+          cache: 'no-store'
         });
         
         if (resAct.ok) {
@@ -55,8 +56,9 @@ export default function NotificationBell() {
 
         // Fetch pending leaves if Admin/Super Admin
         if (role === 'Super Admin' || role === 'Admin') {
-          const resLeave = await fetch(`/api/leave?action=getPendingLeaves`, {
-            headers: { 'Authorization': `Bearer ${token}` }
+          const resLeave = await fetch(`/api/leave?action=getPendingLeaves&t=${Date.now()}`, {
+            headers: { 'Authorization': `Bearer ${token}` },
+            cache: 'no-store'
           });
           if (resLeave.ok) {
             const leaveData = await resLeave.json();
@@ -72,8 +74,9 @@ export default function NotificationBell() {
 
         // Fetch pending evaluations
         if (role === 'Super Admin' || role === 'Admin' || role === 'Focal Person') {
-          const resEval = await fetch(`/api/employments?action=getPendingEvaluations&email=${encodeURIComponent(email)}`, {
-            headers: { 'Authorization': `Bearer ${token}` }
+          const resEval = await fetch(`/api/employments?action=getPendingEvaluations&email=${encodeURIComponent(email)}&t=${Date.now()}`, {
+            headers: { 'Authorization': `Bearer ${token}` },
+            cache: 'no-store'
           });
           if (resEval.ok) {
             const evalData = await resEval.json();
