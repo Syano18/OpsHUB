@@ -272,6 +272,24 @@ export default async function handler(req, res) {
           });
         }
         
+        // 4. Send Push Notification to Admins
+        try {
+          const adminsRs = await turso.execute("SELECT Email FROM User_Permissions WHERE (Role = 'Admin' OR Role = 'Super Admin') AND LOWER(Status) != 'inactive'");
+          const adminEmails = adminsRs.rows.map(r => r.Email).filter(Boolean);
+          
+          if (adminEmails.length > 0) {
+            import('../lib/pushHelper.js').then(({ sendPushNotification }) => {
+              sendPushNotification(adminEmails, {
+                title: `New Leave Request`,
+                body: `${email} has filed for ${leaveType}`,
+                url: '/leave-credits'
+              }).catch(e => console.error("Push failed:", e));
+            });
+          }
+        } catch (e) {
+          console.error("Failed to notify admins for leave:", e);
+        }
+
         return res.status(200).json({ success: true, id: newId });
       }
       

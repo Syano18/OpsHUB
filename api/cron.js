@@ -110,6 +110,17 @@ export default async function handler(req, res) {
             html: `<div style="font-family: sans-serif; padding: 20px;"><h2>Upcoming Activity Reminder</h2><p><strong>Title:</strong> ${activity.title}</p></div>`
           });
           emailsSentCount += targetEmails.length;
+          
+          try {
+            const { sendPushNotification } = await import('../lib/pushHelper.js');
+            await sendPushNotification(targetEmails, {
+              title: `Upcoming Activity Reminder`,
+              body: `Starting tomorrow: ${activity.title}`,
+              url: '/office-activities'
+            });
+          } catch(e) {
+            console.error("Push failed:", e);
+          }
         }
       }
   

@@ -176,6 +176,15 @@ export default async function handler(req, res) {
         });
         
         await Promise.all(mailPromises);
+
+        // Send Push Notifications
+        import('../lib/pushHelper.js').then(({ sendPushNotification }) => {
+          sendPushNotification(emails, {
+            title: `New Activity Assigned`,
+            body: formData.title,
+            url: '/office-activities'
+          }).catch(e => console.error("Push failed:", e));
+        });
       }
 
       // Cleanup R2 after emails attempt
