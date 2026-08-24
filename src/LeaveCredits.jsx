@@ -764,6 +764,13 @@ export default function LeaveCredits() {
     const fd = new FormData(e.target);
     const data = Object.fromEntries(fd);
 
+    const vl = data.vl ? Number(data.vl) : 0;
+    const sl = data.sl ? Number(data.sl) : 0;
+    const fl = data.fl ? Number(data.fl) : 0;
+    const wl = data.wl ? Number(data.wl) : 0;
+    const use = data.use ? Number(data.use) : 0;
+    const spl = data.spl ? Number(data.spl) : 0;
+
     try {
       const token = await getToken();
       const res = await fetch('/api/leave', {
@@ -772,7 +779,7 @@ export default function LeaveCredits() {
         body: JSON.stringify({
           action: 'updateUserCredits',
           email: editingUser.Email,
-          vl: data.vl, sl: data.sl, fl: data.fl, wl: data.wl, use: data.use, spl: data.spl
+          vl, sl, fl, wl, use, spl
         })
       });
 
@@ -781,12 +788,12 @@ export default function LeaveCredits() {
       // If editing self, update self balances
       if (editingUser.Email === user.primaryEmailAddress.emailAddress) {
         setUserBalances({
-          vl_balance: Number(data.vl),
-          sl_balance: Number(data.sl),
-          fl_balance: Number(data.fl),
-          wl_balance: Number(data.wl),
-          use_balance: Number(data.use),
-          spl_balance: Number(data.spl)
+          vl_balance: Number(vl),
+          sl_balance: Number(sl),
+          fl_balance: Number(fl),
+          wl_balance: Number(wl),
+          use_balance: Number(use),
+          spl_balance: Number(spl)
         });
       }
 
@@ -1127,44 +1134,56 @@ export default function LeaveCredits() {
               <div ref={balancesRef} className="scroll-mt-8">
                 <div className="flex flex-col gap-3">
                   {allUsers.map((u, idx) => (
-                    <div key={idx} className="bg-white dark:bg-slate-900 rounded-xl p-4 shadow-sm border border-slate-200 dark:border-slate-800 flex flex-col gap-4">
-                      <div className="flex justify-between items-start md:items-center">
-                        <div>
-                          <div className="font-bold text-slate-800 dark:text-white text-lg">{u.Name}</div>
-                          <div className="text-sm text-slate-500 dark:text-slate-400">{u.Email}</div>
+                    <div key={idx} className="bg-white dark:bg-slate-900 rounded-2xl p-5 shadow-sm hover:shadow-lg transition-all duration-300 border border-slate-200 dark:border-slate-800 flex flex-col gap-5 relative overflow-hidden group">
+                      <div className="absolute top-0 left-0 w-full h-1.5 bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 opacity-80"></div>
+                      
+                      <div className="flex justify-between items-start md:items-center mt-1">
+                        <div className="flex items-center gap-4">
+                          <div className="w-12 h-12 rounded-full bg-gradient-to-br from-indigo-100 to-purple-100 dark:from-indigo-900/40 dark:to-purple-900/40 flex items-center justify-center text-indigo-700 dark:text-indigo-400 font-bold text-lg shadow-inner">
+                            {u.Name ? u.Name.charAt(0) : '?'}
+                          </div>
+                          <div>
+                            <div className="font-bold text-slate-800 dark:text-white text-lg tracking-tight">{u.Name}</div>
+                            <div className="text-sm text-slate-500 dark:text-slate-400 flex items-center gap-1.5 mt-0.5">
+                              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>
+                              {u.Email}
+                            </div>
+                          </div>
                         </div>
                         <button
                           onClick={() => setEditingUser(u)}
-                          className="px-3 py-1.5 rounded-lg text-indigo-600 dark:text-indigo-400 font-medium hover:bg-indigo-50 dark:hover:bg-indigo-900/30 transition-colors inline-flex items-center gap-1 text-sm border border-indigo-100 dark:border-indigo-800/30"
+                          className="px-4 py-2 rounded-xl text-indigo-600 dark:text-indigo-400 font-semibold bg-indigo-50 dark:bg-indigo-900/30 hover:bg-indigo-100 dark:hover:bg-indigo-900/50 transition-all inline-flex items-center gap-2 text-sm border border-indigo-100 dark:border-indigo-800/30 shadow-sm hover:shadow"
                         >
-                          Edit Balances
+                          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg>
+                          <span className="hidden sm:inline">Edit Balances</span>
+                          <span className="sm:hidden">Edit</span>
                         </button>
                       </div>
 
-                      <div className="grid grid-cols-3 sm:grid-cols-6 gap-3 bg-slate-50 dark:bg-slate-800/50 p-3 rounded-lg border border-slate-100 dark:border-slate-800">
-                        <div className="flex flex-col items-center justify-center p-2 bg-white dark:bg-slate-900 rounded shadow-sm">
-                          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">VL</span>
-                          <span className="font-black text-slate-700 dark:text-slate-200">{u.emp_stat === 'COSW' ? '-' : u.credits.vl_balance.toFixed(2)}</span>
+                      <div className="grid grid-cols-3 sm:grid-cols-6 gap-3 sm:gap-4 mt-2">
+                        <div className="flex flex-col items-center justify-center p-3 bg-gradient-to-b from-amber-50 to-amber-100/50 dark:from-amber-900/20 dark:to-amber-900/10 rounded-xl border border-amber-200/50 dark:border-amber-800/30 shadow-sm transition-transform hover:-translate-y-1 cursor-default">
+                          <span className="text-[10px] font-bold text-amber-600 dark:text-amber-500 uppercase tracking-wider mb-1">VL</span>
+                          <span className="text-xl font-black text-amber-700 dark:text-amber-400">{u.emp_stat === 'COSW' ? '-' : u.credits.vl_balance.toFixed(2)}</span>
                         </div>
-                        <div className="flex flex-col items-center justify-center p-2 bg-white dark:bg-slate-900 rounded shadow-sm">
-                          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">SL</span>
-                          <span className="font-black text-slate-700 dark:text-slate-200">{u.emp_stat === 'COSW' ? '-' : u.credits.sl_balance.toFixed(2)}</span>
+                        <div className="flex flex-col items-center justify-center p-3 bg-gradient-to-b from-emerald-50 to-emerald-100/50 dark:from-teal-900/20 dark:to-teal-900/10 rounded-xl border border-emerald-200/50 dark:border-teal-800/30 shadow-sm transition-transform hover:-translate-y-1 cursor-default">
+                          <span className="text-[10px] font-bold text-emerald-600 dark:text-teal-500 uppercase tracking-wider mb-1">SL</span>
+                          <span className="text-xl font-black text-emerald-700 dark:text-teal-400">{u.emp_stat === 'COSW' ? '-' : u.credits.sl_balance.toFixed(2)}</span>
                         </div>
-                        <div className="flex flex-col items-center justify-center p-2 bg-white dark:bg-slate-900 rounded shadow-sm">
-                          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">FL</span>
-                          <span className="font-black text-slate-700 dark:text-slate-200">{u.emp_stat === 'COSW' ? '-' : u.credits.fl_balance.toFixed(2)}</span>
+                        <div className="flex flex-col items-center justify-center p-3 bg-gradient-to-b from-rose-50 to-rose-100/50 dark:from-rose-900/20 dark:to-rose-900/10 rounded-xl border border-rose-200/50 dark:border-rose-800/30 shadow-sm transition-transform hover:-translate-y-1 cursor-default">
+                          <span className="text-[10px] font-bold text-rose-600 dark:text-rose-500 uppercase tracking-wider mb-1">FL</span>
+                          <span className="text-xl font-black text-rose-700 dark:text-rose-400">{u.emp_stat === 'COSW' ? '-' : u.credits.fl_balance.toFixed(2)}</span>
                         </div>
-                        <div className="flex flex-col items-center justify-center p-2 bg-white dark:bg-slate-900 rounded shadow-sm">
-                          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">WL</span>
-                          <span className="font-black text-slate-700 dark:text-slate-200">{u.credits.wl_balance.toFixed(2)}</span>
+                        <div className="flex flex-col items-center justify-center p-3 bg-gradient-to-b from-fuchsia-50 to-fuchsia-100/50 dark:from-fuchsia-900/20 dark:to-fuchsia-900/10 rounded-xl border border-fuchsia-200/50 dark:border-fuchsia-800/30 shadow-sm transition-transform hover:-translate-y-1 cursor-default">
+                          <span className="text-[10px] font-bold text-fuchsia-600 dark:text-fuchsia-500 uppercase tracking-wider mb-1">WL</span>
+                          <span className="text-xl font-black text-fuchsia-700 dark:text-fuchsia-400">{u.credits.wl_balance.toFixed(2)}</span>
                         </div>
-                        <div className="flex flex-col items-center justify-center p-2 bg-white dark:bg-slate-900 rounded shadow-sm">
-                          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">USE</span>
-                          <span className="font-black text-slate-700 dark:text-slate-200">{u.emp_stat === 'COSW' ? '-' : u.credits.use_balance.toFixed(2)}</span>
+                        <div className="flex flex-col items-center justify-center p-3 bg-gradient-to-b from-sky-50 to-sky-100/50 dark:from-sky-900/20 dark:to-sky-900/10 rounded-xl border border-sky-200/50 dark:border-sky-800/30 shadow-sm transition-transform hover:-translate-y-1 cursor-default">
+                          <span className="text-[10px] font-bold text-sky-600 dark:text-sky-500 uppercase tracking-wider mb-1">USE</span>
+                          <span className="text-xl font-black text-sky-700 dark:text-sky-400">{u.emp_stat === 'COSW' ? '-' : u.credits.use_balance.toFixed(2)}</span>
                         </div>
-                        <div className="flex flex-col items-center justify-center p-2 bg-white dark:bg-slate-900 rounded shadow-sm">
-                          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">SPL</span>
-                          <span className="font-black text-slate-700 dark:text-slate-200">{u.emp_stat === 'COSW' ? '-' : u.credits.spl_balance.toFixed(2)}</span>
+                        <div className="flex flex-col items-center justify-center p-3 bg-gradient-to-b from-indigo-50 to-indigo-100/50 dark:from-indigo-900/20 dark:to-indigo-900/10 rounded-xl border border-indigo-200/50 dark:border-indigo-800/30 shadow-sm transition-transform hover:-translate-y-1 cursor-default">
+                          <span className="text-[10px] font-bold text-indigo-600 dark:text-indigo-500 uppercase tracking-wider mb-1">SPL</span>
+                          <span className="text-xl font-black text-indigo-700 dark:text-indigo-400">{u.emp_stat === 'COSW' ? '-' : u.credits.spl_balance.toFixed(2)}</span>
                         </div>
                       </div>
                     </div>
