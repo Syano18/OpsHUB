@@ -238,21 +238,21 @@ const { user } = useUser();
   const renderStatus = (row) => {
     if (row.error_message) {
       return (
-        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] sm:text-xs font-semibold bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400 border border-red-200 dark:border-red-800/30">
+        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] sm:text-xs font-semibold bg-red-100 dark:bg-red-500/10 text-red-700 dark:text-red-400 border border-red-200 dark:border-red-500/20 shadow-sm">
           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-3.5 h-3.5"><path fillRule="evenodd" d="M9.401 3.003c1.155-2 4.043-2 5.197 0l7.355 12.748c1.154 2-.29 4.5-2.599 4.5H4.645c-2.309 0-3.752-2.5-2.598-4.5L9.4 3.003ZM12 8.25a.75.75 0 0 1 .75.75v3.75a.75.75 0 0 1-1.5 0V9a.75.75 0 0 1 .75-.75Zm0 8.25a.75.75 0 1 0 0-1.5.75.75 0 0 0 0 1.5Z" clipRule="evenodd" /></svg>
           Punch Error
         </span>
       );
     } else if (row.time_in_am && row.time_out_am && row.time_in_pm && row.time_out_pm) {
       return (
-        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] sm:text-xs font-semibold bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800/30">
+        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] sm:text-xs font-semibold bg-emerald-100 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-500/20 shadow-sm">
           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-3.5 h-3.5"><path fillRule="evenodd" d="M10 18a8 8 0 1 0 0-16 8 8 0 0 0 0 16Zm3.857-9.809a.75.75 0 0 0-1.214-.882l-3.483 4.79-1.88-1.88a.75.75 0 1 0-1.06 1.061l2.5 2.5a.75.75 0 0 0 1.137-.089l4-5.5Z" clipRule="evenodd" /></svg>
           Complete
         </span>
       );
     } else {
       return (
-        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] sm:text-xs font-semibold bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-800/30">
+        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] sm:text-xs font-semibold bg-amber-100 dark:bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-500/20 shadow-sm">
           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-3.5 h-3.5"><path fillRule="evenodd" d="M18 10a8 8 0 1 1-16 0 8 8 0 0 1 16 0Zm-8-5a.75.75 0 0 1 .75.75v4.5a.75.75 0 0 1-1.5 0v-4.5A.75.75 0 0 1 10 5Zm0 10a1 1 0 1 0 0-2 1 1 0 0 0 0 2Z" clipRule="evenodd" /></svg>
           Incomplete
         </span>
@@ -359,6 +359,36 @@ const { user } = useUser();
                       const statusColor = isError ? 'red' : isComplete ? 'emerald' : 'amber';
                       const monthDay = getMonthAndDay(row.date);
                       
+                      const bgClass = {
+                        red: "bg-red-50/80 dark:bg-slate-900/80 group-hover:bg-red-100 dark:group-hover:bg-slate-800/80 border-red-200/60 dark:border-slate-800/60",
+                        emerald: "bg-emerald-50/80 dark:bg-slate-900/80 group-hover:bg-emerald-100 dark:group-hover:bg-slate-800/80 border-emerald-200/60 dark:border-slate-800/60",
+                        amber: "bg-amber-50/80 dark:bg-slate-900/80 group-hover:bg-amber-100 dark:group-hover:bg-slate-800/80 border-amber-200/60 dark:border-slate-800/60"
+                      }[statusColor];
+
+                      const monthClass = {
+                        red: "text-red-600 dark:text-red-400",
+                        emerald: "text-emerald-600 dark:text-emerald-400",
+                        amber: "text-amber-600 dark:text-amber-400"
+                      }[statusColor];
+
+                      const dayClass = {
+                        red: "text-red-700 dark:text-red-300 drop-shadow-sm",
+                        emerald: "text-emerald-700 dark:text-emerald-300 drop-shadow-sm",
+                        amber: "text-amber-700 dark:text-amber-300 drop-shadow-sm"
+                      }[statusColor];
+
+                      const yearClass = {
+                        red: "text-red-500 dark:text-red-500/80",
+                        emerald: "text-emerald-500 dark:text-emerald-500/80",
+                        amber: "text-amber-500 dark:text-amber-500/80"
+                      }[statusColor];
+
+                      const glowClass = {
+                        red: "from-red-500/0 to-red-500/10 dark:to-red-500/10",
+                        emerald: "from-emerald-500/0 to-emerald-500/10 dark:to-emerald-500/10",
+                        amber: "from-amber-500/0 to-amber-500/10 dark:to-amber-500/10"
+                      }[statusColor];
+                      
                       return (
                       <div 
                         key={`card-${row.id || 'no-id'}-${idx}`}
@@ -366,12 +396,12 @@ const { user } = useUser();
                         className="group flex flex-col md:flex-row rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/50 hover:bg-teal-50/50 dark:hover:bg-teal-900/20 hover:border-teal-300 dark:hover:border-teal-700 hover:shadow-md cursor-pointer transition-colors overflow-hidden"
                       >
                         {/* Date Block (Left Side) */}
-                        <div className={`flex flex-col items-center justify-center p-4 bg-${statusColor}-50/80 dark:bg-${statusColor}-900/20 border-b md:border-b-0 md:border-r border-${statusColor}-200/60 dark:border-${statusColor}-800/30 min-w-[130px] transition-colors group-hover:bg-${statusColor}-100 dark:group-hover:bg-${statusColor}-900/40 relative overflow-hidden`}>
+                        <div className={`flex flex-col items-center justify-center p-4 border-b md:border-b-0 md:border-r min-w-[130px] transition-colors relative overflow-hidden ${bgClass}`}>
                           {/* Accent glow behind date */}
-                          <div className={`absolute inset-0 bg-gradient-to-b from-${statusColor}-500/0 to-${statusColor}-500/10 dark:to-${statusColor}-400/10 opacity-0 group-hover:opacity-100 transition-opacity duration-500`}></div>
-                          <span className={`text-xs font-black text-${statusColor}-600 dark:text-${statusColor}-400 tracking-widest uppercase relative z-10`}>{monthDay.month}</span>
-                          <span className={`text-[2.25rem] leading-none font-black text-${statusColor}-700 dark:text-${statusColor}-300 mt-1 mb-1 relative z-10`}>{monthDay.day}</span>
-                          <span className={`text-[9px] font-bold text-${statusColor}-500 dark:text-${statusColor}-500 relative z-10 opacity-70 mb-2`}>{formatDate(row.date).substring(0, 4)}</span>
+                          <div className={`absolute inset-0 bg-gradient-to-b opacity-0 group-hover:opacity-100 transition-opacity duration-500 ${glowClass}`}></div>
+                          <span className={`text-xs font-black tracking-widest uppercase relative z-10 ${monthClass}`}>{monthDay.month}</span>
+                          <span className={`text-[2.25rem] leading-none font-black mt-1 mb-1 relative z-10 ${dayClass}`}>{monthDay.day}</span>
+                          <span className={`text-[9px] font-bold relative z-10 opacity-70 mb-2 ${yearClass}`}>{formatDate(row.date).substring(0, 4)}</span>
                           <div className="relative z-10 scale-90 origin-top">
                             {renderStatus(row)}
                           </div>
