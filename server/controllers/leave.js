@@ -149,16 +149,19 @@ export default async function handler(req, res) {
         return res.status(200).json({ signatories: sigRs.rows });
         
       } else if (action === 'getHistory') {
-        if (!email || !type) return res.status(400).json({ error: 'Email and type required' });
+        if (!email) return res.status(400).json({ error: 'Email required' });
         
-        const rs = await turso.execute({
-          sql: `SELECT id, user_email, leave_type, start_date, days_applied, created_at, reason, status, disapproval_reason,
+        let sql = `SELECT id, user_email, leave_type, start_date, days_applied, created_at, reason, status, disapproval_reason,
                 CASE WHEN signed_document IS NOT NULL THEN 1 ELSE 0 END as has_document 
                 FROM Leave_History 
-                WHERE LOWER(user_email) = LOWER(?) AND leave_type = ? 
-                ORDER BY created_at DESC`,
-          args: [email, type]
-        });
+                WHERE LOWER(user_email) = LOWER(?)`;
+        const args = [email];
+        if (type && type !== 'all') {
+          sql += ` AND leave_type = ?`;
+          args.push(type);
+        }
+        sql += ` ORDER BY created_at DESC`;
+        const rs = await turso.execute({ sql, args });
         return res.status(200).json({ history: rs.rows });
         
       } else if (action === 'getDocument') {
@@ -240,36 +243,60 @@ export default async function handler(req, res) {
         }
         const currentCredits = creditsRs.rows[0];
         
-        const balanceColumn = {
-          'Vacation Leave': 'vl_balance',
-          'Sick Leave': 'sl_balance',
-          'Forced Leave': 'fl_balance',
-          'Special Privilege Leave': 'spl_balance',
-          'USE Leave': 'use_balance',
-          'Wellness Leave': 'wl_balance'
-        }[leaveType];
+        if (leaveType === 'Forced Leave' || leaveType === 'Forced/Mandatory Leave' || leaveType === 'Mandatory/Forced Leave') {
+          const currentFl = Number(currentCredits.fl_balance || 0);
+          const currentVl = Number(currentCredits.vl_balance || 0);
+          const days = Number(daysApplied);
 
-        let newBalanceValue = 0;
-        if (balanceColumn && currentCredits[balanceColumn] !== undefined) {
-          newBalanceValue = Number(currentCredits[balanceColumn]) - Number(daysApplied);
-        }
+          const newFlBalance = Number((currentFl - days).toFixed(4));
+          const newVlBalance = Number((currentVl - days).toFixed(4));
 
-        // 2. Insert history
-        const insertRs = await turso.execute({
-          sql: `INSERT INTO Leave_History (user_email, leave_type, days_applied, start_date, reason) 
-                VALUES (?, ?, ?, ?, ?) RETURNING id`,
-          args: [email, leaveType, daysApplied, startDate, reason]
-        });
-        const newId = insertRs.rows[0].id;
-        
-        // 3. Update credits
-        if (balanceColumn) {
+          // 2. Insert history
+          const insertRs = await turso.execute({
+            sql: `INSERT INTO Leave_History (user_email, leave_type, days_applied, start_date, reason) 
+                  VALUES (?, ?, ?, ?, ?) RETURNING id`,
+            args: [email, leaveType, daysApplied, startDate, reason]
+          });
+          const newId = insertRs.rows[0].id;
+
+          // 3. Update credits: deduct from both fl_balance and vl_balance per CSC rules
           await turso.execute({
             sql: `UPDATE Leave_Credits 
-                  SET ${balanceColumn} = ? 
+                  SET fl_balance = ?, vl_balance = ? 
                   WHERE LOWER(user_email) = LOWER(?)`,
-            args: [newBalanceValue, email]
+            args: [newFlBalance, newVlBalance, email]
           });
+        } else {
+          const balanceColumn = {
+            'Vacation Leave': 'vl_balance',
+            'Sick Leave': 'sl_balance',
+            'Special Privilege Leave': 'spl_balance',
+            'USE Leave': 'use_balance',
+            'Wellness Leave': 'wl_balance'
+          }[leaveType];
+
+          let newBalanceValue = 0;
+          if (balanceColumn && currentCredits[balanceColumn] !== undefined) {
+            newBalanceValue = Number((Number(currentCredits[balanceColumn]) - Number(daysApplied)).toFixed(4));
+          }
+
+          // 2. Insert history
+          const insertRs = await turso.execute({
+            sql: `INSERT INTO Leave_History (user_email, leave_type, days_applied, start_date, reason) 
+                  VALUES (?, ?, ?, ?, ?) RETURNING id`,
+            args: [email, leaveType, daysApplied, startDate, reason]
+          });
+          const newId = insertRs.rows[0].id;
+          
+          // 3. Update credits
+          if (balanceColumn) {
+            await turso.execute({
+              sql: `UPDATE Leave_Credits 
+                    SET ${balanceColumn} = ? 
+                    WHERE LOWER(user_email) = LOWER(?)`,
+              args: [newBalanceValue, email]
+            });
+          }
         }
         
         // 4. Send Push Notification to Admins
@@ -407,19 +434,25 @@ export default async function handler(req, res) {
           });
 
           if (status === 'Disapproved') {
-            let balanceColumn = '';
-            if (record.leave_type === 'Vacation Leave') balanceColumn = 'vl_balance';
-            else if (record.leave_type === 'Sick Leave') balanceColumn = 'sl_balance';
-            else if (record.leave_type === 'Forced Leave') balanceColumn = 'fl_balance';
-            else if (record.leave_type === 'Special Privilege Leave') balanceColumn = 'spl_balance';
-            else if (record.leave_type === 'USE Leave') balanceColumn = 'use_balance';
-            else if (record.leave_type === 'Wellness Leave') balanceColumn = 'wl_balance';
-
-            if (balanceColumn) {
+            if (record.leave_type === 'Forced Leave' || record.leave_type === 'Forced/Mandatory Leave' || record.leave_type === 'Mandatory/Forced Leave') {
               await turso.execute({
-                sql: `UPDATE Leave_Credits SET ${balanceColumn} = ${balanceColumn} + ? WHERE LOWER(user_email) = LOWER(?)`,
-                args: [record.days_applied, record.user_email]
+                sql: `UPDATE Leave_Credits SET fl_balance = fl_balance + ?, vl_balance = vl_balance + ? WHERE LOWER(user_email) = LOWER(?)`,
+                args: [record.days_applied, record.days_applied, record.user_email]
               });
+            } else {
+              let balanceColumn = '';
+              if (record.leave_type === 'Vacation Leave') balanceColumn = 'vl_balance';
+              else if (record.leave_type === 'Sick Leave') balanceColumn = 'sl_balance';
+              else if (record.leave_type === 'Special Privilege Leave') balanceColumn = 'spl_balance';
+              else if (record.leave_type === 'USE Leave') balanceColumn = 'use_balance';
+              else if (record.leave_type === 'Wellness Leave') balanceColumn = 'wl_balance';
+
+              if (balanceColumn) {
+                await turso.execute({
+                  sql: `UPDATE Leave_Credits SET ${balanceColumn} = ${balanceColumn} + ? WHERE LOWER(user_email) = LOWER(?)`,
+                  args: [record.days_applied, record.user_email]
+                });
+              }
             }
           }
 
@@ -571,19 +604,25 @@ export default async function handler(req, res) {
       if (!id || !email) return res.status(400).json({ error: 'Missing required parameters' });
       
       // Map leaveType to balance column
-      let balanceColumn = '';
-      if (leaveType === 'Vacation Leave') balanceColumn = 'vl_balance';
-      else if (leaveType === 'Sick Leave') balanceColumn = 'sl_balance';
-      else if (leaveType === 'Forced Leave' || leaveType === 'Forced/Mandatory Leave') balanceColumn = 'fl_balance';
-      else if (leaveType === 'Special Privilege Leave') balanceColumn = 'spl_balance';
-      else if (leaveType === 'USE Leave') balanceColumn = 'use_balance';
-      else if (leaveType === 'Wellness Leave') balanceColumn = 'wl_balance';
-
-      if (balanceColumn) {
+      if (leaveType === 'Forced Leave' || leaveType === 'Forced/Mandatory Leave' || leaveType === 'Mandatory/Forced Leave') {
         await turso.execute({
-          sql: `UPDATE Leave_Credits SET ${balanceColumn} = ${balanceColumn} + ? WHERE LOWER(user_email) = LOWER(?)`,
-          args: [daysApplied, email]
+          sql: `UPDATE Leave_Credits SET fl_balance = fl_balance + ?, vl_balance = vl_balance + ? WHERE LOWER(user_email) = LOWER(?)`,
+          args: [daysApplied, daysApplied, email]
         });
+      } else {
+        let balanceColumn = '';
+        if (leaveType === 'Vacation Leave') balanceColumn = 'vl_balance';
+        else if (leaveType === 'Sick Leave') balanceColumn = 'sl_balance';
+        else if (leaveType === 'Special Privilege Leave') balanceColumn = 'spl_balance';
+        else if (leaveType === 'USE Leave') balanceColumn = 'use_balance';
+        else if (leaveType === 'Wellness Leave') balanceColumn = 'wl_balance';
+
+        if (balanceColumn) {
+          await turso.execute({
+            sql: `UPDATE Leave_Credits SET ${balanceColumn} = ${balanceColumn} + ? WHERE LOWER(user_email) = LOWER(?)`,
+            args: [daysApplied, email]
+          });
+        }
       }
       
       const recordRs = await turso.execute({

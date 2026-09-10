@@ -20,6 +20,8 @@ export default function OfficeActivities() {
   const [alertConfig, setAlertConfig] = useState(null);
 
   // Modal and Form States
+  const [currentTab, setCurrentTab] = useState('active');
+  const [archiveFilter, setArchiveFilter] = useState('all');
   const [searchTerm, setSearchTerm] = useState('');
   const [assigneeSearchTerm, setAssigneeSearchTerm] = useState('');
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
@@ -54,7 +56,7 @@ export default function OfficeActivities() {
         });
         if (!res.ok) throw new Error("Failed to fetch activities data");
         const data = await res.json();
-        
+
         if (data.user) {
           const u = data.user;
           const role = u.Role;
@@ -65,7 +67,7 @@ export default function OfficeActivities() {
             setCurrentUserDisplayName(`${u.First_Name} ${u.Middle_Name ? u.Middle_Name.charAt(0) + '. ' : ''}${u.Last_Name}`.trim());
           }
         }
-        
+
         setEmployees(data.employees || []);
         setActivities(data.activities || []);
       } catch (err) {
@@ -85,7 +87,7 @@ export default function OfficeActivities() {
     try {
       const email = user.primaryEmailAddress.emailAddress;
       const token = await getToken();
-      
+
       let res;
       if (editingActivityId) {
         res = await fetch('/api/activities', {
@@ -100,11 +102,11 @@ export default function OfficeActivities() {
           body: JSON.stringify({ email, formData })
         });
       }
-      
+
       const data = await res.json();
       if (data.success) {
         setActivities(data.activities || []);
-        
+
         if (!editingActivityId) {
           if (data.failedEmails && data.failedEmails > 0) {
             setAlertConfig({ message: `Activity saved, but failed to send ${data.failedEmails} email notifications.`, type: 'info' });
@@ -184,7 +186,7 @@ export default function OfficeActivities() {
         method: 'DELETE',
         headers: { 'Authorization': `Bearer ${token}` }
       });
-      
+
       setActivities(prev => prev.filter(act => act.id !== activityToDelete.id));
       setActivityToDelete(null);
       setAlertConfig({ message: 'Activity deleted successfully!', type: 'success' });
@@ -285,7 +287,7 @@ export default function OfficeActivities() {
       setFormData(prev => ({ ...prev, attachment: null }));
       return;
     }
-    
+
     if (file.size > 5 * 1024 * 1024) {
       setAttachmentError('File size exceeds 5MB limit.');
       setFormData(prev => ({ ...prev, attachment: null }));
@@ -364,13 +366,20 @@ export default function OfficeActivities() {
     }
   });
 
+  const filteredArchived = finished.filter(act => {
+    if (archiveFilter === 'all') return true;
+    if (archiveFilter === 'Completed') return act.status === 'Completed';
+    if (archiveFilter === 'Canceled') return act.status === 'Canceled';
+    return true;
+  });
+
   const renderActivityCard = (act) => {
     let assignedArray = [];
     try { assignedArray = JSON.parse(act.assigned_to); } catch (e) { }
     const isAll = assignedArray.includes('All');
 
     const isCreator = act.created_by === currentUserDisplayName || act.created_by === user?.primaryEmailAddress?.emailAddress || act.created_by === user?.fullName;
-    
+
     const s = act.start_date;
     const e = act.end_date || act.start_date;
     let displayStatus = act.status;
@@ -383,29 +392,34 @@ export default function OfficeActivities() {
       }
     }
 
-    const canEditOrDelete = displayStatus !== 'Completed' && displayStatus !== 'Canceled' && isCreator;
-    const canUpdateStatus = (isAdmin || isCreator) && displayStatus !== 'Completed' && displayStatus !== 'Canceled';
+    const canEdit = displayStatus !== 'Completed' && displayStatus !== 'Canceled' && isCreator;
+    const canDelete = isCreator || isAdmin;
+    const canUpdateStatus = isAdmin || isCreator;
 
     return (
-      <div key={act.id} className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 overflow-hidden flex flex-col group hover:shadow-md transition-shadow">
+      <div key={act.id} className="w-full bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 overflow-hidden flex flex-col group hover:shadow-md transition-shadow">
         <div className="p-6 flex-1 flex flex-col">
           <div className="flex items-start justify-between gap-4 mb-4">
             <span className={`inline-flex px-2.5 py-1 rounded-full text-xs font-bold border ${getStatusBadge(displayStatus)}`}>
               {displayStatus}
             </span>
-            {canEditOrDelete && (
+            {(canEdit || canDelete) && (
               <div className="flex gap-2">
-                <button onClick={() => handleEditActivity(act)} className="text-blue-400 hover:text-blue-600 p-1 bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors">
-                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
-                </button>
-                <button onClick={() => handleDeleteActivity(act)} className="text-red-400 hover:text-red-600 p-1 bg-red-50 hover:bg-red-100 rounded-lg transition-colors">
-                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
-                </button>
+                {canEdit && (
+                  <button onClick={() => handleEditActivity(act)} title="Edit Activity" className="text-blue-400 hover:text-blue-600 p-1 bg-blue-50 hover:bg-blue-100 dark:bg-blue-950/40 dark:hover:bg-blue-900/50 rounded-lg transition-colors">
+                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
+                  </button>
+                )}
+                {canDelete && (
+                  <button onClick={() => handleDeleteActivity(act)} title="Delete Activity" className="text-red-400 hover:text-red-600 p-1 bg-red-50 hover:bg-red-100 dark:bg-red-950/40 dark:hover:bg-red-900/50 rounded-lg transition-colors">
+                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                  </button>
+                )}
               </div>
             )}
           </div>
 
-          <h4 className="text-lg font-bold text-slate-800 dark:text-slate-100 mb-1">{act.title}</h4>
+          <h4 className="text-lg font-bold text-slate-800 dark:text-slate-100 mb-1 break-words">{act.title}</h4>
           <div className="flex items-center gap-2 text-sm text-slate-500 dark:text-slate-400 font-medium mb-4">
             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
             {act.start_date === act.end_date || !act.end_date
@@ -425,9 +439,9 @@ export default function OfficeActivities() {
           )}
 
           <div className="mt-auto pt-4 border-t border-slate-100 dark:border-slate-800 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-            <div className="flex flex-col min-w-0 group/assigned relative cursor-pointer sm:cursor-auto" tabIndex="0" onClick={() => {}}>
+            <div className="flex flex-col min-w-0 group/assigned relative cursor-pointer sm:cursor-auto" tabIndex="0" onClick={() => { }}>
               <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 mb-1">Assigned To</span>
-              <span 
+              <span
                 className="text-xs font-semibold text-slate-700 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 px-2.5 py-1 rounded-md inline-block max-w-[200px] truncate sm:cursor-help"
                 title={isAll ? "Everyone" : assignedArray.join(', ')}
               >
@@ -458,7 +472,7 @@ export default function OfficeActivities() {
                 </div>
                 <svg className="w-3.5 h-3.5 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" /></svg>
               </div>
-              
+
               <div className="absolute right-0 bottom-full pb-2 hidden group-hover/status:flex flex-col w-36 z-30">
                 <div className="flex flex-col w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl shadow-[0_10px_25px_-5px_rgba(0,0,0,0.1),0_8px_10px_-6px_rgba(0,0,0,0.1)] overflow-hidden pb-1">
                   <div className="px-3 py-2 text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 bg-slate-50/50 dark:bg-slate-800/50 border-b border-slate-100 dark:border-slate-700 mb-1">Set Status</div>
@@ -523,17 +537,54 @@ export default function OfficeActivities() {
           )}
 
           {/* Controls */}
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 flex-1">
+              <div className="relative flex-1 max-w-md">
+                <svg className="w-5 h-5 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
+                <input
+                  type="text"
+                  placeholder="Search activities or assignees..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="w-full pl-10 pr-4 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl focus:outline-none focus:ring-2 focus:ring-teal-500 text-sm"
+                />
+              </div>
 
-            <div className="relative flex-1 w-full max-w-md">
-              <svg className="w-5 h-5 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
-              <input
-                type="text"
-                placeholder="Search activities or assignees..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-10 pr-4 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl focus:outline-none focus:ring-2 focus:ring-teal-500 text-sm"
-              />
+              {/* Tab Switcher */}
+              <div className="flex items-center bg-slate-200/70 dark:bg-slate-800/70 p-1 rounded-xl shrink-0 self-start sm:self-auto">
+                <button
+                  type="button"
+                  onClick={() => setCurrentTab('active')}
+                  className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all ${currentTab === 'active'
+                    ? 'bg-white dark:bg-slate-900 text-slate-800 dark:text-white shadow-sm'
+                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                    }`}
+                >
+                  <svg className="w-4 h-4 text-teal-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                  </svg>
+                  <span>Active</span>
+                  <span className={`px-1.5 py-0.5 text-[10px] font-bold rounded-full ${currentTab === 'active' ? 'bg-teal-100 dark:bg-teal-900/50 text-teal-700 dark:text-teal-300' : 'bg-slate-300/60 dark:bg-slate-700 text-slate-700 dark:text-slate-300'}`}>
+                    {ongoing.length + upcoming.length}
+                  </span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setCurrentTab('archive')}
+                  className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all ${currentTab === 'archive'
+                    ? 'bg-white dark:bg-slate-900 text-slate-800 dark:text-white shadow-sm'
+                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                    }`}
+                >
+                  <svg className="w-4 h-4 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" />
+                  </svg>
+                  <span>Archive</span>
+                  <span className={`px-1.5 py-0.5 text-[10px] font-bold rounded-full ${currentTab === 'archive' ? 'bg-slate-200 dark:bg-slate-700 text-slate-800 dark:text-slate-200' : 'bg-slate-300/60 dark:bg-slate-700 text-slate-700 dark:text-slate-300'}`}>
+                    {finished.length}
+                  </span>
+                </button>
+              </div>
             </div>
 
             <button
@@ -547,52 +598,136 @@ export default function OfficeActivities() {
             </button>
           </div>
 
-          {/* Activities Grid */}
+          {/* Activities Content Area */}
           {loading ? (
             <Loading type="grid" />
-          ) : filteredActivities.length === 0 ? (
-            <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 p-12 flex flex-col items-center text-center">
-              <div className="w-16 h-16 bg-slate-50 dark:bg-slate-800 rounded-full flex items-center justify-center mb-4">
-                <span className="text-3xl">🎉</span>
+          ) : currentTab === 'active' ? (
+            <div className="flex-1 overflow-y-auto pr-1 pb-10">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
+                {/* Today Container */}
+                <div className="bg-slate-100/70 dark:bg-slate-900/40 border border-slate-200/80 dark:border-slate-800/80 rounded-2xl p-4 sm:p-5 flex flex-col gap-4 shadow-sm">
+                  <div className="flex items-center justify-between pb-3 border-b border-slate-200/80 dark:border-slate-800">
+                    <div className="flex items-center gap-2.5">
+                      <span className="relative flex h-3 w-3">
+                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-teal-400 opacity-75"></span>
+                        <span className="relative inline-flex rounded-full h-3 w-3 bg-teal-500"></span>
+                      </span>
+                      <h3 className="text-base font-bold text-slate-800 dark:text-slate-100">
+                        Today
+                      </h3>
+                    </div>
+                    <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-teal-100 dark:bg-teal-950/60 text-teal-700 dark:text-teal-300 border border-teal-200 dark:border-teal-800/60">
+                      {ongoing.length} {ongoing.length === 1 ? 'Activity' : 'Activities'}
+                    </span>
+                  </div>
+
+                  {ongoing.length === 0 ? (
+                    <div className="bg-white/80 dark:bg-slate-900/60 rounded-xl border border-dashed border-slate-200 dark:border-slate-800 p-8 flex flex-col items-center justify-center text-center">
+                      <div className="w-12 h-12 rounded-full bg-teal-50 dark:bg-teal-900/30 flex items-center justify-center text-teal-600 dark:text-teal-400 mb-2">
+                        <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                      </div>
+                      <p className="text-sm font-bold text-slate-700 dark:text-slate-300">No activities today</p>
+                      <p className="text-xs text-slate-400 dark:text-slate-500 mt-1">There are no ongoing office activities scheduled for today.</p>
+                    </div>
+                  ) : (
+                    <div className="flex flex-col gap-4">
+                      {ongoing.map(renderActivityCard)}
+                    </div>
+                  )}
+                </div>
+
+                {/* Incoming / Upcoming Container */}
+                <div className="bg-slate-100/70 dark:bg-slate-900/40 border border-slate-200/80 dark:border-slate-800/80 rounded-2xl p-4 sm:p-5 flex flex-col gap-4 shadow-sm">
+                  <div className="flex items-center justify-between pb-3 border-b border-slate-200/80 dark:border-slate-800">
+                    <div className="flex items-center gap-2.5">
+                      <span className="w-3 h-3 rounded-full bg-amber-500"></span>
+                      <h3 className="text-base font-bold text-slate-800 dark:text-slate-100">
+                        Incoming Activities
+                      </h3>
+                    </div>
+                    <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-amber-100 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800/60">
+                      {upcoming.length} {upcoming.length === 1 ? 'Activity' : 'Activities'}
+                    </span>
+                  </div>
+
+                  {upcoming.length === 0 ? (
+                    <div className="bg-white/80 dark:bg-slate-900/60 rounded-xl border border-dashed border-slate-200 dark:border-slate-800 p-8 flex flex-col items-center justify-center text-center">
+                      <div className="w-12 h-12 rounded-full bg-amber-50 dark:bg-amber-900/30 flex items-center justify-center text-amber-600 dark:text-amber-400 mb-2">
+                        <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                        </svg>
+                      </div>
+                      <p className="text-sm font-bold text-slate-700 dark:text-slate-300">No incoming activities</p>
+                      <p className="text-xs text-slate-400 dark:text-slate-500 mt-1">No upcoming activities have been scheduled yet.</p>
+                    </div>
+                  ) : (
+                    <div className="flex flex-col gap-4">
+                      {upcoming.map(renderActivityCard)}
+                    </div>
+                  )}
+                </div>
               </div>
-              <h3 className="text-lg font-bold text-slate-800 mb-2">No Activities Found</h3>
-              <p className="text-slate-500 max-w-sm">No office activities match your search.</p>
             </div>
           ) : (
-            <div className="flex flex-col gap-10 overflow-y-auto pr-2 pb-10">
-              {ongoing.length > 0 && (
+            /* Archive Tab View */
+            <div className="flex-1 overflow-y-auto pr-1 pb-10 flex flex-col gap-5">
+              {/* Filter sub-header */}
+              <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-sm">
                 <div>
-                  <h3 className="text-xl font-bold text-teal-700 flex items-center gap-2 mb-4">
-                    <span className="w-2.5 h-2.5 rounded-full bg-teal-500 animate-pulse"></span>
-                    Today
+                  <h3 className="text-base font-bold text-slate-800 dark:text-slate-100 flex items-center gap-2">
+                    <svg className="w-5 h-5 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" />
+                    </svg>
+                    Archive
                   </h3>
-                  <div className="grid grid-cols-1 md:grid-cols-[repeat(auto-fit,minmax(350px,1fr))] gap-6">
-                    {ongoing.map(renderActivityCard)}
-                  </div>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                    Completed, canceled, and past office activities.
+                  </p>
                 </div>
-              )}
 
-              {upcoming.length > 0 && (
-                <div>
-                  <h3 className="text-xl font-bold text-amber-600 flex items-center gap-2 mb-4">
-                    <span className="w-2.5 h-2.5 rounded-full bg-amber-500"></span>
-                    Upcoming
-                  </h3>
-                  <div className="grid grid-cols-1 md:grid-cols-[repeat(auto-fit,minmax(350px,1fr))] gap-6">
-                    {upcoming.map(renderActivityCard)}
-                  </div>
+                <div className="flex items-center gap-2 overflow-x-auto pb-1 sm:pb-0">
+                  {[
+                    { id: 'all', label: 'All Archive', count: finished.length },
+                    { id: 'Completed', label: 'Completed', count: finished.filter(a => a.status === 'Completed').length },
+                    { id: 'Canceled', label: 'Canceled', count: finished.filter(a => a.status === 'Canceled').length },
+                  ].map(tab => (
+                    <button
+                      key={tab.id}
+                      type="button"
+                      onClick={() => setArchiveFilter(tab.id)}
+                      className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all whitespace-nowrap flex items-center gap-1.5 ${archiveFilter === tab.id
+                        ? 'bg-slate-800 text-white dark:bg-slate-100 dark:text-slate-900 shadow-sm'
+                        : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700'
+                        }`}
+                    >
+                      <span>{tab.label}</span>
+                      <span className={`px-1.5 py-0.5 rounded-full text-[10px] ${archiveFilter === tab.id
+                        ? 'bg-slate-700 text-white dark:bg-slate-200 dark:text-slate-800 font-bold'
+                        : 'bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300'
+                        }`}>
+                        {tab.count}
+                      </span>
+                    </button>
+                  ))}
                 </div>
-              )}
+              </div>
 
-              {finished.length > 0 && (
-                <div>
-                  <h3 className="text-xl font-bold text-slate-500 flex items-center gap-2 mb-4">
-                    <span className="w-2.5 h-2.5 rounded-full bg-slate-400"></span>
-                    Finished
-                  </h3>
-                  <div className="grid grid-cols-1 md:grid-cols-[repeat(auto-fit,minmax(350px,1fr))] gap-6">
-                    {finished.map(renderActivityCard)}
+              {/* Archive List */}
+              {filteredArchived.length === 0 ? (
+                <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-12 flex flex-col items-center justify-center text-center shadow-sm">
+                  <div className="w-16 h-16 bg-slate-50 dark:bg-slate-800 rounded-full flex items-center justify-center mb-3">
+                    <svg className="w-8 h-8 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" />
+                    </svg>
                   </div>
+                  <h4 className="text-base font-bold text-slate-800 dark:text-slate-200 mb-1">No Archived Activities</h4>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 max-w-sm">No activities found in the archive matching this filter.</p>
+                </div>
+              ) : (
+                <div className="flex flex-col gap-4">
+                  {filteredArchived.map(renderActivityCard)}
                 </div>
               )}
             </div>
@@ -685,10 +820,10 @@ export default function OfficeActivities() {
                   <div>
                     <label className="block text-sm font-semibold text-slate-700 mb-1">Attachment <span className="text-slate-400 font-normal">(Optional)</span></label>
                     <div className="flex items-center">
-                      <input 
-                        type="file" 
+                      <input
+                        type="file"
                         onChange={handleFileChange}
-                        className="w-full text-sm text-slate-500 dark:text-slate-400 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-sm file:font-bold file:bg-teal-50 dark:file:bg-teal-900/50 file:text-teal-700 dark:file:text-teal-400 hover:file:bg-teal-100 dark:hover:file:bg-teal-900 file:transition-colors file:cursor-pointer cursor-pointer border border-slate-200 dark:border-slate-700 rounded-xl bg-slate-50 dark:bg-slate-800 p-1" 
+                        className="w-full text-sm text-slate-500 dark:text-slate-400 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-sm file:font-bold file:bg-teal-50 dark:file:bg-teal-900/50 file:text-teal-700 dark:file:text-teal-400 hover:file:bg-teal-100 dark:hover:file:bg-teal-900 file:transition-colors file:cursor-pointer cursor-pointer border border-slate-200 dark:border-slate-700 rounded-xl bg-slate-50 dark:bg-slate-800 p-1"
                         accept=".pdf,.docx,.xlsx,.png,.jpg,.jpeg"
                       />
                     </div>

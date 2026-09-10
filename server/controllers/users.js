@@ -125,9 +125,9 @@ export default async function handler(req, res) {
       
       if (action === 'check_status') {
         if (!email) return res.status(400).json({ error: 'Email is required', success: false });
-        const rs = await turso.execute({ sql: 'SELECT Status FROM User_Permissions WHERE LOWER(Email) = LOWER(?)', args: [email] });
-        if (rs.rows.length === 0) return res.status(200).json({ success: true, status: 'active' }); 
-        return res.status(200).json({ success: true, status: rs.rows[0].Status || 'active' });
+        const rs = await turso.execute({ sql: 'SELECT Status, Role FROM User_Permissions WHERE LOWER(Email) = LOWER(?)', args: [email] });
+        if (rs.rows.length === 0) return res.status(200).json({ success: true, status: 'active', role: null }); 
+        return res.status(200).json({ success: true, status: rs.rows[0].Status || 'active', role: rs.rows[0].Role });
       }
       
       if (action === 'create') {

@@ -9,6 +9,7 @@ export default function Layout() {
   const { getToken } = useAuth();
   const [isChecking, setIsChecking] = useState(true);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [userRole, setUserRole] = useState(null);
 
   useEffect(() => {
     const checkStatus = async () => {
@@ -23,10 +24,13 @@ export default function Layout() {
           body: JSON.stringify({ action: 'check_status', email: user.primaryEmailAddress.emailAddress })
         });
         const data = await res.json();
-        if (data.success && data.status && data.status.toLowerCase() === 'inactive') {
-          await signOut();
-          window.location.href = "/?error=Your+account+is+inactive.+Please+contact+your+administrator.";
-          return;
+        if (data.success) {
+          if (data.role) setUserRole(data.role);
+          if (!data.status || data.status.toLowerCase() !== 'active') {
+            await signOut();
+            window.location.href = "/?error=Your+account+is+inactive+or+not+fully+configured.+Please+contact+your+administrator.";
+            return;
+          }
         }
       } catch(e) {
         console.error("Error checking user status:", e);
@@ -96,9 +100,9 @@ export default function Layout() {
   }
 
   return (
-    <div className="flex h-[100dvh] bg-slate-50 dark:bg-slate-950 overflow-hidden relative text-slate-900 dark:text-slate-100 flex-col md:flex-row">
+    <div className="flex h-[100dvh] bg-slate-50 dark:bg-black overflow-hidden relative text-slate-900 dark:text-slate-100 flex-col md:flex-row">
       <Sidebar isOpen={isSidebarOpen} setIsOpen={setIsSidebarOpen} />
-      <main className="flex-1 flex flex-col overflow-hidden min-h-0 relative pb-[4.5rem] md:pb-0">
+      <main className="flex-1 flex flex-col overflow-hidden min-h-0 relative">
         <Outlet context={{ setIsSidebarOpen }} />
       </main>
     </div>

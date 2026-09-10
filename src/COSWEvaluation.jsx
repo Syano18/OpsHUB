@@ -12,7 +12,7 @@ const RATING_CRITERIA = [
 ];
 
 const SCORE_DESCRIPTIONS = {
-  5: { label: 'Outstanding', desc: 'Performance represents an extraordinary level of achievement and commitment in terms of quantity, quality, and time. Employees at this performance level should have demonstrated exceptional job mastery in all major areas of responsibility.' },
+  5: { label: 'Outstanding', desc: 'Performance represents an extraordinary level of achievement and commitment in terms of quantity, quality, and time. Demonstrated exceptional job mastery.' },
   4: { label: 'Very Satisfactory', desc: 'Performance exceeded expectations. All goals, objectives and targets were achieved above the established standards.' },
   3: { label: 'Satisfactory', desc: 'Performance met expectations in terms of quality of work, efficiency, and timeliness.' },
   2: { label: 'Unsatisfactory', desc: 'Performance failed to meet expectations, and/or one or more of the most critical goals were not met.' },
@@ -30,6 +30,12 @@ export default function COSWEvaluation() {
   const [error, setError] = useState(null);
   const [userRole, setUserRole] = useState(null);
 
+  // Filters & Search
+  const [searchQuery, setSearchQuery] = useState('');
+  const [statusFilter, setStatusFilter] = useState('all'); // 'all' | 'pending' | 'completed'
+  const [surveyFilter, setSurveyFilter] = useState('all');
+
+  // Rating Modal
   const [isRatingModalOpen, setIsRatingModalOpen] = useState(false);
   const [isRatingConfirmOpen, setIsRatingConfirmOpen] = useState(false);
   const [ratingRecord, setRatingRecord] = useState(null);
@@ -44,7 +50,8 @@ export default function COSWEvaluation() {
       const token = await getToken();
       if (!token) return;
 
-      const email = user.primaryEmailAddress.emailAddress;
+      const email = user?.primaryEmailAddress?.emailAddress;
+      if (!email) return;
       
       const roleRes = await fetch(`/api/activities?email=${encodeURIComponent(email)}`, {
         headers: { 'Authorization': `Bearer ${token}` }
@@ -107,11 +114,11 @@ export default function COSWEvaluation() {
 
   const computedRatingColor = useMemo(() => {
     if (!computedRating) return 'bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-200 border-slate-300 dark:border-slate-700';
-    if (computedRating === 'Outstanding') return 'bg-teal-50 dark:bg-teal-900/20 text-teal-700 dark:text-teal-400 border-teal-200 dark:border-teal-800/30';
-    if (computedRating === 'Very Satisfactory') return 'bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-400 border-blue-200 dark:border-blue-800/30';
-    if (computedRating === 'Satisfactory') return 'bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-400 border-amber-200 dark:border-amber-800/30';
-    if (computedRating === 'Unsatisfactory') return 'bg-orange-50 dark:bg-orange-900/20 text-orange-700 dark:text-orange-400 border-orange-200 dark:border-orange-800/30';
-    return 'bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-400 border-red-200 dark:border-red-800/30';
+    if (computedRating === 'Outstanding') return 'bg-teal-50 dark:bg-teal-950/60 text-teal-700 dark:text-teal-300 border-teal-200 dark:border-teal-800/50';
+    if (computedRating === 'Very Satisfactory') return 'bg-blue-50 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 border-blue-200 dark:border-blue-800/50';
+    if (computedRating === 'Satisfactory') return 'bg-amber-50 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-800/50';
+    if (computedRating === 'Unsatisfactory') return 'bg-orange-50 dark:bg-orange-950/60 text-orange-700 dark:text-orange-300 border-orange-200 dark:border-orange-800/50';
+    return 'bg-red-50 dark:bg-red-950/60 text-red-700 dark:text-red-300 border-red-200 dark:border-red-800/50';
   }, [computedRating]);
 
   const handleRatingSubmit = (e) => {
@@ -124,7 +131,8 @@ export default function COSWEvaluation() {
     try {
       setIsSubmitting(true);
       const token = await getToken();
-      const email = user.primaryEmailAddress.emailAddress;
+      const email = user?.primaryEmailAddress?.emailAddress;
+      if (!email) return;
       
       const payload = {
         action: 'updateEmployment',
@@ -145,13 +153,12 @@ export default function COSWEvaluation() {
       });
       
       if (res.ok) {
-        alert('Rating submitted successfully! An email notification has been sent to the PACD.');
         setIsRatingConfirmOpen(false);
         setIsRatingModalOpen(false);
         fetchData();
       } else {
         const errData = await res.json();
-        alert(`Error: ${errData.error}`);
+        alert(`Error: ${errData.error || 'Failed to save rating.'}`);
       }
     } catch (err) {
       console.error(err);
@@ -161,31 +168,80 @@ export default function COSWEvaluation() {
     }
   };
 
+  // Unique Surveys list for filter
+  const uniqueSurveys = useMemo(() => {
+    const list = employments.map(e => e.survey_name).filter(Boolean);
+    return Array.from(new Set(list));
+  }, [employments]);
+
+  // Filtered Employments
+  const filteredEmployments = useMemo(() => {
+    return employments.filter(emp => {
+      const matchesSearch = !searchQuery || 
+        (emp.employee_name && emp.employee_name.toLowerCase().includes(searchQuery.toLowerCase())) ||
+        (emp.position && emp.position.toLowerCase().includes(searchQuery.toLowerCase())) ||
+        (emp.survey_name && emp.survey_name.toLowerCase().includes(searchQuery.toLowerCase())) ||
+        (emp.focal_person_email && emp.focal_person_email.toLowerCase().includes(searchQuery.toLowerCase()));
+
+      const matchesStatus = statusFilter === 'all' || 
+        (statusFilter === 'completed' && !!emp.rating) ||
+        (statusFilter === 'pending' && !emp.rating);
+
+      const matchesSurvey = surveyFilter === 'all' || emp.survey_name === surveyFilter;
+
+      return matchesSearch && matchesStatus && matchesSurvey;
+    });
+  }, [employments, searchQuery, statusFilter, surveyFilter]);
+
+  // Statistics
+  const totalCount = employments.length;
+  const completedCount = employments.filter(e => !!e.rating).length;
+  const pendingCount = totalCount - completedCount;
+  const completionPercentage = totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0;
 
   if (error === 'Access Denied') {
     return (
-      <div className="flex h-full items-center justify-center">
-        <div className="text-center p-8 bg-white dark:bg-slate-900 rounded-xl shadow-sm border border-red-200 dark:border-red-900">
-          <svg className="w-16 h-16 text-red-500 mx-auto mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-          </svg>
-          <h2 className="text-2xl font-bold text-slate-800 dark:text-white mb-2">Access Denied</h2>
-          <p className="text-slate-600 dark:text-slate-400">You do not have permission to view this page.</p>
+      <div className="flex h-full items-center justify-center p-6 bg-slate-50 dark:bg-slate-950">
+        <div className="text-center p-8 bg-white dark:bg-slate-900 rounded-3xl shadow-xl border border-rose-200 dark:border-rose-900/50 max-w-md">
+          <div className="w-16 h-16 bg-rose-50 dark:bg-rose-950/60 text-rose-500 rounded-2xl flex items-center justify-center mx-auto mb-4 border border-rose-200 dark:border-rose-800/40">
+            <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
+          </div>
+          <h2 className="text-2xl font-black text-slate-900 dark:text-white mb-2">Access Restricted</h2>
+          <p className="text-sm text-slate-600 dark:text-slate-400">
+            You do not have permission to view COSW performance evaluations. Only Administrators and assigned Focal Persons have access.
+          </p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="flex-1 flex flex-col h-full bg-slate-50 dark:bg-slate-950">
-      <header className="shrink-0 h-16 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between pl-4 pr-2 md:pl-8 md:pr-4 shadow-sm sticky top-0 z-20">
+    <div className="h-full flex flex-col overflow-hidden bg-slate-50/50 dark:bg-slate-950 text-slate-900 dark:text-slate-100">
+      
+      {/* Header */}
+      <header className="shrink-0 h-16 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between pl-4 pr-2 md:pl-8 md:pr-4 shadow-xs sticky top-0 z-20">
         <div className="flex items-center gap-2">
-          <button onClick={() => setIsSidebarOpen(true)} className="hidden p-2 -ml-2 mr-1 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors">
+          <button 
+            onClick={() => setIsSidebarOpen(true)} 
+            className="lg:hidden p-2 -ml-2 mr-1 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors"
+          >
             <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" /></svg>
           </button>
-          <h2 className="text-xl font-bold text-slate-800 dark:text-white flex items-center gap-2">
-            COSW Evaluation
-          </h2>
+          <div className="flex items-center gap-2.5">
+            <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-purple-500 to-indigo-600 flex items-center justify-center text-white shadow-md shadow-purple-500/20">
+              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
+              </svg>
+            </div>
+            <div>
+              <h2 className="text-lg sm:text-xl font-bold text-slate-800 dark:text-white leading-tight">
+                COSW Evaluation
+              </h2>
+              <p className="text-[11px] text-slate-500 dark:text-slate-400 hidden sm:block">
+                Performance evaluation and ratings for Contract of Service Workers
+              </p>
+            </div>
+          </div>
         </div>
         <div className="flex items-center gap-3 md:gap-5">
           <div className="text-sm text-slate-600 dark:text-slate-300 font-medium hidden sm:block">
@@ -197,271 +253,456 @@ export default function COSWEvaluation() {
         </div>
       </header>
 
-      <div className="flex-1 overflow-auto p-2">
-        <div className="w-full h-full flex flex-col bg-white dark:bg-slate-900 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800 overflow-hidden">
+      {/* Main Content Area */}
+      <div className="flex-1 overflow-y-auto p-3 sm:p-5 lg:p-6 flex flex-col gap-5 min-h-0">
+        
+        {/* Top Overview KPI Banner */}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3.5 sm:gap-4 shrink-0">
+          
+          <div className="bg-white dark:bg-slate-900 rounded-3xl p-4 sm:p-5 border border-slate-200/80 dark:border-slate-800 shadow-xs flex items-center justify-between">
+            <div>
+              <span className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 block mb-1">Total COSWs</span>
+              <span className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white font-mono">{totalCount}</span>
+            </div>
+            <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-2xl bg-gradient-to-tr from-purple-500 to-indigo-600 text-white flex items-center justify-center shadow-md shadow-purple-500/20">
+              <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" /></svg>
+            </div>
+          </div>
+
+          <div className="bg-white dark:bg-slate-900 rounded-3xl p-4 sm:p-5 border border-slate-200/80 dark:border-slate-800 shadow-xs flex items-center justify-between">
+            <div>
+              <span className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 block mb-1">Evaluated / Rated</span>
+              <div className="flex items-baseline gap-2">
+                <span className="text-2xl sm:text-3xl font-black text-teal-600 dark:text-teal-400 font-mono">{completedCount}</span>
+                <span className="text-xs font-bold text-slate-400 font-mono">({completionPercentage}%)</span>
+              </div>
+            </div>
+            <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-2xl bg-gradient-to-tr from-teal-500 to-emerald-600 text-white flex items-center justify-center shadow-md shadow-teal-500/20">
+              <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+            </div>
+          </div>
+
+          <div className="bg-white dark:bg-slate-900 rounded-3xl p-4 sm:p-5 border border-slate-200/80 dark:border-slate-800 shadow-xs flex items-center justify-between">
+            <div>
+              <span className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 block mb-1">Pending Evaluation</span>
+              <span className="text-2xl sm:text-3xl font-black text-amber-500 dark:text-amber-400 font-mono">{pendingCount}</span>
+            </div>
+            <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-2xl bg-gradient-to-tr from-amber-500 to-orange-500 text-white flex items-center justify-center shadow-md shadow-amber-500/20">
+              <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+            </div>
+          </div>
+
+          <div className="bg-white dark:bg-slate-900 rounded-3xl p-4 sm:p-5 border border-slate-200/80 dark:border-slate-800 shadow-xs flex items-center justify-between">
+            <div>
+              <span className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 block mb-1">Focal Persons</span>
+              <span className="text-2xl sm:text-3xl font-black text-indigo-600 dark:text-indigo-400 font-mono">{focalPersons.length}</span>
+            </div>
+            <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-2xl bg-gradient-to-tr from-indigo-500 to-blue-600 text-white flex items-center justify-center shadow-md shadow-indigo-500/20">
+              <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>
+            </div>
+          </div>
+
+        </div>
+
+        {/* Filter & Search Bar */}
+        <div className="bg-white dark:bg-slate-900 rounded-2xl p-3 sm:p-4 border border-slate-200/80 dark:border-slate-800 shadow-xs flex flex-col md:flex-row justify-between items-stretch md:items-center gap-3">
+          
+          {/* Status Segmented Tabs */}
+          <div className="flex items-center gap-1.5 p-1 bg-slate-100 dark:bg-slate-800/70 rounded-xl overflow-x-auto">
+            <button
+              onClick={() => setStatusFilter('all')}
+              className={`px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all whitespace-nowrap ${
+                statusFilter === 'all'
+                  ? 'bg-white dark:bg-slate-900 text-purple-600 dark:text-purple-400 shadow-xs'
+                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+              }`}
+            >
+              All Records ({totalCount})
+            </button>
+            <button
+              onClick={() => setStatusFilter('pending')}
+              className={`px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all whitespace-nowrap flex items-center gap-1.5 ${
+                statusFilter === 'pending'
+                  ? 'bg-white dark:bg-slate-900 text-amber-600 dark:text-amber-400 shadow-xs'
+                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+              }`}
+            >
+              <span>Pending</span>
+              {pendingCount > 0 && (
+                <span className="px-1.5 py-0.2 text-[10px] rounded-full bg-amber-500 text-white font-extrabold">{pendingCount}</span>
+              )}
+            </button>
+            <button
+              onClick={() => setStatusFilter('completed')}
+              className={`px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all whitespace-nowrap ${
+                statusFilter === 'completed'
+                  ? 'bg-white dark:bg-slate-900 text-teal-600 dark:text-teal-400 shadow-xs'
+                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+              }`}
+            >
+              Rated ({completedCount})
+            </button>
+          </div>
+
+          <div className="flex flex-col sm:flex-row items-center gap-3">
+            {/* Survey Filter */}
+            {uniqueSurveys.length > 0 && (
+              <select
+                value={surveyFilter}
+                onChange={e => setSurveyFilter(e.target.value)}
+                className="w-full sm:w-48 px-3 py-2 text-xs bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500 text-slate-800 dark:text-slate-100 font-semibold"
+              >
+                <option value="all">All Surveys</option>
+                {uniqueSurveys.map(s => (
+                  <option key={s} value={s}>{s}</option>
+                ))}
+              </select>
+            )}
+
+            {/* Search Box */}
+            <div className="relative w-full sm:w-64">
+              <input
+                type="text"
+                placeholder="Search employee or position..."
+                value={searchQuery}
+                onChange={e => setSearchQuery(e.target.value)}
+                className="w-full pl-9 pr-4 py-2 text-xs sm:text-sm bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500 text-slate-800 dark:text-slate-100"
+              />
+              <svg className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
+            </div>
+          </div>
+
+        </div>
+
+        {/* Content Area */}
+        <div className="flex-1 flex flex-col min-h-0">
           {isLoading ? (
-            <div className="flex-1 flex items-start justify-center pt-16">
-              <Loading text="Loading COSW Evaluation..." />
+            <div className="flex-1 flex items-center justify-center p-12">
+              <Loading text="Loading COSW Evaluations..." />
+            </div>
+          ) : filteredEmployments.length === 0 ? (
+            <div className="flex-1 flex flex-col items-center justify-center p-12 text-center bg-white dark:bg-slate-900 rounded-3xl border border-slate-200/80 dark:border-slate-800">
+              <div className="w-16 h-16 rounded-3xl bg-slate-100 dark:bg-slate-800 text-slate-400 flex items-center justify-center mb-3">
+                <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+              </div>
+              <h3 className="text-base font-bold text-slate-800 dark:text-white">No Evaluation Records</h3>
+              <p className="text-xs text-slate-500 dark:text-slate-400 max-w-sm mt-1">
+                {searchQuery || statusFilter !== 'all' || surveyFilter !== 'all'
+                  ? 'No COSW records match your active search and filter criteria.'
+                  : 'There are currently no active COSW employment records registered for evaluation.'}
+              </p>
             </div>
           ) : (
-            <div className="flex-1 overflow-auto bg-slate-50/50 dark:bg-slate-900/30 p-3 md:p-5">
-              {employments.length === 0 ? (
-                <div className="flex flex-col items-center justify-center h-full text-center py-20 opacity-70">
-                  <svg className="w-16 h-16 text-slate-300 dark:text-slate-600 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                  <p className="text-lg font-bold text-slate-500 dark:text-slate-400">No evaluations found.</p>
-                </div>
-              ) : (
-                <div className="flex flex-col gap-3 md:gap-2 max-w-7xl mx-auto">
-                  {/* Desktop Header Row */}
-                  <div className="hidden lg:grid grid-cols-12 gap-4 px-6 py-3 text-[11px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 bg-slate-100/50 dark:bg-slate-800/50 rounded-xl mb-1">
-                    <div className="col-span-2">Employee Name</div>
-                    <div className="col-span-2">Position</div>
-                    <div className="col-span-3">Survey Name</div>
-                    <div className="col-span-2">Contract Period</div>
-                    <div className="col-span-1">Focal Person</div>
-                    <div className="col-span-1 text-center">Rating</div>
-                    <div className="col-span-1 text-center">Actions</div>
-                  </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 pb-2">
+              {filteredEmployments.map((emp) => {
+                const focalPerson = focalPersons.find(f => f.email === emp.focal_person_email);
+                const focalName = focalPerson?.name || emp.focal_person_email || 'Unassigned';
+                const isRated = !!emp.rating;
 
-                  {employments.map(emp => (
-                    <div key={emp.id} className="group flex flex-col lg:grid lg:grid-cols-12 gap-3 lg:gap-4 lg:items-center bg-white dark:bg-slate-800 rounded-2xl lg:rounded-xl p-5 lg:px-6 lg:py-4 shadow-sm border border-slate-200 dark:border-slate-700 hover:border-teal-300 dark:hover:border-teal-600/60 hover:shadow-md transition-all">
+                return (
+                  <div
+                    key={emp.id}
+                    className="group relative flex flex-col justify-between rounded-3xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-xs hover:shadow-xl hover:border-purple-300 dark:hover:border-purple-800/60 hover:-translate-y-1 transition-all duration-300 overflow-hidden"
+                  >
+                    {/* Top Accent Line */}
+                    <div className={`h-1.5 w-full ${
+                      isRated 
+                        ? 'bg-gradient-to-r from-teal-400 to-emerald-500' 
+                        : 'bg-gradient-to-r from-amber-400 to-orange-500'
+                    }`} />
+
+                    <div className="p-5 sm:p-6 flex flex-col flex-1 gap-4">
                       
-                      {/* Name & Mobile Actions */}
-                      <div className="flex justify-between items-start lg:col-span-2 lg:items-center">
-                        <div className="w-full">
-                          <span className="lg:hidden text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1 block">Employee</span>
-                          <span className="font-bold text-slate-900 dark:text-slate-100 text-base">{emp.employee_name}</span>
-                        </div>
-                        <div className="lg:hidden shrink-0 ml-4">
-                          <button 
-                            onClick={() => openRatingModal(emp)} 
-                            disabled={!!emp.rating}
-                            className={`p-2 rounded-xl transition-all shadow-sm ${
-                              emp.rating 
-                                ? 'text-slate-300 dark:text-slate-600 bg-slate-50 dark:bg-slate-800/50 cursor-not-allowed border border-transparent'
-                                : 'text-amber-600 hover:text-amber-700 dark:text-amber-400 dark:hover:text-amber-300 bg-amber-50 dark:bg-amber-900/20 hover:bg-amber-100 dark:hover:bg-amber-900/40 border border-amber-200 dark:border-amber-800/50 active:scale-95'
-                            }`}
-                            title={emp.rating ? "Rating already provided" : "Rate Performance"}
-                          >
-                            <svg className="w-5 h-5 mx-auto" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" /></svg>
-                          </button>
-                        </div>
-                      </div>
-
-                      <div className="grid grid-cols-2 gap-3 lg:contents">
-                        <div className="lg:col-span-2 flex flex-col justify-center">
-                          <span className="lg:hidden text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1 block">Position</span>
-                          <span className="text-sm text-slate-700 dark:text-slate-300 font-medium">{emp.position}</span>
-                        </div>
-                        
-                        <div className="lg:col-span-3 flex flex-col justify-center">
-                          <span className="lg:hidden text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1 block">Survey Name</span>
-                          <span className="text-sm text-slate-600 dark:text-slate-400 truncate" title={emp.survey_name}>{emp.survey_name}</span>
-                        </div>
-                      </div>
-
-                      <div className="grid grid-cols-2 gap-3 lg:contents mt-2 lg:mt-0 pt-3 lg:pt-0 border-t border-slate-100 dark:border-slate-700/50 lg:border-none">
-                        <div className="lg:col-span-2 flex flex-col justify-center">
-                          <span className="lg:hidden text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1 block">Contract Period</span>
-                          <span className="text-[11px] font-semibold text-slate-600 dark:text-slate-400 bg-slate-50 dark:bg-slate-900/50 w-fit px-2 py-1 rounded-md border border-slate-100 dark:border-slate-800">
-                            {emp.contract_start_date} <span className="text-slate-400 mx-0.5">to</span> {emp.contract_end_date}
-                          </span>
-                        </div>
-
-                        <div className="lg:col-span-1 flex flex-col justify-center">
-                          <span className="lg:hidden text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1 block">Focal Person</span>
-                          <span className="text-sm text-slate-700 dark:text-slate-300 flex items-center gap-2">
-                            <div className="w-5 h-5 rounded-full bg-indigo-100 dark:bg-indigo-900/40 text-indigo-600 dark:text-indigo-400 flex items-center justify-center text-[10px] font-bold shrink-0">
-                              {(focalPersons.find(f => f.email === emp.focal_person_email)?.name || emp.focal_person_email || '?').charAt(0).toUpperCase()}
-                            </div>
-                            <span className="truncate" title={focalPersons.find(f => f.email === emp.focal_person_email)?.name || emp.focal_person_email || '-'}>
-                              {focalPersons.find(f => f.email === emp.focal_person_email)?.name || emp.focal_person_email || '-'}
+                      {/* Card Header: Employee Avatar & Position */}
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="flex items-center gap-3 min-w-0">
+                          <div className="w-11 h-11 rounded-2xl bg-gradient-to-tr from-purple-500 to-indigo-600 text-white font-extrabold text-sm flex items-center justify-center shrink-0 shadow-md shadow-purple-500/20">
+                            {(emp.employee_name || 'C').charAt(0).toUpperCase()}
+                          </div>
+                          <div className="min-w-0">
+                            <h3 className="text-base font-extrabold text-slate-900 dark:text-white truncate">
+                              {emp.employee_name}
+                            </h3>
+                            <span className="text-xs font-semibold text-slate-500 dark:text-slate-400 block truncate">
+                              {emp.position || 'COSW Staff'}
                             </span>
+                          </div>
+                        </div>
+
+                        {/* Status Chip */}
+                        <span className={`px-2.5 py-1 rounded-full text-[10px] font-extrabold uppercase tracking-wider shrink-0 ${
+                          isRated
+                            ? 'bg-teal-50 dark:bg-teal-950/60 text-teal-700 dark:text-teal-300 border border-teal-200 dark:border-teal-800/50'
+                            : 'bg-amber-50 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800/50'
+                        }`}>
+                          {isRated ? 'Evaluated' : 'Pending'}
+                        </span>
+                      </div>
+
+                      {/* Survey Tag */}
+                      {emp.survey_name && (
+                        <div className="px-3 py-1.5 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800 flex items-center gap-2">
+                          <svg className="w-4 h-4 text-purple-500 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" /></svg>
+                          <span className="text-xs font-semibold text-slate-700 dark:text-slate-300 truncate" title={emp.survey_name}>
+                            {emp.survey_name}
+                          </span>
+                        </div>
+                      )}
+
+                      {/* Contract Period & Focal Person */}
+                      <div className="grid grid-cols-2 gap-2 pt-1 text-xs">
+                        <div className="flex flex-col">
+                          <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase">Contract Timeline</span>
+                          <span className="font-semibold text-slate-700 dark:text-slate-300 font-mono text-[11px] mt-0.5">
+                            {emp.contract_start_date || '—'} to {emp.contract_end_date || '—'}
+                          </span>
+                        </div>
+
+                        <div className="flex flex-col">
+                          <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase">Focal Person</span>
+                          <span className="font-semibold text-slate-700 dark:text-slate-300 truncate mt-0.5" title={focalName}>
+                            {focalName}
                           </span>
                         </div>
                       </div>
 
-                      {/* Rating */}
-                      <div className="flex items-center justify-between lg:justify-center lg:col-span-1 mt-2 lg:mt-0 pt-3 lg:pt-0 border-t border-slate-100 dark:border-slate-700/50 lg:border-none">
-                        <span className="lg:hidden text-[10px] font-bold text-slate-400 uppercase tracking-wider">Rating</span>
-                        {emp.rating ? (
-                          <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold bg-teal-100 text-teal-800 dark:bg-teal-900/40 dark:text-teal-400 border border-teal-200 dark:border-teal-800/40">
-                            ⭐ {emp.rating}
-                          </span>
-                        ) : (
-                          <span className="text-xs font-medium text-slate-400 dark:text-slate-500 italic">Not Rated</span>
-                        )}
-                      </div>
+                      {/* Rating Score Card */}
+                      <div className="mt-auto pt-3 border-t border-slate-100 dark:border-slate-800/80 flex items-center justify-between">
+                        <div>
+                          <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 block mb-0.5">Performance Score</span>
+                          {isRated ? (
+                            <div className="flex items-center gap-1.5">
+                              <span className="text-base font-black text-teal-600 dark:text-teal-400 font-mono">
+                                ⭐ {emp.rating}
+                              </span>
+                            </div>
+                          ) : (
+                            <span className="text-xs font-bold text-amber-600 dark:text-amber-400 italic">
+                              Pending Evaluation
+                            </span>
+                          )}
+                        </div>
 
-                      {/* Desktop Action */}
-                      <div className="hidden lg:flex items-center justify-center lg:col-span-1">
-                         <button 
-                            onClick={() => openRatingModal(emp)} 
-                            disabled={!!emp.rating}
-                            className={`p-2 rounded-xl transition-all shadow-sm ${
-                              emp.rating 
-                                ? 'text-slate-300 dark:text-slate-600 bg-slate-50 dark:bg-slate-800/50 cursor-not-allowed border border-transparent'
-                                : 'text-amber-600 hover:text-amber-700 dark:text-amber-400 dark:hover:text-amber-300 bg-amber-50 dark:bg-amber-900/20 hover:bg-amber-100 dark:hover:bg-amber-900/40 border border-amber-200 dark:border-amber-800/50 active:scale-95'
-                            }`}
-                            title={emp.rating ? "Rating already provided" : "Rate Performance"}
-                          >
-                            <svg className="w-5 h-5 mx-auto" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" /></svg>
-                          </button>
+                        <button
+                          onClick={() => openRatingModal(emp)}
+                          disabled={isRated}
+                          className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 shadow-xs ${
+                            isRated
+                              ? 'bg-slate-100 dark:bg-slate-800 text-slate-400 dark:text-slate-500 cursor-not-allowed'
+                              : 'bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-white shadow-amber-500/20 hover:shadow-md hover:-translate-y-0.5 active:translate-y-0'
+                          }`}
+                        >
+                          <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" /></svg>
+                          <span>{isRated ? 'Score Recorded' : 'Rate Performance'}</span>
+                        </button>
                       </div>
 
                     </div>
-                  ))}
-                </div>
-              )}
+                  </div>
+                );
+              })}
             </div>
           )}
         </div>
+
       </div>
 
+      {/* Rating Modal */}
       {isRatingModalOpen && ratingRecord && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-slate-900/60 backdrop-blur-sm overflow-y-auto">
-          <div className="flex flex-col w-full max-w-5xl bg-white dark:bg-slate-900 rounded-xl shadow-2xl my-8">
-            {/* Header */}
-            <div className="flex-shrink-0 px-6 py-4 border-b border-slate-200 dark:border-slate-800 rounded-t-xl">
-              <h2 className="text-xl font-bold text-slate-900 dark:text-white">Performance Rating</h2>
-              <p className="mt-0.5 text-sm text-slate-500 dark:text-slate-400">
-                {ratingRecord.employee_name} &mdash; {ratingRecord.position}
-              </p>
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-5 bg-slate-900/60 backdrop-blur-md overflow-y-auto">
+          <div className="flex flex-col w-full max-w-5xl bg-white dark:bg-slate-900 rounded-3xl shadow-2xl border border-slate-200 dark:border-slate-800 my-auto overflow-hidden">
+            
+            {/* Modal Header */}
+            <div className="px-6 py-5 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between bg-slate-50/60 dark:bg-slate-900/60">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-purple-500 to-indigo-600 text-white flex items-center justify-center shadow-md shadow-purple-500/20">
+                  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" /></svg>
+                </div>
+                <div>
+                  <h2 className="text-lg font-black text-slate-900 dark:text-white">Performance Rating Form</h2>
+                  <p className="text-xs text-slate-500 dark:text-slate-400">
+                    Evaluating <span className="font-bold text-slate-800 dark:text-slate-200">{ratingRecord.employee_name}</span> &bull; {ratingRecord.position}
+                  </p>
+                </div>
+              </div>
+
+              <button 
+                onClick={() => setIsRatingModalOpen(false)}
+                className="w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 flex items-center justify-center transition-colors"
+              >
+                &times;
+              </button>
             </div>
 
-            <form onSubmit={handleRatingSubmit} className="flex-1">
-              <div className="flex flex-col lg:flex-row divide-y lg:divide-y-0 lg:divide-x divide-slate-200 dark:divide-slate-800">
-                {/* Left column */}
-                <div className="flex-1 px-6 py-5 space-y-4">
-
+            <form onSubmit={handleRatingSubmit} className="flex-1 flex flex-col">
+              <div className="flex flex-col lg:flex-row divide-y lg:divide-y-0 lg:divide-x divide-slate-200 dark:divide-slate-800 p-6 gap-6">
+                
+                {/* Left Column: Criteria & Remarks */}
+                <div className="flex-1 space-y-4">
                   {RATING_CRITERIA.map(criterion => (
-                    <div key={criterion.key} className="border border-slate-200 dark:border-slate-700 rounded-lg p-4 bg-slate-50/50 dark:bg-slate-800/30">
-                      <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4 mb-2">
-                        <div className="flex-1">
-                          <p className="font-semibold text-slate-800 dark:text-white">{criterion.label}</p>
-                          <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">{criterion.description}</p>
+                    <div key={criterion.key} className="p-4 rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-850">
+                      <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3 mb-3">
+                        <div>
+                          <h4 className="font-bold text-sm text-slate-900 dark:text-white">{criterion.label}</h4>
+                          <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">{criterion.description}</p>
                         </div>
+
                         <div className="w-full sm:w-48 shrink-0">
                           <select
                             required
                             value={ratingCriteria[criterion.key]}
                             onChange={e => setRatingCriteria(prev => ({ ...prev, [criterion.key]: e.target.value }))}
-                            className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-950 text-slate-800 dark:text-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500"
+                            className="w-full px-3 py-2 border border-slate-200 dark:border-slate-700 rounded-xl bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-200 text-xs sm:text-sm font-semibold focus:ring-2 focus:ring-purple-500"
                           >
-                            <option value="">Select score...</option>
+                            <option value="">Select Score (1-5)...</option>
                             {[5, 4, 3, 2, 1].map(score => (
-                              <option key={score} value={score}>{score} - {SCORE_DESCRIPTIONS[score].label}</option>
+                              <option key={score} value={score}>{score} — {SCORE_DESCRIPTIONS[score].label}</option>
                             ))}
                           </select>
                         </div>
                       </div>
+
                       {ratingCriteria[criterion.key] && (
-                        <p className="text-xs italic text-teal-700 dark:text-teal-400 bg-teal-50 dark:bg-teal-900/20 border border-teal-200 dark:border-teal-800/40 rounded-md px-3 py-2 mt-2">
-                          {SCORE_DESCRIPTIONS[parseInt(ratingCriteria[criterion.key])].desc}
-                        </p>
+                        <div className="p-2.5 rounded-xl bg-purple-50/70 dark:bg-purple-950/40 border border-purple-200/80 dark:border-purple-800/40 text-xs text-purple-900 dark:text-purple-300">
+                          <strong>{ratingCriteria[criterion.key]} Stars ({SCORE_DESCRIPTIONS[parseInt(ratingCriteria[criterion.key])].label}):</strong> {SCORE_DESCRIPTIONS[parseInt(ratingCriteria[criterion.key])].desc}
+                        </div>
                       )}
                     </div>
                   ))}
 
-                  <div className={`rounded-lg border px-4 py-3 flex items-center justify-between ${computedRatingColor}`}>
-                    <span className="text-sm font-semibold">Overall Performance Rating:</span>
-                    <span className="text-base font-bold">
-                      {computedRating ? `${computedAverage.toFixed(2)} — ${computedRating}` : 'N/A'}
+                  {/* Overall Average Indicator */}
+                  <div className={`rounded-2xl border p-4 flex items-center justify-between ${computedRatingColor}`}>
+                    <span className="text-xs sm:text-sm font-bold">Overall Performance Rating:</span>
+                    <span className="text-base sm:text-lg font-black font-mono">
+                      {computedRating ? `${computedAverage.toFixed(2)} — ${computedRating}` : 'Awaiting Scores'}
                     </span>
                   </div>
 
                   <div>
-                    <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5">Commendations / Remarks</label>
+                    <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 mb-1.5">
+                      Commendations & Justification Remarks (Optional)
+                    </label>
                     <textarea
                       rows={3}
                       value={ratingRemarks}
                       onChange={e => setRatingRemarks(e.target.value)}
-                      placeholder="Optional but recommended to help justify the rating."
-                      className="w-full p-3 text-sm border border-slate-300 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-950 text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-teal-500 resize-none"
+                      placeholder="Write feedback, key achievements, or justification for this rating..."
+                      className="w-full p-3 text-xs sm:text-sm border border-slate-200 dark:border-slate-700 rounded-xl bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 focus:ring-2 focus:ring-purple-500 resize-none"
                     />
                   </div>
                 </div>
 
-                {/* Right column */}
-                <div className="shrink-0 px-6 py-5 lg:w-[400px]">
-                  <p className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-4">Score Card</p>
-                  <div className="space-y-3">
-                    {[5,4,3,2,1].map(score => {
-                      let colorClass = '';
-                      let textClass = '';
-                      if (score === 5) {
-                        colorClass = 'border-teal-300 bg-teal-50 dark:bg-teal-900/20 dark:border-teal-800';
-                        textClass = 'text-teal-700 dark:text-teal-400';
-                      } else if (score === 4) {
-                        colorClass = 'border-blue-300 bg-blue-50 dark:bg-blue-900/20 dark:border-blue-800';
-                        textClass = 'text-blue-700 dark:text-blue-400';
-                      } else if (score === 3) {
-                        colorClass = 'border-amber-300 bg-amber-50 dark:bg-amber-900/20 dark:border-amber-800';
-                        textClass = 'text-amber-700 dark:text-amber-400';
-                      } else if (score === 2) {
-                        colorClass = 'border-orange-300 bg-orange-50 dark:bg-orange-900/20 dark:border-orange-800';
-                        textClass = 'text-orange-700 dark:text-orange-400';
-                      } else {
-                        colorClass = 'border-red-300 bg-red-50 dark:bg-red-900/20 dark:border-red-800';
-                        textClass = 'text-red-700 dark:text-red-400';
-                      }
-                      
-                      return (
-                        <div key={score} className={`rounded-lg border p-3 ${colorClass}`}>
-                          <div className="flex items-center gap-2 mb-1.5">
-                            <span className={`text-lg font-black ${textClass}`}>{score}</span>
-                            <span className="text-sm font-bold text-slate-800 dark:text-white">{SCORE_DESCRIPTIONS[score].label}</span>
-                          </div>
-                          <p className="text-xs text-slate-600 dark:text-slate-400 leading-snug">{SCORE_DESCRIPTIONS[score].desc}</p>
+                {/* Right Column: Score Legend Card */}
+                <div className="shrink-0 lg:w-[360px] space-y-3">
+                  <h4 className="text-xs font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">
+                    Rating Legend & Scale
+                  </h4>
+
+                  {[5, 4, 3, 2, 1].map(score => {
+                    let colorClass = '';
+                    let badgeClass = '';
+                    if (score === 5) {
+                      colorClass = 'border-teal-200 dark:border-teal-800/50 bg-teal-50/50 dark:bg-teal-950/30';
+                      badgeClass = 'bg-teal-500 text-white';
+                    } else if (score === 4) {
+                      colorClass = 'border-blue-200 dark:border-blue-800/50 bg-blue-50/50 dark:bg-blue-950/30';
+                      badgeClass = 'bg-blue-500 text-white';
+                    } else if (score === 3) {
+                      colorClass = 'border-amber-200 dark:border-amber-800/50 bg-amber-50/50 dark:bg-amber-950/30';
+                      badgeClass = 'bg-amber-500 text-white';
+                    } else if (score === 2) {
+                      colorClass = 'border-orange-200 dark:border-orange-800/50 bg-orange-50/50 dark:bg-orange-950/30';
+                      badgeClass = 'bg-orange-500 text-white';
+                    } else {
+                      colorClass = 'border-red-200 dark:border-red-800/50 bg-red-50/50 dark:bg-red-950/30';
+                      badgeClass = 'bg-red-500 text-white';
+                    }
+
+                    return (
+                      <div key={score} className={`p-3 rounded-2xl border ${colorClass} transition-all`}>
+                        <div className="flex items-center gap-2 mb-1">
+                          <span className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-extrabold ${badgeClass}`}>
+                            {score}
+                          </span>
+                          <span className="text-xs font-bold text-slate-900 dark:text-white">
+                            {SCORE_DESCRIPTIONS[score].label}
+                          </span>
                         </div>
-                      )
-                    })}
-                  </div>
+                        <p className="text-[11px] text-slate-600 dark:text-slate-400 leading-relaxed">
+                          {SCORE_DESCRIPTIONS[score].desc}
+                        </p>
+                      </div>
+                    );
+                  })}
                 </div>
+
               </div>
 
-              {/* Footer */}
-              <div className="flex-shrink-0 flex justify-end gap-3 px-6 py-4 bg-slate-50 dark:bg-slate-800/50 border-t border-slate-200 dark:border-slate-800 rounded-b-xl">
-                <button type="button" onClick={() => setIsRatingModalOpen(false)} className="px-4 py-2 text-sm font-semibold text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900/40 bg-red-50 dark:bg-red-900/20 rounded-lg transition-colors">
+              {/* Modal Footer */}
+              <div className="px-6 py-4 bg-slate-50 dark:bg-slate-800/50 border-t border-slate-200 dark:border-slate-800 flex justify-end gap-3 rounded-b-3xl">
+                <button
+                  type="button"
+                  onClick={() => setIsRatingModalOpen(false)}
+                  className="px-4 py-2.5 text-xs font-bold text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-colors"
+                >
                   Cancel
                 </button>
-                <button type="submit" disabled={!computedRating} className="flex items-center gap-2 px-5 py-2 text-sm font-semibold text-white bg-gradient-to-r from-teal-500 to-emerald-500 rounded-lg hover:from-teal-400 hover:to-emerald-400 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-sm hover:shadow-md hover:-translate-y-0.5 disabled:hover:translate-y-0 disabled:hover:shadow-sm">
+                <button
+                  type="submit"
+                  disabled={!computedRating}
+                  className="px-6 py-2.5 text-xs font-bold text-white bg-gradient-to-r from-purple-600 to-indigo-600 rounded-xl shadow-md shadow-purple-500/20 hover:shadow-lg active:scale-95 disabled:opacity-50 disabled:active:scale-100 transition-all flex items-center gap-2"
+                >
                   <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" /></svg>
-                  Submit Rating
+                  Submit Performance Rating
                 </button>
               </div>
             </form>
 
+            {/* Confirmation Dialog Overlay */}
             {isRatingConfirmOpen && (
-              <div className="absolute inset-0 z-10 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm rounded-xl">
-                <div className="w-full max-w-sm bg-white dark:bg-slate-900 rounded-xl shadow-2xl p-6 mx-4 border border-slate-200 dark:border-slate-800">
-                  <div className="flex items-center justify-center w-12 h-12 mx-auto mb-4 rounded-full bg-amber-100 dark:bg-amber-900/40 text-amber-600 dark:text-amber-500">
+              <div className="absolute inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4">
+                <div className="w-full max-w-sm bg-white dark:bg-slate-900 rounded-3xl shadow-2xl p-6 border border-slate-200 dark:border-slate-800 text-center">
+                  <div className="w-12 h-12 mx-auto mb-3 rounded-2xl bg-amber-50 dark:bg-amber-950/60 text-amber-500 flex items-center justify-center border border-amber-200 dark:border-amber-800/40 shadow-sm">
                     <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
                   </div>
-                  <h3 className="text-center text-lg font-bold text-slate-900 dark:text-white mb-2">Confirm Submission</h3>
-                  <p className="text-sm text-center text-slate-600 dark:text-slate-400 mb-2">
-                    You are about to submit a rating of
+                  <h3 className="text-base font-extrabold text-slate-900 dark:text-white mb-1">Confirm Rating Submission</h3>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 mb-3">
+                    You are recording a final score for {ratingRecord.employee_name}:
                   </p>
-                  <p className={`text-center text-base font-bold mb-4 ${computedRatingColor} rounded-lg px-3 py-2 border`}>
+                  <div className={`py-2 px-4 rounded-xl font-bold font-mono text-sm mb-4 border ${computedRatingColor}`}>
                     {computedAverage?.toFixed(2)} &mdash; {computedRating}
-                  </p>
-                  <p className="text-xs text-center text-red-600 dark:text-red-400 font-semibold mb-6 px-4">
-                    This rating will be permanently saved. Are you sure?
+                  </div>
+                  <p className="text-[11px] text-slate-400 dark:text-slate-500 mb-5">
+                    This evaluation will be locked and an email notification will be transmitted to the PACD.
                   </p>
                   <div className="flex gap-3">
-                    <button type="button" onClick={() => setIsRatingConfirmOpen(false)} disabled={isSubmitting} className="flex-1 px-4 py-2 text-sm font-semibold text-slate-700 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 disabled:opacity-50 dark:bg-slate-800 dark:text-slate-200 dark:border-slate-600 dark:hover:bg-slate-700 transition-colors">
+                    <button
+                      type="button"
+                      onClick={() => setIsRatingConfirmOpen(false)}
+                      disabled={isSubmitting}
+                      className="flex-1 py-2.5 text-xs font-bold text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-colors"
+                    >
                       Go Back
                     </button>
-                    <button type="button" onClick={handleRatingConfirm} disabled={isSubmitting} className="flex-1 px-4 py-2 text-sm font-semibold text-white bg-gradient-to-r from-teal-500 to-emerald-500 rounded-lg hover:from-teal-400 hover:to-emerald-400 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-sm hover:shadow-md hover:-translate-y-0.5 disabled:hover:translate-y-0 disabled:hover:shadow-sm">
-                      {isSubmitting ? 'Sending...' : 'Yes, Submit'}
+                    <button
+                      type="button"
+                      onClick={handleRatingConfirm}
+                      disabled={isSubmitting}
+                      className="flex-1 py-2.5 text-xs font-bold text-white bg-gradient-to-r from-purple-600 to-indigo-600 rounded-xl shadow-md shadow-purple-500/20 hover:shadow-lg active:scale-95 disabled:opacity-50 transition-all flex items-center justify-center gap-1.5"
+                    >
+                      {isSubmitting ? 'Saving...' : 'Yes, Confirm'}
                     </button>
                   </div>
                 </div>
               </div>
             )}
+
           </div>
         </div>
       )}
+
     </div>
   );
 }

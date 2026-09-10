@@ -412,9 +412,21 @@ const { user } = useUser();
           <button onClick={() => setIsSidebarOpen(true)} className="hidden p-2 -ml-2 mr-1 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors">
             <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" /></svg>
           </button>
-          <h2 className="text-xl font-bold text-slate-800 dark:text-white flex items-center gap-2">
-          Digital Logbook
-        </h2>
+          <div className="flex items-center gap-2.5">
+            <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-blue-500 to-indigo-500 flex items-center justify-center text-white shadow-md shadow-blue-500/20">
+              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25" />
+              </svg>
+            </div>
+            <div>
+              <h2 className="text-lg sm:text-xl font-bold text-slate-800 dark:text-white leading-tight">
+                Digital Logbook
+              </h2>
+              <p className="text-[11px] text-slate-500 dark:text-slate-400 hidden sm:block">
+                Record, track, and manage incoming and outgoing transmittals
+              </p>
+            </div>
+          </div>
         </div>
         <div className="flex items-center gap-3 md:gap-5">
           <div className="text-sm text-slate-600 dark:text-slate-300 font-medium hidden sm:block">

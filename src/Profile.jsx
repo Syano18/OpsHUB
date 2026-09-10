@@ -1,9 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useOutletContext } from 'react-router-dom';
-import { useAuth, useUser, UserButton } from '@clerk/clerk-react';
+import { useAuth, useUser } from '@clerk/clerk-react';
 import Alert from './Alert';
-import ThemeToggleIcon from './ThemeToggleIcon';
 import Loading from './components/Loading';
+import CustomUserButton from './CustomUserButton';
+import NotificationBell from './NotificationBell';
 
 export default function Profile() {
   const { setIsSidebarOpen } = useOutletContext();
@@ -12,7 +13,12 @@ export default function Profile() {
   const [userData, setUserData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [successMessage, setSuccessMessage] = useState('');
   const [isUploadingImage, setIsUploadingImage] = useState(false);
+
+  // Active Tab: 'profile' | 'security' | 'admin'
+  const [activeTab, setActiveTab] = useState('profile');
+  const [adminSubTab, setAdminSubTab] = useState('update'); // 'update' | 'create' | 'directory'
 
   const [isEditing, setIsEditing] = useState(false);
   const [editForm, setEditForm] = useState({});
@@ -57,9 +63,15 @@ export default function Profile() {
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [showCurrentPassword, setShowCurrentPassword] = useState(false);
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isChangingPassword, setIsChangingPassword] = useState(false);
   const [passwordSuccess, setPasswordSuccess] = useState('');
   const [passwordError, setPasswordError] = useState('');
+
+  // Directory Search
+  const [directorySearch, setDirectorySearch] = useState('');
 
   useEffect(() => {
     const fetchUserData = async () => {
@@ -90,13 +102,7 @@ export default function Profile() {
     fetchUserData();
   }, [user]);
 
-  if (loading) {
-    return (
-      <div className="h-full bg-slate-50 dark:bg-slate-950 overflow-hidden">
-        <Loading type="profile" />
-      </div>
-    );
-  }
+  const isAdmin = userData?.Role === 'Admin' || userData?.Role === 'Super Admin';
 
   const handleImageChange = async (e) => {
     const file = e.target.files[0];
@@ -105,6 +111,8 @@ export default function Profile() {
     setIsUploadingImage(true);
     try {
       await user.setProfileImage({ file });
+      setSuccessMessage("Profile photo updated successfully!");
+      setTimeout(() => setSuccessMessage(''), 4000);
     } catch (err) {
       console.error("Failed to upload image", err);
       setError("Failed to upload profile picture. Please try again.");
@@ -115,15 +123,15 @@ export default function Profile() {
 
   const handleEditClick = () => {
     setEditForm({
-      First_Name: userData.First_Name || '',
-      Middle_Name: userData.Middle_Name || '',
-      Last_Name: userData.Last_Name || '',
-      Suffix: userData.Suffix || '',
-      Position: userData.Position || '',
-      sex: userData.sex || '',
-      emp_stat: userData.emp_stat || '',
-      Salary_Grade: userData.Salary_Grade || '',
-      Salary: userData.Salary || '',
+      First_Name: userData?.First_Name || '',
+      Middle_Name: userData?.Middle_Name || '',
+      Last_Name: userData?.Last_Name || '',
+      Suffix: userData?.Suffix || '',
+      Position: userData?.Position || '',
+      sex: userData?.sex || '',
+      emp_stat: userData?.emp_stat || '',
+      Salary_Grade: userData?.Salary_Grade || '',
+      Salary: userData?.Salary || '',
     });
     setIsEditing(true);
   };
@@ -151,6 +159,8 @@ export default function Profile() {
       }
       setUserData({ ...userData, ...editForm });
       setIsEditing(false);
+      setSuccessMessage("Profile information saved successfully!");
+      setTimeout(() => setSuccessMessage(''), 4000);
     } catch (err) {
       console.error(err);
       setError("Failed to save changes: " + err.message);
@@ -218,6 +228,10 @@ export default function Profile() {
           emp_stat: selectedUserEmpStat
         }));
       }
+
+      setSuccessMessage(`Updated record for ${selectedUserFirstName} ${selectedUserLastName} (${selectedUserEmail})`);
+      setTimeout(() => setSuccessMessage(''), 4000);
+
       setSelectedUserEmail('');
       setSelectedUserRole('');
       setSelectedUserFirstName('');
@@ -238,7 +252,7 @@ export default function Profile() {
 
   const handleCreateUser = async () => {
     if (!newUserEmail || !newUserFirstName || !newUserLastName || !newUserRole) {
-      setError("Please fill in all fields to create a user.");
+      setError("Please fill in all required fields to create a user.");
       return;
     }
     setIsCreatingUser(true);
@@ -270,7 +284,7 @@ export default function Profile() {
       try {
         data = await response.json();
       } catch (e) {
-        throw new Error('The server is currently unavailable or restarting. Please try again in a few seconds.');
+        throw new Error('The server is currently unavailable. Please try again.');
       }
 
       if (!response.ok) {
@@ -299,10 +313,9 @@ export default function Profile() {
       setNewUserEmpStat('');
       setNewUserPosition('');
       setNewUserIsRegional(false);
-      setTimeout(() => setCreateUserSuccess(''), 5000);
     } catch (err) {
       console.error(err);
-      setError("Failed to create user: " + err.message);
+      setError(err.message || 'Failed to create user');
     } finally {
       setIsCreatingUser(false);
     }
@@ -310,23 +323,24 @@ export default function Profile() {
 
   const handleChangePassword = async (e) => {
     e.preventDefault();
+    setPasswordError('');
+    setPasswordSuccess('');
+
     if (newPassword !== confirmPassword) {
       setPasswordError("New passwords do not match.");
       return;
     }
+
     if (newPassword.length < 8) {
       setPasswordError("Password must be at least 8 characters long.");
       return;
     }
 
     setIsChangingPassword(true);
-    setPasswordError('');
-    setPasswordSuccess('');
-
     try {
       await user.updatePassword({
-        currentPassword: currentPassword,
-        newPassword: newPassword
+        currentPassword,
+        newPassword
       });
       setPasswordSuccess("Password updated successfully!");
       setCurrentPassword('');
@@ -342,770 +356,998 @@ export default function Profile() {
   };
 
   const formatCurrency = (amount) => {
-    if (amount == null) return 'N/A';
-    return new Intl.NumberFormat('en-PH', { style: 'currency', currency: 'PHP' }).format(amount);
+    if (amount == null || amount === '') return 'N/A';
+    const num = parseFloat(amount.toString().replace(/,/g, ''));
+    if (isNaN(num)) return amount;
+    return new Intl.NumberFormat('en-PH', { style: 'currency', currency: 'PHP' }).format(num);
   };
 
+  const filteredDirectoryUsers = useMemo(() => {
+    if (!directorySearch) return allUsers;
+    const q = directorySearch.toLowerCase();
+    return allUsers.filter(u => 
+      (u.First_Name && u.First_Name.toLowerCase().includes(q)) ||
+      (u.Last_Name && u.Last_Name.toLowerCase().includes(q)) ||
+      (u.Email && u.Email.toLowerCase().includes(q)) ||
+      (u.Position && u.Position.toLowerCase().includes(q)) ||
+      (u.Role && u.Role.toLowerCase().includes(q))
+    );
+  }, [allUsers, directorySearch]);
+
+  if (loading) {
+    return (
+      <div className="h-full bg-slate-50 dark:bg-slate-950 overflow-hidden flex items-center justify-center">
+        <Loading type="profile" />
+      </div>
+    );
+  }
+
+  const fullName = userData 
+    ? `${userData.First_Name || ''} ${userData.Middle_Name ? userData.Middle_Name.charAt(0).toUpperCase() + '.' : ''} ${userData.Last_Name || ''} ${userData.Suffix || ''}`.replace(/\s+/g, ' ').trim()
+    : user?.fullName || 'User Profile';
+
   return (
-    <div className="h-full flex flex-col overflow-hidden bg-slate-50 dark:bg-slate-950">
-      <header className="shrink-0 h-16 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between pl-4 pr-2 md:pl-8 md:pr-4 shadow-sm sticky top-0 z-20">
+    <div className="h-full flex flex-col overflow-hidden bg-slate-50/50 dark:bg-slate-950 text-slate-900 dark:text-slate-100">
+      
+      {/* Header */}
+      <header className="shrink-0 h-16 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between pl-4 pr-2 md:pl-8 md:pr-4 shadow-xs sticky top-0 z-20">
         <div className="flex items-center gap-2">
-          <button onClick={() => setIsSidebarOpen(true)} className="hidden p-2 -ml-2 mr-1 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors">
+          <button 
+            onClick={() => setIsSidebarOpen(true)} 
+            className="lg:hidden p-2 -ml-2 mr-1 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors"
+          >
             <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" /></svg>
           </button>
-          <h2 className="text-xl font-bold text-slate-800 dark:text-white flex items-center gap-2">
-            <span className="text-2xl">👤</span> User Profile
-          </h2>
+          <div className="flex items-center gap-2.5">
+            <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-slate-700 to-slate-900 dark:from-slate-600 dark:to-slate-800 flex items-center justify-center text-white shadow-md shadow-slate-500/20">
+              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+              </svg>
+            </div>
+            <div>
+              <h2 className="text-lg sm:text-xl font-bold text-slate-800 dark:text-white leading-tight">
+                User Profile
+              </h2>
+              <p className="text-[11px] text-slate-500 dark:text-slate-400 hidden sm:block">
+                Account settings, position, and credentials
+              </p>
+            </div>
+          </div>
+        </div>
+        <div className="flex items-center gap-3 md:gap-5">
+          <div className="text-sm text-slate-600 dark:text-slate-300 font-medium hidden sm:block">
+            {userData?.First_Name ? `Hello, ${userData.First_Name} 👋` : 'Welcome back!'}
+          </div>
+          <div className="h-6 w-px bg-slate-200 dark:bg-slate-700 hidden sm:block"></div>
+          <NotificationBell />
+          <CustomUserButton />
         </div>
       </header>
 
-      <div className="flex-1 overflow-y-auto p-2">
-        <div className="w-full min-h-full flex flex-col space-y-4">
+      {/* Main Content Area */}
+      <div className="flex-1 overflow-y-auto p-3 sm:p-5 lg:p-6 flex flex-col gap-5 min-h-0">
+        
+        {/* Alerts */}
+        <Alert message={error} onClose={() => setError('')} duration={5000} />
+        {successMessage && (
+          <div className="p-4 bg-emerald-50 dark:bg-emerald-950/40 text-emerald-800 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800/40 rounded-2xl text-xs sm:text-sm font-semibold flex items-center justify-between shadow-xs">
+            <div className="flex items-center gap-2.5">
+              <svg className="w-5 h-5 text-emerald-500 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+              <span>{successMessage}</span>
+            </div>
+            <button onClick={() => setSuccessMessage('')} className="text-emerald-500 hover:text-emerald-700">&times;</button>
+          </div>
+        )}
 
-          <Alert message={error} onClose={() => setError('')} duration={5000} />
+        {/* Hero Card with Mesh Gradient */}
+        <div className="relative rounded-3xl overflow-hidden bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-sm">
+          {/* Ambient Banner Backdrop */}
+          <div className="h-36 sm:h-44 bg-gradient-to-r from-teal-600 via-emerald-600 to-cyan-700 relative overflow-hidden">
+            <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_30%,rgba(255,255,255,0.2),transparent)]"></div>
+            <div className="absolute -right-10 -bottom-10 w-60 h-60 bg-white/10 rounded-full blur-2xl"></div>
+            <div className="absolute left-1/3 -top-10 w-48 h-48 bg-teal-300/20 rounded-full blur-xl"></div>
+          </div>
 
-          <div className="bg-white dark:bg-slate-900 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800 overflow-hidden flex-1 flex flex-col">
-            {/* Profile Header */}
-            <div className="h-32 bg-gradient-to-r from-teal-500 to-emerald-400"></div>
-            <div className="px-8 pb-8">
-              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end -mt-12 mb-6 gap-4 sm:gap-0">
-                <div className="flex flex-col sm:flex-row items-start sm:items-end gap-4 sm:gap-6 w-full">
-                  <div className="relative shrink-0 w-24 h-24 rounded-2xl bg-white dark:bg-slate-800 p-1 shadow-md border border-slate-100 dark:border-slate-700 group">
-                    <label htmlFor="profile-upload" className={`absolute inset-1 rounded-xl bg-black/40 flex items-center justify-center cursor-pointer transition-opacity z-10 ${isUploadingImage ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}>
-                      {isUploadingImage ? (
-                        <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                      ) : (
-                        <svg className="size-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <div className="px-5 sm:px-8 pb-6 sm:pb-8">
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4">
+              
+              {/* Avatar & User Core Details */}
+              <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 sm:gap-6 w-full md:w-auto">
+                {/* Avatar with negative margin so ONLY the avatar pops out over the banner */}
+                <div className="relative -mt-14 sm:-mt-16 shrink-0 w-28 h-28 sm:w-32 sm:h-32 rounded-3xl bg-white dark:bg-slate-900 p-1.5 shadow-xl border-4 border-white dark:border-slate-900 group z-10">
+                  <label 
+                    htmlFor="profile-upload" 
+                    className={`absolute inset-1.5 rounded-2xl bg-black/50 flex flex-col items-center justify-center cursor-pointer transition-opacity z-10 ${
+                      isUploadingImage ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'
+                    }`}
+                  >
+                    {isUploadingImage ? (
+                      <div className="w-6 h-6 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                    ) : (
+                      <>
+                        <svg className="w-6 h-6 text-white mb-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
                         </svg>
-                      )}
-                    </label>
-                    <input
-                      type="file"
-                      id="profile-upload"
-                      accept="image/*"
-                      className="hidden"
-                      onChange={handleImageChange}
-                      disabled={isUploadingImage}
-                    />
-                    <img
-                      src={user?.imageUrl || `https://ui-avatars.com/api/?name=${user?.firstName}&background=0D8ABC&color=fff`}
-                      alt="Profile"
-                      className="w-full h-full rounded-xl object-cover relative z-0"
-                    />
-                  </div>
-                  <div className="pb-0 sm:pb-6 w-full min-w-0">
-                    <h1 className="text-2xl font-bold text-slate-900 dark:text-white break-words">
-                      {userData ? `${userData.First_Name || ''} ${userData.Middle_Name ? userData.Middle_Name.charAt(0).toUpperCase() + '.' : ''} ${userData.Last_Name || ''} ${userData.Suffix || ''}`.replace(/\s+/g, ' ').trim() : user?.fullName}
+                        <span className="text-[10px] text-white font-bold">Update</span>
+                      </>
+                    )}
+                  </label>
+                  <input
+                    type="file"
+                    id="profile-upload"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={handleImageChange}
+                    disabled={isUploadingImage}
+                  />
+                  <img
+                    src={user?.imageUrl || `https://ui-avatars.com/api/?name=${user?.firstName}&background=0D8ABC&color=fff`}
+                    alt="Profile"
+                    className="w-full h-full rounded-2xl object-cover"
+                  />
+                </div>
+
+                {/* Name, Role & Email (sitting comfortably below banner) */}
+                <div className="pt-1 sm:pt-3">
+                  <div className="flex items-center gap-2.5 flex-wrap mb-1">
+                    <h1 className="text-xl sm:text-2xl lg:text-3xl font-black text-slate-900 dark:text-white tracking-tight leading-tight">
+                      {fullName}
                     </h1>
-                    <p className="text-slate-500 dark:text-slate-400 font-medium">{user?.primaryEmailAddress?.emailAddress}</p>
+                    {userData?.Role && (
+                      <span className="px-3 py-1 rounded-full text-xs font-bold bg-teal-50 dark:bg-teal-950/60 text-teal-700 dark:text-teal-300 border border-teal-200 dark:border-teal-800/50 shadow-xs flex items-center gap-1.5">
+                        <span className="w-2 h-2 rounded-full bg-teal-500"></span>
+                        {userData.Role}
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 font-medium flex items-center gap-2 flex-wrap">
+                    <span>{user?.primaryEmailAddress?.emailAddress}</span>
+                    {userData?.Position && (
+                      <>
+                        <span>•</span>
+                        <span className="text-slate-700 dark:text-slate-300 font-semibold">{userData.Position}</span>
+                      </>
+                    )}
+                  </p>
+                </div>
+              </div>
+
+              {/* Quick Profile Stats Chips */}
+              <div className="flex items-center gap-2.5 flex-wrap w-full md:w-auto self-start md:self-end pt-2 sm:pt-4">
+                <div className="px-3.5 py-2 rounded-2xl bg-slate-100 dark:bg-slate-800/70 border border-slate-200 dark:border-slate-700/60 flex flex-col">
+                  <span className="text-[10px] uppercase font-bold text-slate-400 dark:text-slate-500">Employment</span>
+                  <span className="text-xs font-bold text-slate-800 dark:text-slate-200">{userData?.emp_stat || 'Permanent'}</span>
+                </div>
+                {userData?.Salary_Grade && (
+                  <div className="px-3.5 py-2 rounded-2xl bg-slate-100 dark:bg-slate-800/70 border border-slate-200 dark:border-slate-700/60 flex flex-col">
+                    <span className="text-[10px] uppercase font-bold text-slate-400 dark:text-slate-500">Salary Grade</span>
+                    <span className="text-xs font-bold text-slate-800 dark:text-slate-200">SG-{userData.Salary_Grade}</span>
+                  </div>
+                )}
+                <div className="px-3.5 py-2 rounded-2xl bg-slate-100 dark:bg-slate-800/70 border border-slate-200 dark:border-slate-700/60 flex flex-col">
+                  <span className="text-[10px] uppercase font-bold text-slate-400 dark:text-slate-500">Location</span>
+                  <span className="text-xs font-bold text-slate-800 dark:text-slate-200">{userData?.is_regional === 1 ? 'Regional Office' : 'Provincial Office'}</span>
+                </div>
+              </div>
+
+            </div>
+          </div>
+
+          {/* Navigation Tabs Bar */}
+          <div className="border-t border-slate-200 dark:border-slate-800 px-5 sm:px-8 bg-slate-50/70 dark:bg-slate-900/60 flex items-center justify-between overflow-x-auto gap-2">
+            <div className="flex items-center gap-2 py-2">
+              <button
+                onClick={() => setActiveTab('profile')}
+                className={`px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all flex items-center gap-2 whitespace-nowrap ${
+                  activeTab === 'profile'
+                    ? 'bg-white dark:bg-slate-800 text-teal-600 dark:text-teal-400 shadow-xs border border-slate-200 dark:border-slate-700'
+                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                }`}
+              >
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>
+                Personal & Employment Details
+              </button>
+
+              <button
+                onClick={() => setActiveTab('security')}
+                className={`px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all flex items-center gap-2 whitespace-nowrap ${
+                  activeTab === 'security'
+                    ? 'bg-white dark:bg-slate-800 text-teal-600 dark:text-teal-400 shadow-xs border border-slate-200 dark:border-slate-700'
+                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                }`}
+              >
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>
+                Security & Password
+              </button>
+
+              {isAdmin && (
+                <button
+                  onClick={() => setActiveTab('admin')}
+                  className={`px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all flex items-center gap-2 whitespace-nowrap ${
+                    activeTab === 'admin'
+                      ? 'bg-white dark:bg-slate-800 text-teal-600 dark:text-teal-400 shadow-xs border border-slate-200 dark:border-slate-700'
+                      : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                  }`}
+                >
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" /></svg>
+                  Admin Management
+                  <span className="px-1.5 py-0.5 rounded-full bg-teal-500 text-white text-[10px] font-extrabold">{allUsers.length}</span>
+                </button>
+              )}
+            </div>
+
+            {activeTab === 'profile' && !isEditing && (
+              <button
+                onClick={handleEditClick}
+                className="px-4 py-2 bg-slate-900 hover:bg-slate-800 dark:bg-white dark:hover:bg-slate-100 text-white dark:text-slate-900 rounded-xl text-xs font-bold transition-all shadow-xs flex items-center gap-1.5 shrink-0"
+              >
+                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg>
+                Edit Information
+              </button>
+            )}
+          </div>
+        </div>
+
+        {/* Tab 1: Personal & Employment Information */}
+        {activeTab === 'profile' && (
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+            
+            {/* General Information Card */}
+            <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 sm:p-7 border border-slate-200/80 dark:border-slate-800 shadow-xs flex flex-col justify-between">
+              <div>
+                <div className="flex items-center justify-between pb-4 mb-5 border-b border-slate-100 dark:border-slate-800">
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-8 h-8 rounded-xl bg-teal-50 dark:bg-teal-950/60 text-teal-600 dark:text-teal-400 flex items-center justify-center">
+                      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>
+                    </div>
+                    <h3 className="font-extrabold text-slate-900 dark:text-white text-base">
+                      General Information
+                    </h3>
                   </div>
                 </div>
-                {userData?.Role && (
-                  <div className="mb-0 sm:mb-2 px-4 py-1.5 rounded-full bg-teal-50 dark:bg-teal-900/30 border border-teal-200 dark:border-teal-800/30 text-teal-700 dark:text-teal-400 font-semibold text-sm shadow-sm flex items-center gap-2 self-start sm:self-auto">
-                    <span className="shrink-0 w-2 h-2 rounded-full bg-teal-500"></span>
-                    <span className="whitespace-nowrap">{userData.Role} Access</span>
+
+                {isEditing ? (
+                  <div className="space-y-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                      <div>
+                        <label className="text-xs font-bold text-slate-600 dark:text-slate-400 mb-1 block">First Name</label>
+                        <input type="text" value={editForm.First_Name} onChange={e => setEditForm({ ...editForm, First_Name: e.target.value })} className="w-full px-3.5 py-2.5 border border-slate-200 dark:border-slate-700 rounded-xl text-xs sm:text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-teal-500 bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-white" />
+                      </div>
+                      <div>
+                        <label className="text-xs font-bold text-slate-600 dark:text-slate-400 mb-1 block">Middle Name</label>
+                        <input type="text" value={editForm.Middle_Name} onChange={e => setEditForm({ ...editForm, Middle_Name: e.target.value })} className="w-full px-3.5 py-2.5 border border-slate-200 dark:border-slate-700 rounded-xl text-xs sm:text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-teal-500 bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-white" />
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                      <div>
+                        <label className="text-xs font-bold text-slate-600 dark:text-slate-400 mb-1 block">Last Name</label>
+                        <input type="text" value={editForm.Last_Name} onChange={e => setEditForm({ ...editForm, Last_Name: e.target.value })} className="w-full px-3.5 py-2.5 border border-slate-200 dark:border-slate-700 rounded-xl text-xs sm:text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-teal-500 bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-white" />
+                      </div>
+                      <div>
+                        <label className="text-xs font-bold text-slate-600 dark:text-slate-400 mb-1 block">Suffix</label>
+                        <input type="text" value={editForm.Suffix} onChange={e => setEditForm({ ...editForm, Suffix: e.target.value })} placeholder="E.g., Jr., Sr., III" className="w-full px-3.5 py-2.5 border border-slate-200 dark:border-slate-700 rounded-xl text-xs sm:text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-teal-500 bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-white" />
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="text-xs font-bold text-slate-600 dark:text-slate-400 mb-1 block">Position</label>
+                      <input type="text" value={editForm.Position} onChange={e => setEditForm({ ...editForm, Position: e.target.value })} className="w-full px-3.5 py-2.5 border border-slate-200 dark:border-slate-700 rounded-xl text-xs sm:text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-teal-500 bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-white" />
+                    </div>
+
+                    <div>
+                      <label className="text-xs font-bold text-slate-600 dark:text-slate-400 mb-1 block">Sex</label>
+                      <div className="relative">
+                        <select
+                          value={editForm.sex || ''}
+                          onChange={(e) => setEditForm({ ...editForm, sex: e.target.value })}
+                          className="w-full px-3.5 py-2.5 border border-slate-200 dark:border-slate-700 rounded-xl text-xs sm:text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-teal-500 bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-white"
+                        >
+                          <option value="">Select sex...</option>
+                          <option value="Male">Male</option>
+                          <option value="Female">Female</option>
+                        </select>
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-800/40 border border-slate-100 dark:border-slate-800">
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 block mb-1">Full Legal Name</span>
+                      <span className="text-sm font-bold text-slate-900 dark:text-white">{fullName}</span>
+                    </div>
+
+                    <div className="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-800/40 border border-slate-100 dark:border-slate-800">
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 block mb-1">Position / Designation</span>
+                      <span className="text-sm font-bold text-slate-900 dark:text-white">{userData?.Position || 'N/A'}</span>
+                    </div>
+
+                    <div className="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-800/40 border border-slate-100 dark:border-slate-800">
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 block mb-1">Primary Email</span>
+                      <span className="text-xs sm:text-sm font-semibold text-slate-700 dark:text-slate-300 break-all">{user?.primaryEmailAddress?.emailAddress}</span>
+                    </div>
+
+                    <div className="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-800/40 border border-slate-100 dark:border-slate-800">
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 block mb-1">Sex</span>
+                      <span className="text-sm font-bold text-slate-900 dark:text-white">{userData?.sex || 'N/A'}</span>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Employment & Compensation Details Card */}
+            <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 sm:p-7 border border-slate-200/80 dark:border-slate-800 shadow-xs flex flex-col justify-between">
+              <div>
+                <div className="flex items-center justify-between pb-4 mb-5 border-b border-slate-100 dark:border-slate-800">
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-8 h-8 rounded-xl bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
+                      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>
+                    </div>
+                    <h3 className="font-extrabold text-slate-900 dark:text-white text-base">
+                      Employment & Compensation
+                    </h3>
+                  </div>
+                </div>
+
+                {isEditing ? (
+                  <div className="space-y-4">
+                    <div>
+                      <label className="text-xs font-bold text-slate-600 dark:text-slate-400 mb-1 flex items-center justify-between">
+                        <span>Employment Status</span>
+                        {!isAdmin && <span className="text-[10px] text-slate-400 font-normal">Admin editable</span>}
+                      </label>
+                      <input 
+                        type="text" 
+                        value={editForm.emp_stat} 
+                        onChange={e => setEditForm({ ...editForm, emp_stat: e.target.value })} 
+                        disabled={!isAdmin}
+                        className="w-full px-3.5 py-2.5 border border-slate-200 dark:border-slate-700 rounded-xl text-xs sm:text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-teal-500 disabled:bg-slate-100 dark:disabled:bg-slate-800/60 disabled:text-slate-400 bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-white" 
+                      />
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                      <div>
+                        <label className="text-xs font-bold text-slate-600 dark:text-slate-400 mb-1 flex items-center justify-between">
+                          <span>Salary Grade</span>
+                          {!isAdmin && <span className="text-[10px] text-slate-400 font-normal">Admin editable</span>}
+                        </label>
+                        <input 
+                          type="number" 
+                          value={editForm.Salary_Grade} 
+                          onChange={e => setEditForm({ ...editForm, Salary_Grade: e.target.value })} 
+                          disabled={!isAdmin}
+                          className="w-full px-3.5 py-2.5 border border-slate-200 dark:border-slate-700 rounded-xl text-xs sm:text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-teal-500 disabled:bg-slate-100 dark:disabled:bg-slate-800/60 disabled:text-slate-400 bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-white" 
+                        />
+                      </div>
+                      <div>
+                        <label className="text-xs font-bold text-slate-600 dark:text-slate-400 mb-1 flex items-center justify-between">
+                          <span>Monthly Salary (PHP)</span>
+                          {!isAdmin && <span className="text-[10px] text-slate-400 font-normal">Admin editable</span>}
+                        </label>
+                        <input 
+                          type="number" 
+                          step="0.01" 
+                          value={editForm.Salary} 
+                          onChange={e => setEditForm({ ...editForm, Salary: e.target.value })} 
+                          disabled={!isAdmin}
+                          className="w-full px-3.5 py-2.5 border border-slate-200 dark:border-slate-700 rounded-xl text-xs sm:text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-teal-500 disabled:bg-slate-100 dark:disabled:bg-slate-800/60 disabled:text-slate-400 bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-white" 
+                        />
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-800/40 border border-slate-100 dark:border-slate-800">
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 block mb-1">Employment Status</span>
+                      <span className="text-sm font-bold text-slate-900 dark:text-white">{userData?.emp_stat || 'Permanent'}</span>
+                    </div>
+
+                    <div className="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-800/40 border border-slate-100 dark:border-slate-800">
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 block mb-1">Salary Grade</span>
+                      <span className="text-sm font-bold text-slate-900 dark:text-white">{userData?.Salary_Grade ? `SG-${userData.Salary_Grade}` : 'N/A'}</span>
+                    </div>
+
+                    <div className="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-800/40 border border-slate-100 dark:border-slate-800 col-span-1 sm:col-span-2">
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 block mb-1">Monthly Salary Rate</span>
+                      <span className="text-base font-extrabold text-teal-600 dark:text-teal-400 font-mono">{formatCurrency(userData?.Salary)}</span>
+                    </div>
                   </div>
                 )}
               </div>
 
-              {userData ? (
-                <>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-8">
-
-                    {/* General Info */}
-                    <div className="bg-slate-50 dark:bg-slate-800/50 rounded-xl p-6 border border-slate-100 dark:border-slate-800 relative">
-                      {!isEditing && (
-                        <button
-                          onClick={handleEditClick}
-                          className="absolute top-6 right-6 text-slate-400 hover:text-teal-600 transition-colors"
-                          title="Edit Information"
-                        >
-                          <svg className="size-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
-                          </svg>
-                        </button>
-                      )}
-                      <h3 className="text-sm font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-4 flex items-center gap-2">
-                        <svg className="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V8a2 2 0 00-2-2h-5m-4 0V5a2 2 0 114 0v1m-4 0a2 2 0 104 0m-5 8a2 2 0 100-4 2 2 0 000 4zm0 0c1.306 0 2.417.835 2.83 2M9 14a3.001 3.001 0 00-2.83 2M15 11h3m-3 4h2" /></svg>
-                        General Information
-                      </h3>
-
-                      {isEditing ? (
-                        <div className="space-y-4">
-                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                            <div>
-                              <label className="text-xs text-slate-500 dark:text-slate-400 mb-1 block">First Name</label>
-                              <input type="text" value={editForm.First_Name} onChange={e => setEditForm({ ...editForm, First_Name: e.target.value })} className="w-full px-3 py-1.5 border border-slate-300 dark:border-slate-700 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 bg-white dark:bg-slate-900 text-slate-900 dark:text-white" />
-                            </div>
-                            <div>
-                              <label className="text-xs text-slate-500 dark:text-slate-400 mb-1 block">Last Name</label>
-                              <input type="text" value={editForm.Last_Name} onChange={e => setEditForm({ ...editForm, Last_Name: e.target.value })} className="w-full px-3 py-1.5 border border-slate-300 dark:border-slate-700 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 bg-white dark:bg-slate-900 text-slate-900 dark:text-white" />
-                            </div>
-                          </div>
-                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                            <div>
-                              <label className="text-xs text-slate-500 dark:text-slate-400 mb-1 block">Middle Name</label>
-                              <input type="text" value={editForm.Middle_Name} onChange={e => setEditForm({ ...editForm, Middle_Name: e.target.value })} className="w-full px-3 py-1.5 border border-slate-300 dark:border-slate-700 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 bg-white dark:bg-slate-900 text-slate-900 dark:text-white" />
-                            </div>
-                            <div>
-                              <label className="text-xs text-slate-500 dark:text-slate-400 mb-1 block">Suffix</label>
-                              <input type="text" value={editForm.Suffix} onChange={e => setEditForm({ ...editForm, Suffix: e.target.value })} className="w-full px-3 py-1.5 border border-slate-300 dark:border-slate-700 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 bg-white dark:bg-slate-900 text-slate-900 dark:text-white" />
-                            </div>
-                          </div>
-                          <div>
-                            <label className="text-xs text-slate-500 dark:text-slate-400 mb-1 block">Position</label>
-                            <input type="text" value={editForm.Position} onChange={e => setEditForm({ ...editForm, Position: e.target.value })} className="w-full px-3 py-1.5 border border-slate-300 dark:border-slate-700 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 bg-white dark:bg-slate-900 text-slate-900 dark:text-white" />
-                          </div>
-                          <div>
-                            <label className="text-xs text-slate-500 dark:text-slate-400 mb-1 block">Sex</label>
-                            <div className="relative">
-                              <div className="relative flex items-center">
-                                <input
-                                  type="text"
-                                  value={editForm.sex || ''}
-                                  onChange={(e) => setEditForm({ ...editForm, sex: e.target.value })}
-                                  onFocus={() => setIsSexDropdownOpen(true)}
-                                  onBlur={() => setTimeout(() => setIsSexDropdownOpen(false), 200)}
-                                  placeholder="Select sex..."
-                                  className="w-full px-3 py-1.5 border border-slate-300 dark:border-slate-700 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 bg-white dark:bg-slate-900 text-slate-900 dark:text-white pr-8"
-                                />
-                                <button
-                                  type="button"
-                                  onClick={() => setIsSexDropdownOpen(!isSexDropdownOpen)}
-                                  className="absolute right-1 p-1 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 rounded transition-colors"
-                                >
-                                  <svg className={`size-4 transition-transform duration-200 ${isSexDropdownOpen ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                                  </svg>
-                                </button>
-                              </div>
-                              {isSexDropdownOpen && (
-                                <div className="absolute z-10 w-full mt-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg shadow-lg max-h-40 overflow-auto py-1">
-                                  {["Male", "Female"]
-                                    .filter(opt => opt.toLowerCase().includes((editForm.sex || "").toLowerCase()))
-                                    .map((opt) => (
-                                      <button
-                                        key={opt}
-                                        type="button"
-                                        onClick={() => { setEditForm({ ...editForm, sex: opt }); setIsSexDropdownOpen(false); }}
-                                        className="w-full text-left px-3 py-1.5 hover:bg-teal-50 dark:hover:bg-teal-900/30 hover:text-teal-700 dark:hover:text-teal-400 transition-colors text-sm text-slate-700 dark:text-slate-300 focus:bg-teal-50 dark:focus:bg-teal-900/30 focus:outline-none"
-                                      >
-                                        {opt}
-                                      </button>
-                                    ))}
-                                </div>
-                              )}
-                            </div>
-                          </div>
-                        </div>
-                      ) : (
-                        <div className="space-y-4">
-                          <div>
-                            <div className="text-xs text-slate-500 dark:text-slate-400 mb-1">Full Name</div>
-                            <div className="font-medium text-slate-900 dark:text-white">
-                              {`${userData.First_Name || ''} ${userData.Middle_Name ? userData.Middle_Name.charAt(0).toUpperCase() + '.' : ''} ${userData.Last_Name || ''} ${userData.Suffix || ''}`.replace(/\s+/g, ' ').trim() || 'N/A'}
-                            </div>
-                          </div>
-                          <div>
-                            <div className="text-xs text-slate-500 dark:text-slate-400 mb-1">Position</div>
-                            <div className="font-medium text-slate-900 dark:text-white">{userData.Position || 'N/A'}</div>
-                          </div>
-                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                            <div>
-                              <div className="text-xs text-slate-500 dark:text-slate-400 mb-1">Sex</div>
-                              <div className="font-medium text-slate-900 dark:text-white">{userData.sex || 'N/A'}</div>
-                            </div>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Employment Details */}
-                    <div className="bg-slate-50 dark:bg-slate-800/50 rounded-xl p-6 border border-slate-100 dark:border-slate-800 flex flex-col justify-between">
-                      <div>
-                        <h3 className="text-sm font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-4 flex items-center gap-2">
-                          <svg className="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>
-                          Employment Details
-                        </h3>
-
-                        {isEditing ? (
-                          <div className="space-y-4">
-                            <div>
-                              <label className="text-xs text-slate-500 dark:text-slate-400 mb-1 flex items-center gap-1">
-                                Employment Status
-                                {!(userData.Role === 'Admin' || userData.Role === 'Super Admin') && (
-                                  <svg className="size-3 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" title="Only Admin can edit this field"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>
-                                )}
-                              </label>
-                              <input 
-                                type="text" 
-                                value={editForm.emp_stat} 
-                                onChange={e => setEditForm({ ...editForm, emp_stat: e.target.value })} 
-                                disabled={!(userData.Role === 'Admin' || userData.Role === 'Super Admin')}
-                                className="w-full px-3 py-1.5 border border-slate-300 dark:border-slate-700 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 disabled:bg-slate-100 dark:disabled:bg-slate-800 disabled:text-slate-500 dark:disabled:text-slate-400 disabled:cursor-not-allowed bg-white dark:bg-slate-900 text-slate-900 dark:text-white" 
-                              />
-                            </div>
-
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                              <div>
-                                <label className="text-xs text-slate-500 dark:text-slate-400 mb-1 flex items-center gap-1">
-                                  Salary Grade
-                                  {!(userData.Role === 'Admin' || userData.Role === 'Super Admin') && (
-                                    <svg className="size-3 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" title="Only Admin can edit this field"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>
-                                  )}
-                                </label>
-                                <input 
-                                  type="number" 
-                                  value={editForm.Salary_Grade} 
-                                  onChange={e => setEditForm({ ...editForm, Salary_Grade: e.target.value })} 
-                                  disabled={!(userData.Role === 'Admin' || userData.Role === 'Super Admin')}
-                                  className="w-full px-3 py-1.5 border border-slate-300 dark:border-slate-700 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 disabled:bg-slate-100 dark:disabled:bg-slate-800 disabled:text-slate-500 dark:disabled:text-slate-400 disabled:cursor-not-allowed bg-white dark:bg-slate-900 text-slate-900 dark:text-white" 
-                                />
-                              </div>
-                              <div>
-                                <label className="text-xs text-slate-500 dark:text-slate-400 mb-1 flex items-center gap-1">
-                                  Salary
-                                  {!(userData.Role === 'Admin' || userData.Role === 'Super Admin') && (
-                                    <svg className="size-3 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" title="Only Admin can edit this field"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>
-                                  )}
-                                </label>
-                                <input 
-                                  type="number" 
-                                  step="0.01" 
-                                  value={editForm.Salary} 
-                                  onChange={e => setEditForm({ ...editForm, Salary: e.target.value })} 
-                                  disabled={!(userData.Role === 'Admin' || userData.Role === 'Super Admin')}
-                                  className="w-full px-3 py-1.5 border border-slate-300 dark:border-slate-700 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 disabled:bg-slate-100 dark:disabled:bg-slate-800 disabled:text-slate-500 dark:disabled:text-slate-400 disabled:cursor-not-allowed bg-white dark:bg-slate-900 text-slate-900 dark:text-white" 
-                                />
-                              </div>
-                            </div>
-                          </div>
-                        ) : (
-                          <div className="space-y-4">
-                            <div>
-                              <div className="text-xs text-slate-500 dark:text-slate-400 mb-1">Employment Status</div>
-                              <div className="font-medium text-slate-900 dark:text-white">{userData.emp_stat || 'N/A'}</div>
-                            </div>
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                              <div>
-                                <div className="text-xs text-slate-500 dark:text-slate-400 mb-1">Salary Grade</div>
-                                <div className="font-medium text-slate-900 dark:text-white">{userData.Salary_Grade ? `SG-${userData.Salary_Grade}` : 'N/A'}</div>
-                              </div>
-                              <div>
-                                <div className="text-xs text-slate-500 dark:text-slate-400 mb-1">Salary</div>
-                                <div className="font-medium text-slate-900 dark:text-white">{formatCurrency(userData.Salary)}</div>
-                              </div>
-                            </div>
-                          </div>
-                        )}
-                      </div>
-
-                      {isEditing && (
-                        <div className="mt-8 flex justify-end gap-3 pt-4 border-t border-slate-200 dark:border-slate-700">
-                          <button
-                            onClick={() => setIsEditing(false)}
-                            disabled={isSaving}
-                            className="px-4 py-2 text-sm font-medium text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900/40 bg-red-50 dark:bg-red-900/20 rounded-lg transition-colors"
-                          >
-                            Cancel
-                          </button>
-                          <button
-                            onClick={handleSaveChanges}
-                            disabled={isSaving}
-                            className="px-4 py-2 text-sm font-medium text-white bg-gradient-to-r from-teal-500 to-emerald-500 rounded-lg hover:from-teal-400 hover:to-emerald-400 transition-all shadow-sm hover:shadow-md hover:-translate-y-0.5 flex items-center gap-2"
-                          >
-                            {isSaving && <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>}
-                            Save Changes
-                          </button>
-                        </div>
-                      )}
-                    </div>
-
-                  </div>
-
-                  {/* Security Settings */}
-                  <div className="bg-slate-50 dark:bg-slate-800/50 rounded-xl p-6 border border-slate-100 dark:border-slate-800 mt-6">
-                    <h3 className="text-sm font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-6 flex items-center gap-2">
-                      <svg className="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>
-                      Security Settings
-                    </h3>
-
-                    <div className="max-w-md">
-                      <form onSubmit={handleChangePassword} className="space-y-4">
-                        {passwordError && (
-                          <div className="bg-rose-50 text-rose-700 p-2 text-xs rounded border border-rose-200">
-                            {passwordError}
-                          </div>
-                        )}
-                        {passwordSuccess && (
-                          <div className="bg-emerald-50 text-emerald-700 p-2 text-xs rounded border border-emerald-200">
-                            {passwordSuccess}
-                          </div>
-                        )}
-                        <div>
-                          <label className="text-xs text-slate-500 dark:text-slate-400 mb-1 block">Current Password</label>
-                          <input type="password" required value={currentPassword} onChange={e => setCurrentPassword(e.target.value)} className="w-full px-3 py-1.5 border border-slate-300 dark:border-slate-700 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 bg-white dark:bg-slate-900 text-slate-900 dark:text-white" />
-                        </div>
-                        <div>
-                          <label className="text-xs text-slate-500 dark:text-slate-400 mb-1 block">New Password</label>
-                          <input type="password" required value={newPassword} onChange={e => setNewPassword(e.target.value)} className="w-full px-3 py-1.5 border border-slate-300 dark:border-slate-700 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 bg-white dark:bg-slate-900 text-slate-900 dark:text-white" />
-                        </div>
-                        <div>
-                          <label className="text-xs text-slate-500 dark:text-slate-400 mb-1 block">Confirm New Password</label>
-                          <input type="password" required value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} className="w-full px-3 py-1.5 border border-slate-300 dark:border-slate-700 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 bg-white dark:bg-slate-900 text-slate-900 dark:text-white" />
-                        </div>
-                        <div className="pt-2 flex items-center gap-3">
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setCurrentPassword('');
-                              setNewPassword('');
-                              setConfirmPassword('');
-                              setPasswordError('');
-                              setPasswordSuccess('');
-                            }}
-                            className="px-4 py-2 text-sm font-medium text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900/40 bg-red-50 dark:bg-red-900/20 rounded-lg transition-colors"
-                          >
-                            Cancel
-                          </button>
-                          <button
-                            type="submit"
-                            disabled={isChangingPassword || !currentPassword || !newPassword || !confirmPassword}
-                            className="px-4 py-2 text-sm font-medium text-white bg-gradient-to-r from-teal-500 to-emerald-500 rounded-lg hover:from-teal-400 hover:to-emerald-400 transition-all shadow-sm hover:shadow-md hover:-translate-y-0.5 flex items-center gap-2 disabled:opacity-50 disabled:hover:translate-y-0"
-                          >
-                            {isChangingPassword && <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>}
-                            Update Password
-                          </button>
-                        </div>
-                      </form>
-                    </div>
-                  </div>
-
-                  {/* User Management */}
-                  {(userData.Role === 'Admin' || userData.Role === 'Super Admin') && (
-                    <div className="bg-slate-50 dark:bg-slate-800/50 rounded-xl p-6 border border-slate-100 dark:border-slate-800 mt-6">
-                      <h3 className="text-sm font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-6 flex items-center gap-2">
-                        <svg className="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" /></svg>
-                        User Management
-                      </h3>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
-
-                        {/* Update Existing User */}
-                        <div className="flex flex-col gap-4">
-                          <h4 className="text-slate-800 dark:text-white font-semibold border-b border-slate-200 dark:border-slate-700 pb-2">Update User Information</h4>
-                          <div>
-                            <label className="text-xs text-slate-500 dark:text-slate-400 mb-1 block">Select User</label>
-                            <div className={`relative ${isUserDropdownOpen ? 'z-50' : ''}`}>
-                              <div className="relative flex items-center">
-                                <input
-                                  type="text"
-                                  value={selectedUserEmail}
-                                  onChange={(e) => setSelectedUserEmail(e.target.value)}
-                                  onFocus={() => { setIsUserDropdownOpen(true); setSelectedUserEmail(''); setSelectedUserRole(''); }}
-                                  onBlur={() => setTimeout(() => setIsUserDropdownOpen(false), 200)}
-                                  placeholder="Search user by email or name..."
-                                  className="w-full px-3 py-1.5 border border-slate-300 dark:border-slate-700 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 bg-white dark:bg-slate-900 text-slate-900 dark:text-white pr-8"
-                                />
-                                <button
-                                  type="button"
-                                  onClick={() => { setIsUserDropdownOpen(!isUserDropdownOpen); if (!isUserDropdownOpen) { setSelectedUserEmail(''); setSelectedUserRole(''); } }}
-                                  className="absolute right-1 p-1 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 rounded transition-colors"
-                                >
-                                  <svg className={`size-4 transition-transform duration-200 ${isUserDropdownOpen ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                                  </svg>
-                                </button>
-                              </div>
-                              {isUserDropdownOpen && (
-                                <div className="absolute z-10 w-full mt-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg shadow-lg max-h-96 overflow-auto py-1">
-                                  {allUsers
-                                    .filter(u => u.Email.toLowerCase().includes((selectedUserEmail || "").toLowerCase()) || (u.First_Name || "").toLowerCase().includes((selectedUserEmail || "").toLowerCase()))
-                                    .map((u) => (
-                                      <button
-                                        key={u.Email}
-                                        type="button"
-                                        onClick={() => {
-                                          setSelectedUserEmail(u.Email);
-                                          setSelectedUserRole(u.Role || '');
-                                          setSelectedUserFirstName(u.First_Name || '');
-                                          setSelectedUserLastName(u.Last_Name || '');
-                                          setSelectedUserMiddleName(u.Middle_Name || '');
-                                          setSelectedUserSuffix(u.Suffix || '');
-                                          setSelectedUserPosition(u.Position || '');
-                                          setSelectedUserSalary(u.Salary || '');
-                                          setSelectedUserSalaryGrade(u.Salary_Grade || '');
-                                          setSelectedUserIsRegional(u.is_regional === 1);
-                                          setSelectedUserEmpStat(u.emp_stat || '');
-                                          setIsUserDropdownOpen(false);
-                                        }}
-                                        className="w-full text-left px-3 py-1.5 hover:bg-teal-50 dark:hover:bg-teal-900/30 hover:text-teal-700 dark:hover:text-teal-400 transition-colors text-sm text-slate-700 dark:text-slate-300 focus:bg-teal-50 dark:focus:bg-teal-900/30 focus:outline-none flex flex-col"
-                                      >
-                                        <span className="font-medium">{u.First_Name} {u.Last_Name}</span>
-                                        <span className="text-xs text-slate-400 dark:text-slate-500">{u.Email}</span>
-                                      </button>
-                                    ))}
-                                </div>
-                              )}
-                            </div>
-                          </div>
-
-                          {selectedUserEmail && (
-                            <div className="flex flex-col gap-3">
-                              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                <div>
-                                  <label className="text-xs text-slate-500 dark:text-slate-400 mb-1 block">First Name</label>
-                                  <input type="text" value={selectedUserFirstName} onChange={e => setSelectedUserFirstName(e.target.value)} placeholder="First Name" className="w-full px-3 py-1.5 border border-slate-300 dark:border-slate-700 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 bg-white dark:bg-slate-900 text-slate-900 dark:text-white" />
-                                </div>
-                                <div>
-                                  <label className="text-xs text-slate-500 dark:text-slate-400 mb-1 block">Middle Name</label>
-                                  <input type="text" value={selectedUserMiddleName} onChange={e => setSelectedUserMiddleName(e.target.value)} placeholder="Middle Name" className="w-full px-3 py-1.5 border border-slate-300 dark:border-slate-700 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 bg-white dark:bg-slate-900 text-slate-900 dark:text-white" />
-                                </div>
-                              </div>
-                              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                <div>
-                                  <label className="text-xs text-slate-500 dark:text-slate-400 mb-1 block">Last Name</label>
-                                  <input type="text" value={selectedUserLastName} onChange={e => setSelectedUserLastName(e.target.value)} placeholder="Last Name" className="w-full px-3 py-1.5 border border-slate-300 dark:border-slate-700 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 bg-white dark:bg-slate-900 text-slate-900 dark:text-white" />
-                                </div>
-                                <div>
-                                  <label className="text-xs text-slate-500 dark:text-slate-400 mb-1 block">Suffix</label>
-                                  <input type="text" value={selectedUserSuffix} onChange={e => setSelectedUserSuffix(e.target.value)} placeholder="Suffix" className="w-full px-3 py-1.5 border border-slate-300 dark:border-slate-700 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 bg-white dark:bg-slate-900 text-slate-900 dark:text-white" />
-                                </div>
-                              </div>
-                              <div>
-                                <label className="text-xs text-slate-500 dark:text-slate-400 mb-1 block">Position</label>
-                                <input type="text" value={selectedUserPosition} onChange={e => setSelectedUserPosition(e.target.value)} placeholder="Position" className="w-full px-3 py-1.5 border border-slate-300 dark:border-slate-700 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 bg-white dark:bg-slate-900 text-slate-900 dark:text-white" />
-                              </div>
-                              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                <div>
-                                  <label className="text-xs text-slate-500 dark:text-slate-400 mb-1 block">Salary Grade</label>
-                                  <input type="number" value={selectedUserSalaryGrade} onChange={e => setSelectedUserSalaryGrade(e.target.value)} placeholder="Salary Grade" className="w-full px-3 py-1.5 border border-slate-300 dark:border-slate-700 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 bg-white dark:bg-slate-900 text-slate-900 dark:text-white" />
-                                </div>
-                                <div>
-                                  <label className="text-xs text-slate-500 dark:text-slate-400 mb-1 block">Salary</label>
-                                  <input type="number" step="0.01" value={selectedUserSalary} onChange={e => setSelectedUserSalary(e.target.value)} placeholder="Salary" className="w-full px-3 py-1.5 border border-slate-300 dark:border-slate-700 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 bg-white dark:bg-slate-900 text-slate-900 dark:text-white" />
-                                </div>
-                              </div>
-                              <div className="flex items-center gap-2 mt-1 mb-2">
-                                <input type="checkbox" id="updateIsRegional" checked={selectedUserIsRegional} onChange={e => {
-                                  const checked = e.target.checked;
-                                  setSelectedUserIsRegional(checked);
-                                  if (checked) {
-                                    setSelectedUserRole('External Signatory');
-                                    setSelectedUserEmpStat('');
-                                  } else {
-                                    setSelectedUserRole('');
-                                  }
-                                }} className="rounded text-teal-600 focus:ring-teal-500 bg-white dark:bg-slate-900 border-slate-300 dark:border-slate-700" />
-                                <label htmlFor="updateIsRegional" className="text-sm text-slate-700 dark:text-slate-300 font-medium">Is from Regional Office</label>
-                              </div>
-                              {!selectedUserIsRegional && (
-                                <div className="flex flex-col gap-4">
-                                  <div>
-                                    <label className="text-xs text-slate-500 dark:text-slate-400 mb-1 block">System Role</label>
-                                    <div className={`relative ${isUserRoleDropdownOpen ? 'z-50' : ''}`}>
-                                      <div className="relative flex items-center">
-                                        <input
-                                          type="text"
-                                          value={selectedUserRole}
-                                          onChange={(e) => setSelectedUserRole(e.target.value)}
-                                          onFocus={() => { setIsUserRoleDropdownOpen(true); setSelectedUserRole(''); }}
-                                          onBlur={() => setTimeout(() => setIsUserRoleDropdownOpen(false), 200)}
-                                          placeholder="Select a role..."
-                                          className="w-full px-3 py-1.5 border border-slate-300 dark:border-slate-700 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 bg-white dark:bg-slate-900 text-slate-900 dark:text-white pr-8"
-                                        />
-                                        <button
-                                          type="button"
-                                          onClick={() => { setIsUserRoleDropdownOpen(!isUserRoleDropdownOpen); if (!isUserRoleDropdownOpen) setSelectedUserRole(''); }}
-                                          className="absolute right-1 p-1 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 rounded transition-colors"
-                                        >
-                                          <svg className={`size-4 transition-transform duration-200 ${isUserRoleDropdownOpen ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                                          </svg>
-                                        </button>
-                                      </div>
-                                      {isUserRoleDropdownOpen && (
-                                        <div className="absolute z-10 w-full mt-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg shadow-lg max-h-60 overflow-auto py-1">
-                                          {(userData.Role === 'Super Admin' ? ["Super Admin", "Admin", "PACD", "Staff", "Focal Person", "External Signatory"] : ["PACD", "Staff", "Focal Person"])
-                                            .filter(role => role.toLowerCase().includes((selectedUserRole || "").toLowerCase()))
-                                            .map((role) => (
-                                              <button
-                                                key={role}
-                                                type="button"
-                                                onClick={() => { setSelectedUserRole(role); setIsUserRoleDropdownOpen(false); }}
-                                                className="w-full text-left px-3 py-1.5 hover:bg-teal-50 dark:hover:bg-teal-900/30 hover:text-teal-700 dark:hover:text-teal-400 transition-colors text-sm text-slate-700 dark:text-slate-300 focus:bg-teal-50 dark:focus:bg-teal-900/30 focus:outline-none"
-                                              >
-                                                {role}
-                                              </button>
-                                            ))}
-                                        </div>
-                                      )}
-                                    </div>
-                                  </div>
-                                  <div>
-                                    <label className="text-xs text-slate-500 dark:text-slate-400 mb-1 block">Employment Status</label>
-                                    <div className={`relative ${isSelectedUserEmpStatDropdownOpen ? 'z-50' : ''}`}>
-                                      <div className="relative flex items-center">
-                                        <input
-                                          type="text"
-                                          value={selectedUserEmpStat}
-                                          onChange={(e) => setSelectedUserEmpStat(e.target.value)}
-                                          onFocus={() => setIsSelectedUserEmpStatDropdownOpen(true)}
-                                          onBlur={() => setTimeout(() => setIsSelectedUserEmpStatDropdownOpen(false), 200)}
-                                          placeholder="Select employment status..."
-                                          className="w-full px-3 py-1.5 border border-slate-300 dark:border-slate-700 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 bg-white dark:bg-slate-900 text-slate-900 dark:text-white pr-8"
-                                        />
-                                        <button
-                                          type="button"
-                                          onClick={() => setIsSelectedUserEmpStatDropdownOpen(!isSelectedUserEmpStatDropdownOpen)}
-                                          className="absolute right-1 p-1 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 rounded transition-colors"
-                                        >
-                                          <svg className={`size-4 transition-transform duration-200 ${isSelectedUserEmpStatDropdownOpen ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                                          </svg>
-                                        </button>
-                                      </div>
-                                      {isSelectedUserEmpStatDropdownOpen && (
-                                        <div className="absolute z-10 w-full mt-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg shadow-lg max-h-60 overflow-auto py-1">
-                                          {["COSW", "Permanent", "Contractual"]
-                                            .filter(stat => stat.toLowerCase().includes((selectedUserEmpStat || "").toLowerCase()))
-                                            .map((stat) => (
-                                              <button
-                                                key={stat}
-                                                type="button"
-                                                onClick={() => { setSelectedUserEmpStat(stat); setIsSelectedUserEmpStatDropdownOpen(false); }}
-                                                className="w-full text-left px-3 py-1.5 hover:bg-teal-50 dark:hover:bg-teal-900/30 hover:text-teal-700 dark:hover:text-teal-400 transition-colors text-sm text-slate-700 dark:text-slate-300 focus:bg-teal-50 dark:focus:bg-teal-900/30 focus:outline-none"
-                                              >
-                                                {stat}
-                                              </button>
-                                            ))}
-                                        </div>
-                                      )}
-                                    </div>
-                                  </div>
-                                </div>
-                              )}
-                              <div className="mt-4 flex justify-end gap-3">
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    setSelectedUserEmail('');
-                                    setSelectedUserFirstName('');
-                                    setSelectedUserMiddleName('');
-                                    setSelectedUserLastName('');
-                                    setSelectedUserSuffix('');
-                                    setSelectedUserPosition('');
-                                    setSelectedUserSalary('');
-                                    setSelectedUserSalaryGrade('');
-                                    setSelectedUserIsRegional(false);
-                                    setSelectedUserEmpStat('');
-                                    setSelectedUserRole('');
-                                  }}
-                                  className="px-4 py-2 text-sm font-medium text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900/40 bg-red-50 dark:bg-red-900/20 rounded-lg transition-colors"
-                                >
-                                  Cancel
-                                </button>
-                                <button
-                                  onClick={handleUpdateUserRole}
-                                  disabled={isUpdatingRole || !selectedUserRole}
-                                  className="px-4 py-2 text-sm font-medium text-white bg-gradient-to-r from-teal-500 to-emerald-500 rounded-lg hover:from-teal-400 hover:to-emerald-400 transition-all shadow-sm hover:shadow-md hover:-translate-y-0.5 flex items-center gap-2 disabled:opacity-50 disabled:hover:translate-y-0"
-                                >
-                                  {isUpdatingRole && <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>}
-                                  Save Changes
-                                </button>
-                              </div>
-                            </div>
-                          )}
-                        </div>
-
-                        {/* Create New User */}
-                        <div className="flex flex-col gap-4">
-                          <h4 className="text-slate-800 dark:text-white font-semibold border-b border-slate-200 dark:border-slate-700 pb-2">Create New User</h4>
-
-                          {createUserSuccess && (
-                            <div className="bg-emerald-50 text-emerald-700 p-2 text-xs rounded border border-emerald-200">
-                              {createUserSuccess}
-                            </div>
-                          )}
-
-                          <div>
-                            <label className="text-xs text-slate-500 dark:text-slate-400 mb-1 block">Email</label>
-                            <input type="email" value={newUserEmail} onChange={e => setNewUserEmail(e.target.value)} placeholder="Email Address" className="w-full px-3 py-1.5 border border-slate-300 dark:border-slate-700 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 bg-white dark:bg-slate-900 text-slate-900 dark:text-white" />
-                          </div>
-                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                            <div>
-                              <label className="text-xs text-slate-500 dark:text-slate-400 mb-1 block">First Name</label>
-                              <input type="text" value={newUserFirstName} onChange={e => setNewUserFirstName(e.target.value)} placeholder="First Name" className="w-full px-3 py-1.5 border border-slate-300 dark:border-slate-700 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 bg-white dark:bg-slate-900 text-slate-900 dark:text-white" />
-                            </div>
-                            <div>
-                              <label className="text-xs text-slate-500 dark:text-slate-400 mb-1 block">Middle Name (Optional)</label>
-                              <input type="text" value={newUserMiddleName} onChange={e => setNewUserMiddleName(e.target.value)} placeholder="Middle Name" className="w-full px-3 py-1.5 border border-slate-300 dark:border-slate-700 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 bg-white dark:bg-slate-900 text-slate-900 dark:text-white" />
-                            </div>
-                          </div>
-                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                            <div>
-                              <label className="text-xs text-slate-500 dark:text-slate-400 mb-1 block">Last Name</label>
-                              <input type="text" value={newUserLastName} onChange={e => setNewUserLastName(e.target.value)} placeholder="Last Name" className="w-full px-3 py-1.5 border border-slate-300 dark:border-slate-700 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 bg-white dark:bg-slate-900 text-slate-900 dark:text-white" />
-                            </div>
-                            <div>
-                              <label className="text-xs text-slate-500 dark:text-slate-400 mb-1 block">Suffix (Optional)</label>
-                              <input type="text" value={newUserSuffix} onChange={e => setNewUserSuffix(e.target.value)} placeholder="E.g., Jr., Sr., III" className="w-full px-3 py-1.5 border border-slate-300 dark:border-slate-700 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 bg-white dark:bg-slate-900 text-slate-900 dark:text-white" />
-                            </div>
-                          </div>
-
-                          <div>
-                            <label className="text-xs text-slate-500 dark:text-slate-400 mb-1 block">Position</label>
-                            <input type="text" value={newUserPosition} onChange={e => setNewUserPosition(e.target.value)} placeholder="Position" className="w-full px-3 py-1.5 border border-slate-300 dark:border-slate-700 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 bg-white dark:bg-slate-900 text-slate-900 dark:text-white" />
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <input type="checkbox" id="newIsRegional" checked={newUserIsRegional} onChange={e => {
-                              const checked = e.target.checked;
-                              setNewUserIsRegional(checked);
-                              if (checked) {
-                                setNewUserRole('External Signatory');
-                                setNewUserEmpStat('');
-                              } else {
-                                setNewUserRole('');
-                              }
-                            }} className="rounded text-teal-600 focus:ring-teal-500 bg-white dark:bg-slate-900 border-slate-300 dark:border-slate-700" />
-                            <label htmlFor="newIsRegional" className="text-sm text-slate-700 dark:text-slate-300 font-medium">Is from Regional Office</label>
-                          </div>
-
-                          {!newUserIsRegional && (
-                            <div className="flex flex-col gap-4">
-                              <div>
-                                <label className="text-xs text-slate-500 dark:text-slate-400 mb-1 block">System Role</label>
-                                <div className={`relative ${isNewUserRoleDropdownOpen ? 'z-50' : ''}`}>
-                                  <div className="relative flex items-center">
-                                    <input
-                                      type="text"
-                                      value={newUserRole}
-                                      onChange={(e) => setNewUserRole(e.target.value)}
-                                      onFocus={() => setIsNewUserRoleDropdownOpen(true)}
-                                      onBlur={() => setTimeout(() => setIsNewUserRoleDropdownOpen(false), 200)}
-                                      placeholder="Select a role..."
-                                      className="w-full px-3 py-1.5 border border-slate-300 dark:border-slate-700 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 bg-white dark:bg-slate-900 text-slate-900 dark:text-white pr-8"
-                                    />
-                                    <button
-                                      type="button"
-                                      onClick={() => setIsNewUserRoleDropdownOpen(!isNewUserRoleDropdownOpen)}
-                                      className="absolute right-1 p-1 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 rounded transition-colors"
-                                    >
-                                      <svg className={`size-4 transition-transform duration-200 ${isNewUserRoleDropdownOpen ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                                      </svg>
-                                    </button>
-                                  </div>
-                                  {isNewUserRoleDropdownOpen && (
-                                    <div className="absolute z-10 w-full mt-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg shadow-lg max-h-60 overflow-auto py-1">
-                                      {(userData.Role === 'Super Admin' ? ["Super Admin", "Admin", "PACD", "Staff", "Focal Person"] : ["PACD", "Staff", "Focal Person"])
-                                        .filter(role => role.toLowerCase().includes((newUserRole || "").toLowerCase()))
-                                        .map((role) => (
-                                          <button
-                                            key={role}
-                                            type="button"
-                                            onClick={() => { setNewUserRole(role); setIsNewUserRoleDropdownOpen(false); }}
-                                            className="w-full text-left px-3 py-1.5 hover:bg-teal-50 dark:hover:bg-teal-900/30 hover:text-teal-700 dark:hover:text-teal-400 transition-colors text-sm text-slate-700 dark:text-slate-300 focus:bg-teal-50 dark:focus:bg-teal-900/30 focus:outline-none"
-                                          >
-                                            {role}
-                                          </button>
-                                        ))}
-                                    </div>
-                                  )}
-                                </div>
-                              </div>
-
-                              <div>
-                                <label className="text-xs text-slate-500 dark:text-slate-400 mb-1 block">Employment Status</label>
-                                <div className={`relative ${isNewUserEmpStatDropdownOpen ? 'z-50' : ''}`}>
-                                  <div className="relative flex items-center">
-                                    <input
-                                      type="text"
-                                      value={newUserEmpStat}
-                                      onChange={(e) => setNewUserEmpStat(e.target.value)}
-                                      onFocus={() => setIsNewUserEmpStatDropdownOpen(true)}
-                                      onBlur={() => setTimeout(() => setIsNewUserEmpStatDropdownOpen(false), 200)}
-                                      placeholder="Select employment status..."
-                                      className="w-full px-3 py-1.5 border border-slate-300 dark:border-slate-700 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 bg-white dark:bg-slate-900 text-slate-900 dark:text-white pr-8"
-                                    />
-                                    <button
-                                      type="button"
-                                      onClick={() => setIsNewUserEmpStatDropdownOpen(!isNewUserEmpStatDropdownOpen)}
-                                      className="absolute right-1 p-1 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 rounded transition-colors"
-                                    >
-                                      <svg className={`size-4 transition-transform duration-200 ${isNewUserEmpStatDropdownOpen ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                                      </svg>
-                                    </button>
-                                  </div>
-                                  {isNewUserEmpStatDropdownOpen && (
-                                    <div className="absolute z-10 w-full mt-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg shadow-lg max-h-60 overflow-auto py-1">
-                                      {["COSW", "Permanent", "Contractual"]
-                                        .filter(stat => stat.toLowerCase().includes((newUserEmpStat || "").toLowerCase()))
-                                        .map((stat) => (
-                                          <button
-                                            key={stat}
-                                            type="button"
-                                            onClick={() => { setNewUserEmpStat(stat); setIsNewUserEmpStatDropdownOpen(false); }}
-                                            className="w-full text-left px-3 py-1.5 hover:bg-teal-50 dark:hover:bg-teal-900/30 hover:text-teal-700 dark:hover:text-teal-400 transition-colors text-sm text-slate-700 dark:text-slate-300 focus:bg-teal-50 dark:focus:bg-teal-900/30 focus:outline-none"
-                                          >
-                                            {stat}
-                                          </button>
-                                        ))}
-                                    </div>
-                                  )}
-                                </div>
-                              </div>
-                            </div>
-                          )}
-
-                          <div className="mt-4 flex justify-end gap-3">
-                            <button
-                              type="button"
-                              onClick={() => {
-                                setNewUserEmail('');
-                                setNewUserFirstName('');
-                                setNewUserLastName('');
-                                setNewUserMiddleName('');
-                                setNewUserSuffix('');
-                                setNewUserPosition('');
-                                setNewUserEmpStat('');
-                                setNewUserIsRegional(false);
-                                setNewUserRole('');
-                                setCreateUserSuccess('');
-                              }}
-                              className="px-4 py-2 text-sm font-medium text-slate-600 dark:text-slate-300 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors"
-                            >
-                              Cancel
-                            </button>
-                            <button
-                              onClick={handleCreateUser}
-                              disabled={isCreatingUser || !newUserEmail || !newUserFirstName || !newUserLastName || !newUserRole}
-                              className="px-4 py-2 text-sm font-medium text-white bg-gradient-to-r from-teal-500 to-emerald-500 rounded-lg hover:from-teal-400 hover:to-emerald-400 transition-all shadow-sm hover:shadow-md hover:-translate-y-0.5 flex items-center gap-2 disabled:opacity-50 disabled:hover:translate-y-0"
-                            >
-                              {isCreatingUser && <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>}
-                              Create User
-                            </button>
-                          </div>
-                        </div>
-
-                      </div>
-                    </div>
-                  )}
-                </>
-              ) : (
-                <div className="mt-8 text-center py-12 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-slate-100 dark:border-slate-800 border-dashed">
-                  <div className="w-12 h-12 bg-slate-200 dark:bg-slate-700 text-slate-400 dark:text-slate-500 rounded-full flex items-center justify-center mx-auto mb-3">
-                    <svg className="size-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
-                  </div>
-                  <h3 className="text-slate-900 dark:text-white font-medium mb-1">No Profile Data Found</h3>
-                  <p className="text-slate-500 dark:text-slate-400 text-sm max-w-sm mx-auto">Your account is active, but we couldn't find an associated record in the permissions database. Please contact an Administrator to update your profile.</p>
+              {isEditing && (
+                <div className="mt-8 flex justify-end gap-3 pt-4 border-t border-slate-100 dark:border-slate-800">
+                  <button
+                    onClick={() => setIsEditing(false)}
+                    disabled={isSaving}
+                    className="px-4 py-2.5 text-xs font-bold text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-colors"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={handleSaveChanges}
+                    disabled={isSaving}
+                    className="px-6 py-2.5 text-xs font-bold text-white bg-gradient-to-r from-teal-500 to-emerald-600 rounded-xl hover:shadow-lg hover:shadow-teal-500/20 active:scale-95 transition-all flex items-center gap-2"
+                  >
+                    {isSaving && <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>}
+                    Save Profile
+                  </button>
                 </div>
               )}
             </div>
+
           </div>
-        </div>
+        )}
+
+        {/* Tab 2: Security & Credentials */}
+        {activeTab === 'security' && (
+          <div className="max-w-2xl mx-auto w-full bg-white dark:bg-slate-900 rounded-3xl p-6 sm:p-8 border border-slate-200/80 dark:border-slate-800 shadow-xs">
+            <div className="flex items-center gap-3 pb-5 mb-6 border-b border-slate-100 dark:border-slate-800">
+              <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-amber-500 to-orange-500 text-white flex items-center justify-center shadow-md shadow-amber-500/20">
+                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>
+              </div>
+              <div>
+                <h3 className="text-lg font-black text-slate-900 dark:text-white">Change Account Password</h3>
+                <p className="text-xs text-slate-500 dark:text-slate-400">Keep your account secure with a strong password.</p>
+              </div>
+            </div>
+
+            <form onSubmit={handleChangePassword} className="space-y-4">
+              {passwordError && (
+                <div className="p-3 bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-300 rounded-xl border border-rose-200 dark:border-rose-800/40 text-xs font-semibold flex items-center gap-2">
+                  <svg className="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                  <span>{passwordError}</span>
+                </div>
+              )}
+              {passwordSuccess && (
+                <div className="p-3 bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 rounded-xl border border-emerald-200 dark:border-emerald-800/40 text-xs font-semibold flex items-center gap-2">
+                  <svg className="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                  <span>{passwordSuccess}</span>
+                </div>
+              )}
+
+              <div>
+                <label className="text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5 block">Current Password</label>
+                <div className="relative">
+                  <input
+                    type={showCurrentPassword ? "text" : "password"}
+                    required
+                    value={currentPassword}
+                    onChange={e => setCurrentPassword(e.target.value)}
+                    placeholder="Enter current password"
+                    className="w-full px-4 py-3 border border-slate-200 dark:border-slate-700 rounded-xl text-xs sm:text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-teal-500 bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-white pr-10"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowCurrentPassword(!showCurrentPassword)}
+                    className="absolute right-3 top-3.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+                  >
+                    {showCurrentPassword ? (
+                      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l18 18" /></svg>
+                    ) : (
+                      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
+                    )}
+                  </button>
+                </div>
+              </div>
+
+              <div>
+                <label className="text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5 block">New Password</label>
+                <div className="relative">
+                  <input
+                    type={showNewPassword ? "text" : "password"}
+                    required
+                    value={newPassword}
+                    onChange={e => setNewPassword(e.target.value)}
+                    placeholder="Enter new password (min. 8 characters)"
+                    className="w-full px-4 py-3 border border-slate-200 dark:border-slate-700 rounded-xl text-xs sm:text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-teal-500 bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-white pr-10"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowNewPassword(!showNewPassword)}
+                    className="absolute right-3 top-3.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+                  >
+                    {showNewPassword ? (
+                      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l18 18" /></svg>
+                    ) : (
+                      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
+                    )}
+                  </button>
+                </div>
+              </div>
+
+              <div>
+                <label className="text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5 block">Confirm New Password</label>
+                <div className="relative">
+                  <input
+                    type={showConfirmPassword ? "text" : "password"}
+                    required
+                    value={confirmPassword}
+                    onChange={e => setConfirmPassword(e.target.value)}
+                    placeholder="Repeat new password"
+                    className="w-full px-4 py-3 border border-slate-200 dark:border-slate-700 rounded-xl text-xs sm:text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-teal-500 bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-white pr-10"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                    className="absolute right-3 top-3.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+                  >
+                    {showConfirmPassword ? (
+                      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l18 18" /></svg>
+                    ) : (
+                      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
+                    )}
+                  </button>
+                </div>
+              </div>
+
+              <div className="pt-4 flex justify-end gap-3">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setCurrentPassword('');
+                    setNewPassword('');
+                    setConfirmPassword('');
+                    setPasswordError('');
+                    setPasswordSuccess('');
+                  }}
+                  className="px-4 py-2.5 text-xs font-bold text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-colors"
+                >
+                  Clear
+                </button>
+                <button
+                  type="submit"
+                  disabled={isChangingPassword || !currentPassword || !newPassword || !confirmPassword}
+                  className="px-6 py-2.5 text-xs font-bold text-white bg-gradient-to-r from-teal-500 to-emerald-600 rounded-xl shadow-md shadow-teal-500/20 hover:shadow-lg active:scale-95 disabled:opacity-50 disabled:active:scale-100 transition-all flex items-center gap-2"
+                >
+                  {isChangingPassword && <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>}
+                  Update Password
+                </button>
+              </div>
+            </form>
+          </div>
+        )}
+
+        {/* Tab 3: Admin User Management */}
+        {activeTab === 'admin' && isAdmin && (
+          <div className="flex flex-col gap-5">
+            
+            {/* Sub-navigation bar */}
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 bg-white dark:bg-slate-900 p-2 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xs">
+              <div className="flex items-center gap-1.5 p-1 bg-slate-100 dark:bg-slate-800/60 rounded-xl w-full sm:w-auto overflow-x-auto">
+                <button
+                  onClick={() => setAdminSubTab('update')}
+                  className={`px-4 py-2 rounded-lg text-xs font-bold transition-all flex items-center gap-2 whitespace-nowrap ${
+                    adminSubTab === 'update'
+                      ? 'bg-white dark:bg-slate-900 text-teal-600 dark:text-teal-400 shadow-xs'
+                      : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                  }`}
+                >
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg>
+                  Update User Record
+                </button>
+
+                <button
+                  onClick={() => setAdminSubTab('create')}
+                  className={`px-4 py-2 rounded-lg text-xs font-bold transition-all flex items-center gap-2 whitespace-nowrap ${
+                    adminSubTab === 'create'
+                      ? 'bg-white dark:bg-slate-900 text-teal-600 dark:text-teal-400 shadow-xs'
+                      : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                  }`}
+                >
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" /></svg>
+                  Create New User
+                </button>
+
+                <button
+                  onClick={() => setAdminSubTab('directory')}
+                  className={`px-4 py-2 rounded-lg text-xs font-bold transition-all flex items-center gap-2 whitespace-nowrap ${
+                    adminSubTab === 'directory'
+                      ? 'bg-white dark:bg-slate-900 text-teal-600 dark:text-teal-400 shadow-xs'
+                      : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                  }`}
+                >
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 10h16M4 14h16M4 18h16" /></svg>
+                  Staff Directory ({allUsers.length})
+                </button>
+              </div>
+            </div>
+
+            {/* Sub-tab 1: Update Existing User */}
+            {adminSubTab === 'update' && (
+              <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 sm:p-8 border border-slate-200/80 dark:border-slate-800 shadow-xs max-w-3xl mx-auto w-full">
+                <h4 className="text-base font-extrabold text-slate-900 dark:text-white pb-3 mb-5 border-b border-slate-100 dark:border-slate-800 flex items-center gap-2">
+                  <span className="w-2.5 h-2.5 rounded-full bg-teal-500"></span>
+                  Select & Modify Staff Profile
+                </h4>
+
+                <div className="space-y-4">
+                  <div>
+                    <label className="text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5 block">Search Employee to Update</label>
+                    <div className="relative">
+                      <input
+                        type="text"
+                        value={selectedUserEmail}
+                        onChange={(e) => setSelectedUserEmail(e.target.value)}
+                        onFocus={() => { setIsUserDropdownOpen(true); }}
+                        onBlur={() => setTimeout(() => setIsUserDropdownOpen(false), 250)}
+                        placeholder="Type name or email to search..."
+                        className="w-full px-4 py-3 border border-slate-200 dark:border-slate-700 rounded-xl text-xs sm:text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-teal-500 bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-white pr-10"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setIsUserDropdownOpen(!isUserDropdownOpen)}
+                        className="absolute right-3 top-3.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+                      >
+                        <svg className={`w-4 h-4 transition-transform duration-200 ${isUserDropdownOpen ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                        </svg>
+                      </button>
+
+                      {isUserDropdownOpen && (
+                        <div className="absolute z-50 w-full mt-1.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl shadow-xl max-h-72 overflow-y-auto py-1">
+                          {allUsers
+                            .filter(u => 
+                              u.Email.toLowerCase().includes((selectedUserEmail || "").toLowerCase()) || 
+                              (u.First_Name || "").toLowerCase().includes((selectedUserEmail || "").toLowerCase()) ||
+                              (u.Last_Name || "").toLowerCase().includes((selectedUserEmail || "").toLowerCase())
+                            )
+                            .map((u) => (
+                              <button
+                                key={u.Email}
+                                type="button"
+                                onClick={() => {
+                                  setSelectedUserEmail(u.Email);
+                                  setSelectedUserRole(u.Role || '');
+                                  setSelectedUserFirstName(u.First_Name || '');
+                                  setSelectedUserLastName(u.Last_Name || '');
+                                  setSelectedUserMiddleName(u.Middle_Name || '');
+                                  setSelectedUserSuffix(u.Suffix || '');
+                                  setSelectedUserPosition(u.Position || '');
+                                  setSelectedUserSalary(u.Salary || '');
+                                  setSelectedUserSalaryGrade(u.Salary_Grade || '');
+                                  setSelectedUserIsRegional(u.is_regional === 1);
+                                  setSelectedUserEmpStat(u.emp_stat || '');
+                                  setIsUserDropdownOpen(false);
+                                }}
+                                className="w-full text-left px-4 py-2.5 hover:bg-teal-50 dark:hover:bg-teal-950/40 hover:text-teal-700 dark:hover:text-teal-300 transition-colors text-xs sm:text-sm text-slate-700 dark:text-slate-200 flex items-center justify-between border-b border-slate-50 dark:border-slate-800/40 last:border-none"
+                              >
+                                <div>
+                                  <span className="font-bold block">{u.First_Name} {u.Last_Name} {u.Suffix || ''}</span>
+                                  <span className="text-xs text-slate-400">{u.Email}</span>
+                                </div>
+                                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400">
+                                  {u.Role || 'Staff'}
+                                </span>
+                              </button>
+                            ))}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {selectedUserEmail && (
+                    <div className="space-y-4 pt-3">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                        <div>
+                          <label className="text-xs font-bold text-slate-600 dark:text-slate-400 mb-1 block">First Name</label>
+                          <input type="text" value={selectedUserFirstName} onChange={e => setSelectedUserFirstName(e.target.value)} className="w-full px-3.5 py-2.5 border border-slate-200 dark:border-slate-700 rounded-xl text-xs sm:text-sm font-semibold focus:ring-2 focus:ring-teal-500 bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-white" />
+                        </div>
+                        <div>
+                          <label className="text-xs font-bold text-slate-600 dark:text-slate-400 mb-1 block">Middle Name</label>
+                          <input type="text" value={selectedUserMiddleName} onChange={e => setSelectedUserMiddleName(e.target.value)} className="w-full px-3.5 py-2.5 border border-slate-200 dark:border-slate-700 rounded-xl text-xs sm:text-sm font-semibold focus:ring-2 focus:ring-teal-500 bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-white" />
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                        <div>
+                          <label className="text-xs font-bold text-slate-600 dark:text-slate-400 mb-1 block">Last Name</label>
+                          <input type="text" value={selectedUserLastName} onChange={e => setSelectedUserLastName(e.target.value)} className="w-full px-3.5 py-2.5 border border-slate-200 dark:border-slate-700 rounded-xl text-xs sm:text-sm font-semibold focus:ring-2 focus:ring-teal-500 bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-white" />
+                        </div>
+                        <div>
+                          <label className="text-xs font-bold text-slate-600 dark:text-slate-400 mb-1 block">Suffix</label>
+                          <input type="text" value={selectedUserSuffix} onChange={e => setSelectedUserSuffix(e.target.value)} placeholder="E.g., Jr., Sr., III" className="w-full px-3.5 py-2.5 border border-slate-200 dark:border-slate-700 rounded-xl text-xs sm:text-sm font-semibold focus:ring-2 focus:ring-teal-500 bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-white" />
+                        </div>
+                      </div>
+
+                      <div>
+                        <label className="text-xs font-bold text-slate-600 dark:text-slate-400 mb-1 block">Position</label>
+                        <input type="text" value={selectedUserPosition} onChange={e => setSelectedUserPosition(e.target.value)} className="w-full px-3.5 py-2.5 border border-slate-200 dark:border-slate-700 rounded-xl text-xs sm:text-sm font-semibold focus:ring-2 focus:ring-teal-500 bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-white" />
+                      </div>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                        <div>
+                          <label className="text-xs font-bold text-slate-600 dark:text-slate-400 mb-1 block">Salary Grade</label>
+                          <input type="number" value={selectedUserSalaryGrade} onChange={e => setSelectedUserSalaryGrade(e.target.value)} className="w-full px-3.5 py-2.5 border border-slate-200 dark:border-slate-700 rounded-xl text-xs sm:text-sm font-semibold focus:ring-2 focus:ring-teal-500 bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-white" />
+                        </div>
+                        <div>
+                          <label className="text-xs font-bold text-slate-600 dark:text-slate-400 mb-1 block">Monthly Salary (PHP)</label>
+                          <input type="number" step="0.01" value={selectedUserSalary} onChange={e => setSelectedUserSalary(e.target.value)} className="w-full px-3.5 py-2.5 border border-slate-200 dark:border-slate-700 rounded-xl text-xs sm:text-sm font-semibold focus:ring-2 focus:ring-teal-500 bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-white" />
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                        <div>
+                          <label className="text-xs font-bold text-slate-600 dark:text-slate-400 mb-1 block">System Role</label>
+                          <select
+                            value={selectedUserRole}
+                            onChange={e => setSelectedUserRole(e.target.value)}
+                            className="w-full px-3.5 py-2.5 border border-slate-200 dark:border-slate-700 rounded-xl text-xs sm:text-sm font-semibold focus:ring-2 focus:ring-teal-500 bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-white"
+                          >
+                            <option value="">Select a role...</option>
+                            <option value="Super Admin">Super Admin</option>
+                            <option value="Admin">Admin</option>
+                            <option value="PACD">PACD</option>
+                            <option value="Staff">Staff</option>
+                            <option value="Focal Person">Focal Person</option>
+                            <option value="External Signatory">External Signatory</option>
+                          </select>
+                        </div>
+
+                        <div>
+                          <label className="text-xs font-bold text-slate-600 dark:text-slate-400 mb-1 block">Employment Status</label>
+                          <select
+                            value={selectedUserEmpStat}
+                            onChange={e => setSelectedUserEmpStat(e.target.value)}
+                            className="w-full px-3.5 py-2.5 border border-slate-200 dark:border-slate-700 rounded-xl text-xs sm:text-sm font-semibold focus:ring-2 focus:ring-teal-500 bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-white"
+                          >
+                            <option value="">Select status...</option>
+                            <option value="Permanent">Permanent</option>
+                            <option value="COSW">COSW</option>
+                            <option value="Contractual">Contractual</option>
+                          </select>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-2.5 p-3 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700">
+                        <input
+                          type="checkbox"
+                          id="updateIsRegional"
+                          checked={selectedUserIsRegional}
+                          onChange={e => setSelectedUserIsRegional(e.target.checked)}
+                          className="rounded text-teal-600 focus:ring-teal-500 w-4 h-4"
+                        />
+                        <label htmlFor="updateIsRegional" className="text-xs font-bold text-slate-700 dark:text-slate-300 cursor-pointer">
+                          Assigned to Regional Office (External Signatory)
+                        </label>
+                      </div>
+
+                      <div className="pt-4 flex justify-end gap-3 border-t border-slate-100 dark:border-slate-800">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setSelectedUserEmail('');
+                            setSelectedUserRole('');
+                          }}
+                          className="px-4 py-2.5 text-xs font-bold text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-colors"
+                        >
+                          Cancel
+                        </button>
+                        <button
+                          type="button"
+                          onClick={handleUpdateUserRole}
+                          disabled={isUpdatingRole || !selectedUserRole}
+                          className="px-6 py-2.5 text-xs font-bold text-white bg-gradient-to-r from-teal-500 to-emerald-600 rounded-xl shadow-md shadow-teal-500/20 hover:shadow-lg active:scale-95 disabled:opacity-50 transition-all flex items-center gap-2"
+                        >
+                          {isUpdatingRole && <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>}
+                          Save Changes
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* Sub-tab 2: Create New User */}
+            {adminSubTab === 'create' && (
+              <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 sm:p-8 border border-slate-200/80 dark:border-slate-800 shadow-xs max-w-3xl mx-auto w-full">
+                <h4 className="text-base font-extrabold text-slate-900 dark:text-white pb-3 mb-5 border-b border-slate-100 dark:border-slate-800 flex items-center gap-2">
+                  <span className="w-2.5 h-2.5 rounded-full bg-emerald-500"></span>
+                  Add New Staff Member
+                </h4>
+
+                {createUserSuccess && (
+                  <div className="p-3 mb-4 bg-emerald-50 dark:bg-emerald-950/40 text-emerald-800 dark:text-emerald-300 rounded-xl border border-emerald-200 dark:border-emerald-800/40 text-xs font-semibold flex items-center gap-2">
+                    <svg className="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                    <span>{createUserSuccess}</span>
+                  </div>
+                )}
+
+                <div className="space-y-4">
+                  <div>
+                    <label className="text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5 block">Email Address *</label>
+                    <input type="email" required value={newUserEmail} onChange={e => setNewUserEmail(e.target.value)} placeholder="user@psa.gov.ph" className="w-full px-4 py-3 border border-slate-200 dark:border-slate-700 rounded-xl text-xs sm:text-sm font-semibold focus:ring-2 focus:ring-teal-500 bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-white" />
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                    <div>
+                      <label className="text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5 block">First Name *</label>
+                      <input type="text" required value={newUserFirstName} onChange={e => setNewUserFirstName(e.target.value)} placeholder="First Name" className="w-full px-4 py-3 border border-slate-200 dark:border-slate-700 rounded-xl text-xs sm:text-sm font-semibold focus:ring-2 focus:ring-teal-500 bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-white" />
+                    </div>
+                    <div>
+                      <label className="text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5 block">Middle Name (Optional)</label>
+                      <input type="text" value={newUserMiddleName} onChange={e => setNewUserMiddleName(e.target.value)} placeholder="Middle Name" className="w-full px-4 py-3 border border-slate-200 dark:border-slate-700 rounded-xl text-xs sm:text-sm font-semibold focus:ring-2 focus:ring-teal-500 bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-white" />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                    <div>
+                      <label className="text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5 block">Last Name *</label>
+                      <input type="text" required value={newUserLastName} onChange={e => setNewUserLastName(e.target.value)} placeholder="Last Name" className="w-full px-4 py-3 border border-slate-200 dark:border-slate-700 rounded-xl text-xs sm:text-sm font-semibold focus:ring-2 focus:ring-teal-500 bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-white" />
+                    </div>
+                    <div>
+                      <label className="text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5 block">Suffix (Optional)</label>
+                      <input type="text" value={newUserSuffix} onChange={e => setNewUserSuffix(e.target.value)} placeholder="E.g., Jr., Sr., III" className="w-full px-4 py-3 border border-slate-200 dark:border-slate-700 rounded-xl text-xs sm:text-sm font-semibold focus:ring-2 focus:ring-teal-500 bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-white" />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5 block">Position *</label>
+                    <input type="text" required value={newUserPosition} onChange={e => setNewUserPosition(e.target.value)} placeholder="E.g., Statistical Specialist II" className="w-full px-4 py-3 border border-slate-200 dark:border-slate-700 rounded-xl text-xs sm:text-sm font-semibold focus:ring-2 focus:ring-teal-500 bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-white" />
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                    <div>
+                      <label className="text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5 block">System Role *</label>
+                      <select
+                        value={newUserRole}
+                        onChange={e => setNewUserRole(e.target.value)}
+                        className="w-full px-4 py-3 border border-slate-200 dark:border-slate-700 rounded-xl text-xs sm:text-sm font-semibold focus:ring-2 focus:ring-teal-500 bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-white"
+                      >
+                        <option value="">Select a role...</option>
+                        <option value="Super Admin">Super Admin</option>
+                        <option value="Admin">Admin</option>
+                        <option value="PACD">PACD</option>
+                        <option value="Staff">Staff</option>
+                        <option value="Focal Person">Focal Person</option>
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5 block">Employment Status</label>
+                      <select
+                        value={newUserEmpStat}
+                        onChange={e => setNewUserEmpStat(e.target.value)}
+                        className="w-full px-4 py-3 border border-slate-200 dark:border-slate-700 rounded-xl text-xs sm:text-sm font-semibold focus:ring-2 focus:ring-teal-500 bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-white"
+                      >
+                        <option value="">Select status...</option>
+                        <option value="Permanent">Permanent</option>
+                        <option value="COSW">COSW</option>
+                        <option value="Contractual">Contractual</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <div className="pt-4 flex justify-end gap-3 border-t border-slate-100 dark:border-slate-800">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setNewUserEmail('');
+                        setNewUserFirstName('');
+                        setNewUserLastName('');
+                        setNewUserMiddleName('');
+                        setNewUserSuffix('');
+                        setNewUserPosition('');
+                        setNewUserEmpStat('');
+                        setNewUserRole('');
+                        setCreateUserSuccess('');
+                      }}
+                      className="px-4 py-2.5 text-xs font-bold text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-colors"
+                    >
+                      Clear
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleCreateUser}
+                      disabled={isCreatingUser || !newUserEmail || !newUserFirstName || !newUserLastName || !newUserRole}
+                      className="px-6 py-2.5 text-xs font-bold text-white bg-gradient-to-r from-teal-500 to-emerald-600 rounded-xl shadow-md shadow-teal-500/20 hover:shadow-lg active:scale-95 disabled:opacity-50 transition-all flex items-center gap-2"
+                    >
+                      {isCreatingUser && <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>}
+                      Create User
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Sub-tab 3: Staff Directory */}
+            {adminSubTab === 'directory' && (
+              <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 sm:p-8 border border-slate-200/80 dark:border-slate-800 shadow-xs flex flex-col gap-4">
+                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+                  <div>
+                    <h4 className="text-base font-extrabold text-slate-900 dark:text-white">Active Staff Directory</h4>
+                    <p className="text-xs text-slate-500 dark:text-slate-400">Total registered system users: {allUsers.length}</p>
+                  </div>
+                  <div className="relative w-full sm:w-72">
+                    <input
+                      type="text"
+                      placeholder="Search directory..."
+                      value={directorySearch}
+                      onChange={e => setDirectorySearch(e.target.value)}
+                      className="w-full pl-9 pr-4 py-2 text-xs bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-teal-500 text-slate-800 dark:text-slate-100"
+                    />
+                    <svg className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                    </svg>
+                  </div>
+                </div>
+
+                <div className="overflow-x-auto rounded-2xl border border-slate-100 dark:border-slate-800">
+                  <table className="w-full text-left text-xs">
+                    <thead className="bg-slate-50 dark:bg-slate-800/60 text-slate-500 dark:text-slate-400 font-bold uppercase tracking-wider">
+                      <tr>
+                        <th className="py-3 px-4">Employee</th>
+                        <th className="py-3 px-4">Position</th>
+                        <th className="py-3 px-4">Role</th>
+                        <th className="py-3 px-4">Status</th>
+                        <th className="py-3 px-4">Salary Grade</th>
+                        <th className="py-3 px-4 text-right">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100 dark:divide-slate-800 font-medium">
+                      {filteredDirectoryUsers.map((u) => (
+                        <tr key={u.Email} className="hover:bg-slate-50/80 dark:hover:bg-slate-800/40 transition-colors">
+                          <td className="py-3 px-4">
+                            <div className="font-bold text-slate-900 dark:text-white">
+                              {u.First_Name} {u.Last_Name} {u.Suffix || ''}
+                            </div>
+                            <div className="text-[11px] text-slate-400">{u.Email}</div>
+                          </td>
+                          <td className="py-3 px-4 text-slate-700 dark:text-slate-300">
+                            {u.Position || '—'}
+                          </td>
+                          <td className="py-3 px-4">
+                            <span className="px-2.5 py-1 rounded-full text-[10px] font-bold bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700">
+                              {u.Role || 'Staff'}
+                            </span>
+                          </td>
+                          <td className="py-3 px-4">
+                            <span className={`px-2 py-0.5 rounded-md text-[10px] font-bold ${
+                              u.emp_stat === 'COSW' 
+                                ? 'bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-800/40'
+                                : 'bg-teal-50 dark:bg-teal-950/40 text-teal-700 dark:text-teal-400 border border-teal-200 dark:border-teal-800/40'
+                            }`}>
+                              {u.emp_stat || 'Permanent'}
+                            </span>
+                          </td>
+                          <td className="py-3 px-4 font-mono text-slate-600 dark:text-slate-400">
+                            {u.Salary_Grade ? `SG-${u.Salary_Grade}` : '—'}
+                          </td>
+                          <td className="py-3 px-4 text-right">
+                            <button
+                              onClick={() => {
+                                setSelectedUserEmail(u.Email);
+                                setSelectedUserRole(u.Role || '');
+                                setSelectedUserFirstName(u.First_Name || '');
+                                setSelectedUserLastName(u.Last_Name || '');
+                                setSelectedUserMiddleName(u.Middle_Name || '');
+                                setSelectedUserSuffix(u.Suffix || '');
+                                setSelectedUserPosition(u.Position || '');
+                                setSelectedUserSalary(u.Salary || '');
+                                setSelectedUserSalaryGrade(u.Salary_Grade || '');
+                                setSelectedUserIsRegional(u.is_regional === 1);
+                                setSelectedUserEmpStat(u.emp_stat || '');
+                                setAdminSubTab('update');
+                              }}
+                              className="px-3 py-1.5 rounded-lg bg-teal-50 dark:bg-teal-950/60 text-teal-700 dark:text-teal-300 hover:bg-teal-100 dark:hover:bg-teal-900/60 font-bold text-[11px] transition-all"
+                            >
+                              Edit
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+
+          </div>
+        )}
+
       </div>
     </div>
   );

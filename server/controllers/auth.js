@@ -17,12 +17,12 @@ export default async function handler(req, res) {
       const turso = createClient({ url: process.env.TURSO_DB_URL, authToken: process.env.TURSO_DB_AUTH_TOKEN });
 
       const checkRes = await turso.execute({
-        sql: "SELECT Status FROM User_Permissions WHERE LOWER(Email) = LOWER(?)",
+        sql: "SELECT Status, Role FROM User_Permissions WHERE LOWER(Email) = LOWER(?)",
         args: [email]
       });
 
       if (checkRes.rows.length > 0) {
-        return res.status(200).json({ success: true, status: checkRes.rows[0].Status });
+        return res.status(200).json({ success: true, status: checkRes.rows[0].Status, role: checkRes.rows[0].Role });
       } else {
         return res.status(200).json({ success: true, status: null });
       }

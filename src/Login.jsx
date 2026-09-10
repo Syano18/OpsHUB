@@ -81,10 +81,9 @@ export default function Login() {
             return;
          }
 
-         if (statusRes.ok && statusData.status) {
-            const status = statusData.status;
-            if (status && status.toLowerCase() === 'inactive') {
-               setError("Your account is inactive. Please contact your administrator.");
+         if (statusRes.ok) {
+            if (!statusData.status || statusData.status.toLowerCase() !== 'active') {
+               setError("Your account is inactive or not fully configured. Please contact your administrator.");
                setIsLoading(false);
                setLoadingAction(null);
                return;

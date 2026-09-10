@@ -17,10 +17,10 @@ export default function CscForm6Printable({ formData, userBalances, signatories 
     requestedDays = '',
   } = formData || {};
 
-  const isChecked = (type) => fileLeaveType === type ? '✓' : '';
+  const isChecked = (type) => (fileLeaveType === type || (type === 'Mandatory/Forced Leave' && (fileLeaveType === 'Forced Leave' || fileLeaveType === 'Mandatory/Forced Leave'))) ? '✓' : '';
 
   const parsedDays = parseFloat(requestedDays) || 0;
-  const isVL = fileLeaveType === 'Vacation Leave' || fileLeaveType === 'Mandatory/Forced Leave';
+  const isVL = fileLeaveType === 'Vacation Leave' || fileLeaveType === 'Mandatory/Forced Leave' || fileLeaveType === 'Forced Leave';
   const isSL = fileLeaveType === 'Sick Leave';
   
   const vlLess = isVL && parsedDays > 0 ? parsedDays.toFixed(2) : '';
@@ -210,11 +210,11 @@ export default function CscForm6Printable({ formData, userBalances, signatories 
                 <td className="w-1/2 p-1 align-top">
                   <div className="font-bold mb-1">6.B DETAILS OF LEAVE</div>
 
-                  <div className="italic text-[8pt] mb-0.5">In case of Vacation/Special Privilege Leave:</div>
+                  <div className="italic text-[8pt] mb-0.5">In case of Vacation/Special Privilege Leave/Mandatory Leave:</div>
                   <div className="ml-4 space-y-1 mb-2">
                     <div className="flex items-end gap-1.5 w-full">
                       <div className="w-3.5 h-3.5 min-w-[14px] min-h-[14px] flex-shrink-0 border border-black flex items-center justify-center font-bold mb-0.5">
-                        {(fileLeaveType === 'Vacation Leave' || fileLeaveType === 'Special Privilege Leave') && leaveDetailType === 'Within the Philippines' ? '✓' : ''}
+                        {(fileLeaveType === 'Vacation Leave' || fileLeaveType === 'Special Privilege Leave' || fileLeaveType === 'Forced Leave' || fileLeaveType === 'Mandatory/Forced Leave') && leaveDetailType === 'Within the Philippines' ? '✓' : ''}
                       </div>
                       <div className="whitespace-nowrap mr-2 pb-0.5">Within the Philippines</div>
                       <div className="border-b border-black flex-1 text-center pb-0.5 min-h-[20px]">
@@ -223,7 +223,7 @@ export default function CscForm6Printable({ formData, userBalances, signatories 
                     </div>
                     <div className="flex items-end gap-1.5 w-full">
                       <div className="w-3.5 h-3.5 min-w-[14px] min-h-[14px] flex-shrink-0 border border-black flex items-center justify-center font-bold mb-0.5">
-                        {(fileLeaveType === 'Vacation Leave' || fileLeaveType === 'Special Privilege Leave') && leaveDetailType === 'Abroad (Specify)' ? '✓' : ''}
+                        {(fileLeaveType === 'Vacation Leave' || fileLeaveType === 'Special Privilege Leave' || fileLeaveType === 'Forced Leave' || fileLeaveType === 'Mandatory/Forced Leave') && leaveDetailType === 'Abroad (Specify)' ? '✓' : ''}
                       </div>
                       <div className="whitespace-nowrap mr-2 pb-0.5">Abroad (Specify)</div>
                       <div className="border-b border-black flex-1 text-center pb-0.5 min-h-[20px]">
@@ -402,9 +402,20 @@ export default function CscForm6Printable({ formData, userBalances, signatories 
                 <td className="w-1/2 border-r border-black p-1 align-top pb-1">
                   <div className="font-bold mb-2">7.C APPROVED FOR:</div>
                   <div className="ml-4 space-y-1 mb-2 text-[9pt]">
-                    <div><span className="border-b border-black inline-block text-center w-24">{fileLeaveType === 'Vacation Leave' ? requestedDays : '  '}</span> days with pay</div>
-                    <div><span className="border-b border-black inline-block w-24"></span> days without pay</div>
-                    <div><span className="border-b border-black inline-block w-24"></span> others (Specify)</div>
+                    <div className="flex items-center gap-1.5">
+                      <span className="border-b border-black inline-block text-center w-20 min-h-[16px] font-bold">
+                        {requestedDays || ' '}
+                      </span>
+                      <span>days with pay</span>
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                      <span className="border-b border-black inline-block w-20 min-h-[16px]"></span>
+                      <span>days without pay</span>
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                      <span className="border-b border-black inline-block w-20 min-h-[16px]"></span>
+                      <span>others (Specify)</span>
+                    </div>
                   </div>
                 </td>
                 <td className="w-1/2 p-1 align-top pr-6 pb-1">

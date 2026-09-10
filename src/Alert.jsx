@@ -55,7 +55,7 @@ export default function Alert({ message, type = 'error', onClose, duration = 300
   const style = getStyle();
 
   return (
-    <div className={`fixed bottom-6 right-6 z-[100] w-full max-w-sm overflow-hidden rounded-lg bg-white dark:bg-slate-900 border ${style.border} shadow-xl`} style={{ animation: 'slide-in 0.3s ease-out forwards' }}>
+    <div className={`fixed bottom-4 left-4 right-4 sm:bottom-6 sm:left-auto sm:right-6 z-[100] sm:w-full max-w-sm overflow-hidden rounded-lg bg-white dark:bg-slate-900 border ${style.border} shadow-xl`} style={{ animation: 'slide-in 0.3s ease-out forwards' }}>
       <style>{`
          @keyframes shrink-progress {
             from { width: 100%; }

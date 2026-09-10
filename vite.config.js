@@ -18,7 +18,11 @@ const apiMiddleware = () => ({
         try {
           const urlObj = new URL(req.url, `http://${req.headers.host}`);
           const pathname = urlObj.pathname;
-          const modulePath = `.${pathname}.js`;
+          
+          const parts = pathname.split('/');
+          const endpoint = parts[2]; // e.g. "auth" from "/api/auth"
+          
+          const modulePath = `./api/[endpoint].js`;
           
           // Use Vite's ssrLoadModule to dynamically import the API file and support HMR
           const module = await server.ssrLoadModule(modulePath);
@@ -29,15 +33,17 @@ const apiMiddleware = () => ({
             let body = '';
             req.on('data', chunk => body += chunk);
             await new Promise(resolve => req.on('end', () => {
-              if (body) {
-                try { req.body = JSON.parse(body); } catch(e) {}
-              }
-              resolve();
-            }));
-          }
+              if (body) { 
+                try { req.body = JSON.parse(body); } catch(e) {} 
+              } 
+              req.body = req.body || {};
+              resolve(); 
+            })); 
+          } 
           
           // Parse query parameters
           req.query = Object.fromEntries(urlObj.searchParams);
+          req.query.endpoint = endpoint;
           
           // Polyfill res.status and res.json for Vercel-like API
           res.status = (code) => {

@@ -22,7 +22,7 @@ export default async function handler(req, res) {
       const currentDate = new Date();
       const currentMonth = currentDate.getMonth() + 1; // 1-12
       const currentYear = currentDate.getFullYear();
-      
+
       const targetEmployeesCondition = `
         LOWER(user_email) IN (
           SELECT LOWER(Email) FROM User_Permissions 
@@ -30,9 +30,9 @@ export default async function handler(req, res) {
           AND (Status IS NULL OR Status != 'Inactive')
         )
       `;
-  
+
       const results = [];
-  
+
       // Monthly Addition
       await client.execute(`
         UPDATE Leave_Credits 
@@ -40,7 +40,7 @@ export default async function handler(req, res) {
         WHERE ${targetEmployeesCondition}
       `);
       results.push('Successfully added 1.25 to VL and SL.');
-  
+
       // Yearly Reset
       if (currentMonth === 1) {
         await client.execute(`
@@ -50,7 +50,7 @@ export default async function handler(req, res) {
         `);
         results.push(`Successfully reset FL, SPL, WL, and USE balances for year ${currentYear}.`);
       }
-  
+
       return res.status(200).json({ success: true, message: 'Leaves updated', details: results });
     }
 
@@ -59,15 +59,15 @@ export default async function handler(req, res) {
       const formatter = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Manila', year: 'numeric', month: '2-digit', day: '2-digit' });
       const tomorrowDate = new Date(new Date().getTime() + 24 * 60 * 60 * 1000);
       const dateString = formatter.format(tomorrowDate);
-  
+
       // 2. Fetch activities
       const actRes = await client.execute({
         sql: "SELECT * FROM Office_Activities WHERE start_date = ? AND status != 'Completed'",
         args: [dateString]
       });
-  
+
       const activities = actRes.rows;
-  
+
       // 3. Fetch personal calendar events starting tomorrow
       const calRes = await client.execute({
         sql: "SELECT * FROM Personal_Calendar WHERE start_date = ? AND event_type != 'Office Activity'",
@@ -78,39 +78,51 @@ export default async function handler(req, res) {
       if (activities.length === 0 && personalEvents.length === 0) {
         return res.status(200).json({ success: true, message: `No upcoming activities for ${dateString}` });
       }
-  
+
       const usersRes = await client.execute("SELECT Email, First_Name, Middle_Name, Last_Name FROM User_Permissions WHERE Email IS NOT NULL AND Email != ''");
       const allUsers = usersRes.rows.map(u => {
         const displayName = `${u.First_Name || ''} ${u.Middle_Name ? u.Middle_Name.charAt(0) + '. ' : ''}${u.Last_Name || ''}`.trim();
         return { email: u.Email, name: displayName };
       });
-  
+
       const transporter = nodemailer.createTransport({
         host: process.env.SMTP_HOST,
         port: parseInt(process.env.SMTP_PORT || '587'),
         secure: process.env.SMTP_PORT === '465',
         auth: { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS },
       });
-  
+
       let emailsSentCount = 0;
-  
+
       // 4. Process Office Activities
       for (const activity of activities) {
         let assignedArray = [];
-        try { assignedArray = JSON.parse(activity.assigned_to); } catch(e) {}
-        
+        try { assignedArray = JSON.parse(activity.assigned_to); } catch (e) { }
+
         let targetEmails = assignedArray.includes('All') ? allUsers.map(u => u.email) : allUsers.filter(u => assignedArray.includes(u.name)).map(u => u.email);
-  
+
         if (targetEmails.length > 0) {
           await transporter.sendMail({
             from: process.env.SMTP_FROM || '"OpsHUB" <noreply@opshub.local>',
             bcc: targetEmails.join(', '),
             subject: `Reminder: Upcoming Activity - ${activity.title}`,
             text: `Reminder: You have an upcoming activity starting tomorrow.\n\nTitle: ${activity.title}`,
-            html: `<div style="font-family: sans-serif; padding: 20px;"><h2>Upcoming Activity Reminder</h2><p><strong>Title:</strong> ${activity.title}</p></div>`
+            html: `
+              <div style="font-family: sans-serif; padding: 20px;">
+                <h2 style="color: #0f766e;">Upcoming Activity Reminder</h2>
+                <p>You have an upcoming activity starting tomorrow.</p>
+                <p><strong>Title:</strong> ${activity.title}</p>
+                <div style="margin-top: 25px; margin-bottom: 25px;">
+                  <a href="https://operations-hub-iota.vercel.app" style="display: inline-block; padding: 10px 20px; background-color: #0f172a; color: #ffffff; text-decoration: none; border-radius: 6px; font-weight: 500;">Go to OpsHUB</a>
+                </div>
+                <hr style="border: none; border-top: 1px solid #e2e8f0; margin: 20px 0;" />
+                <p style="font-size: 12px; color: #64748b; margin-bottom: 4px;"><strong>Please do not reply to this email.</strong></p>
+                <p style="font-size: 12px; color: #64748b;">This is an automated notification from OpsHUB.</p>
+              </div>
+            `
           });
           emailsSentCount += targetEmails.length;
-          
+
           try {
             const { sendPushNotification } = await import('../lib/pushHelper.js');
             await sendPushNotification(targetEmails, {
@@ -118,12 +130,12 @@ export default async function handler(req, res) {
               body: `Starting tomorrow: ${activity.title}`,
               url: '/office-activities'
             });
-          } catch(e) {
+          } catch (e) {
             console.error("Push failed:", e);
           }
         }
       }
-  
+
       // 5. Send emails for personal events
       for (const event of personalEvents) {
         if (event.user_email) {
@@ -137,7 +149,7 @@ export default async function handler(req, res) {
           emailsSentCount++;
         }
       }
-  
+
       return res.status(200).json({ success: true, message: `Sent ${emailsSentCount} reminder(s)` });
     }
 
