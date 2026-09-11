@@ -52,6 +52,16 @@ export default function NotificationBell() {
           }));
           
           newNotifications = [...newNotifications, ...pendingFinished];
+
+          if (data.todayBirthdays && data.todayBirthdays.length > 0) {
+            const bdayNotifs = data.todayBirthdays.map((b, idx) => ({
+              id: `bday_${idx}_${todayYMD}`,
+              title: `🎂 Today is ${b.firstName || b.name}'s Birthday!`,
+              message: `Celebrate with ${b.name} (${b.position}) today!`,
+              link: '/birthday-celebrants'
+            }));
+            newNotifications = [...bdayNotifs, ...newNotifications];
+          }
         }
 
         // Fetch pending leaves if Admin/Super Admin

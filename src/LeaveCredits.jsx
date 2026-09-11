@@ -1060,7 +1060,7 @@ export default function LeaveCredits() {
       </header>
 
       {/* Main Content Area - Expands vertically to fill entire window */}
-      <div className="flex-1 overflow-y-auto p-3 sm:p-4 lg:p-6 flex flex-col gap-4 sm:gap-5 w-full min-h-0">
+      <div className="flex-1 overflow-y-auto px-2 pb-2 pt-4 flex flex-col gap-4 w-full min-h-0">
         
         {/* Top Action & Overview Banner */}
         <div className="shrink-0 bg-gradient-to-br from-white via-slate-50/80 to-teal-50/20 dark:from-slate-900 dark:via-slate-900/90 dark:to-teal-950/20 rounded-2xl p-4 sm:p-5 border border-slate-200/80 dark:border-slate-800 shadow-sm flex flex-col md:flex-row justify-between items-start md:items-center gap-4">

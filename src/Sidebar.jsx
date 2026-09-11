@@ -9,6 +9,7 @@ export default function Sidebar({ isOpen, setIsOpen }) {
   const { theme, setTheme } = useTheme();
   
   const [userRole, setUserRole] = useState(null);
+  const [todayBirthdaysCount, setTodayBirthdaysCount] = useState(0);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isNavVisible, setIsNavVisible] = useState(true);
   const lastScrollY = useRef(0);
@@ -55,6 +56,9 @@ export default function Sidebar({ isOpen, setIsOpen }) {
           });
           const data = await res.json();
           setUserRole(data.user?.Role);
+          if (data.todayBirthdays) {
+            setTodayBirthdaysCount(data.todayBirthdays.length);
+          }
         } catch(e) {
           console.error(e);
         }
@@ -119,6 +123,17 @@ export default function Sidebar({ isOpen, setIsOpen }) {
         </svg>
       )
     },
+    { 
+      name: 'Birthday Celebrants', 
+      shortName: 'Birthdays', 
+      path: '/birthday-celebrants',
+      gradient: 'from-pink-500 to-rose-500',
+      icon: (
+        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+          <path strokeLinecap="round" strokeLinejoin="round" d="M12 6.5a1 1 0 100-2 1 1 0 000 2zM8.5 6.5a1 1 0 100-2 1 1 0 000 2zm7 0a1 1 0 100-2 1 1 0 000 2zM4 11a2 2 0 012-2h12a2 2 0 012 2v9a2 2 0 01-2 2H6a2 2 0 01-2-2v-9zm0 4h16" />
+        </svg>
+      )
+    },
   ];
 
   if (['Super Admin', 'Admin', 'Focal Person'].includes(userRole)) {
@@ -171,7 +186,12 @@ export default function Sidebar({ isOpen, setIsOpen }) {
                   }`}>
                     {item.icon}
                   </div>
-                  <span className="text-sm tracking-tight">{item.name}</span>
+                  <span className="text-sm tracking-tight flex-1">{item.name}</span>
+                  {item.path === '/birthday-celebrants' && todayBirthdaysCount > 0 && (
+                    <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-rose-500 text-white animate-pulse shadow-sm shadow-rose-500/30">
+                      🎉 {todayBirthdaysCount} Today
+                    </span>
+                  )}
                 </>
               )}
             </NavLink>
@@ -239,7 +259,12 @@ export default function Sidebar({ isOpen, setIsOpen }) {
                    className={({ isActive }) => `flex items-center gap-3 p-2.5 rounded-xl transition-all ${isActive ? 'bg-white/10 text-teal-400' : 'text-white/70 hover:bg-white/5 hover:text-white'}`}
                  >
                    <span className="w-5 h-5 flex items-center justify-center">{item.icon}</span>
-                   <span className="text-sm font-medium">{item.name}</span>
+                   <span className="text-sm font-medium flex-1">{item.name}</span>
+                   {item.path === '/birthday-celebrants' && todayBirthdaysCount > 0 && (
+                     <span className="px-1.5 py-0.5 rounded-full text-[9px] font-black bg-rose-500 text-white">
+                       🎉 {todayBirthdaysCount} Today
+                     </span>
+                   )}
                  </NavLink>
                ))}
             </div>

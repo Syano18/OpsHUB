@@ -42,6 +42,7 @@ export default function Profile() {
   const [selectedUserSalaryGrade, setSelectedUserSalaryGrade] = useState('');
   const [selectedUserIsRegional, setSelectedUserIsRegional] = useState(false);
   const [selectedUserEmpStat, setSelectedUserEmpStat] = useState('');
+  const [selectedUserBirthdate, setSelectedUserBirthdate] = useState('');
   const [isSelectedUserEmpStatDropdownOpen, setIsSelectedUserEmpStatDropdownOpen] = useState(false);
 
   // Create User State
@@ -53,6 +54,7 @@ export default function Profile() {
   const [newUserRole, setNewUserRole] = useState('');
   const [newUserEmpStat, setNewUserEmpStat] = useState('');
   const [newUserPosition, setNewUserPosition] = useState('');
+  const [newUserBirthdate, setNewUserBirthdate] = useState('');
   const [newUserIsRegional, setNewUserIsRegional] = useState(false);
   const [isCreatingUser, setIsCreatingUser] = useState(false);
   const [isNewUserRoleDropdownOpen, setIsNewUserRoleDropdownOpen] = useState(false);
@@ -129,6 +131,7 @@ export default function Profile() {
       Suffix: userData?.Suffix || '',
       Position: userData?.Position || '',
       sex: userData?.sex || '',
+      birthdate: userData?.birthdate || '',
       emp_stat: userData?.emp_stat || '',
       Salary_Grade: userData?.Salary_Grade || '',
       Salary: userData?.Salary || '',
@@ -193,7 +196,8 @@ export default function Profile() {
           salary: selectedUserSalary,
           salaryGrade: selectedUserSalaryGrade,
           isRegional: selectedUserIsRegional,
-          emp_stat: selectedUserEmpStat
+          emp_stat: selectedUserEmpStat,
+          birthdate: selectedUserBirthdate || null
         })
       });
 
@@ -212,7 +216,8 @@ export default function Profile() {
         Salary: selectedUserSalary,
         Salary_Grade: selectedUserSalaryGrade,
         is_regional: selectedUserIsRegional ? 1 : 0,
-        emp_stat: selectedUserEmpStat
+        emp_stat: selectedUserEmpStat,
+        birthdate: selectedUserBirthdate || null
       } : u));
 
       if (selectedUserEmail.toLowerCase() === user?.primaryEmailAddress?.emailAddress?.toLowerCase()) {
@@ -225,7 +230,8 @@ export default function Profile() {
           Suffix: selectedUserSuffix,
           Position: selectedUserPosition,
           is_regional: selectedUserIsRegional ? 1 : 0,
-          emp_stat: selectedUserEmpStat
+          emp_stat: selectedUserEmpStat,
+          birthdate: selectedUserBirthdate || null
         }));
       }
 
@@ -241,6 +247,7 @@ export default function Profile() {
       setSelectedUserPosition('');
       setSelectedUserSalary('');
       setSelectedUserSalaryGrade('');
+      setSelectedUserBirthdate('');
       setSelectedUserIsRegional(false);
     } catch (err) {
       console.error(err);
@@ -276,7 +283,8 @@ export default function Profile() {
           role: newUserRole,
           empStat: newUserEmpStat,
           position: newUserPosition,
-          isRegional: newUserIsRegional
+          isRegional: newUserIsRegional,
+          birthdate: newUserBirthdate || null
         })
       });
 
@@ -425,7 +433,7 @@ export default function Profile() {
       </header>
 
       {/* Main Content Area */}
-      <div className="flex-1 overflow-y-auto p-3 sm:p-5 lg:p-6 flex flex-col gap-5 min-h-0">
+      <div className="flex-1 overflow-y-auto px-2 pb-2 pt-4 flex flex-col gap-4 min-h-0 w-full">
         
         {/* Alerts */}
         <Alert message={error} onClose={() => setError('')} duration={5000} />
@@ -636,18 +644,38 @@ export default function Profile() {
                       <input type="text" value={editForm.Position} onChange={e => setEditForm({ ...editForm, Position: e.target.value })} className="w-full px-3.5 py-2.5 border border-slate-200 dark:border-slate-700 rounded-xl text-xs sm:text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-teal-500 bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-white" />
                     </div>
 
-                    <div>
-                      <label className="text-xs font-bold text-slate-600 dark:text-slate-400 mb-1 block">Sex</label>
-                      <div className="relative">
-                        <select
-                          value={editForm.sex || ''}
-                          onChange={(e) => setEditForm({ ...editForm, sex: e.target.value })}
-                          className="w-full px-3.5 py-2.5 border border-slate-200 dark:border-slate-700 rounded-xl text-xs sm:text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-teal-500 bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-white"
-                        >
-                          <option value="">Select sex...</option>
-                          <option value="Male">Male</option>
-                          <option value="Female">Female</option>
-                        </select>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                      <div>
+                        <label className="text-xs font-bold text-slate-600 dark:text-slate-400 mb-1 block">Sex</label>
+                        <div className="relative">
+                          <select
+                            value={editForm.sex || ''}
+                            onChange={(e) => setEditForm({ ...editForm, sex: e.target.value })}
+                            className="w-full px-3.5 py-2.5 border border-slate-200 dark:border-slate-700 rounded-xl text-xs sm:text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-teal-500 bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-white"
+                          >
+                            <option value="">Select sex...</option>
+                            <option value="Male">Male</option>
+                            <option value="Female">Female</option>
+                          </select>
+                        </div>
+                      </div>
+
+                      <div>
+                        <div className="flex items-center justify-between mb-1">
+                          <label className="text-xs font-bold text-slate-600 dark:text-slate-400 block">Date of Birth</label>
+                          {!isAdmin && (
+                            <span className="text-[10px] text-amber-600 dark:text-amber-400 font-semibold">Admin only</span>
+                          )}
+                        </div>
+                        <input
+                          type="date"
+                          disabled={!isAdmin}
+                          value={editForm.birthdate || ''}
+                          onChange={(e) => setEditForm({ ...editForm, birthdate: e.target.value })}
+                          className={`w-full px-3.5 py-2.5 border border-slate-200 dark:border-slate-700 rounded-xl text-xs sm:text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-teal-500 ${
+                            !isAdmin ? 'bg-slate-100 dark:bg-slate-800/60 text-slate-400 dark:text-slate-500 cursor-not-allowed' : 'bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-white'
+                          }`}
+                        />
                       </div>
                     </div>
                   </div>
@@ -671,6 +699,19 @@ export default function Profile() {
                     <div className="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-800/40 border border-slate-100 dark:border-slate-800">
                       <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 block mb-1">Sex</span>
                       <span className="text-sm font-bold text-slate-900 dark:text-white">{userData?.sex || 'N/A'}</span>
+                    </div>
+
+                    <div className="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-800/40 border border-slate-100 dark:border-slate-800 sm:col-span-2">
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 block mb-1">Date of Birth</span>
+                      <span className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                        {userData?.birthdate ? (
+                          <>
+                            <span>🎂 {new Date(userData.birthdate + 'T00:00:00').toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}</span>
+                          </>
+                        ) : (
+                          <span className="text-slate-400 font-normal italic">Not set</span>
+                        )}
+                      </span>
                     </div>
                   </div>
                 )}
@@ -1010,6 +1051,7 @@ export default function Profile() {
                                   setSelectedUserSalaryGrade(u.Salary_Grade || '');
                                   setSelectedUserIsRegional(u.is_regional === 1);
                                   setSelectedUserEmpStat(u.emp_stat || '');
+                                  setSelectedUserBirthdate(u.birthdate || '');
                                   setIsUserDropdownOpen(false);
                                 }}
                                 className="w-full text-left px-4 py-2.5 hover:bg-teal-50 dark:hover:bg-teal-950/40 hover:text-teal-700 dark:hover:text-teal-300 transition-colors text-xs sm:text-sm text-slate-700 dark:text-slate-200 flex items-center justify-between border-b border-slate-50 dark:border-slate-800/40 last:border-none"
@@ -1052,9 +1094,15 @@ export default function Profile() {
                         </div>
                       </div>
 
-                      <div>
-                        <label className="text-xs font-bold text-slate-600 dark:text-slate-400 mb-1 block">Position</label>
-                        <input type="text" value={selectedUserPosition} onChange={e => setSelectedUserPosition(e.target.value)} className="w-full px-3.5 py-2.5 border border-slate-200 dark:border-slate-700 rounded-xl text-xs sm:text-sm font-semibold focus:ring-2 focus:ring-teal-500 bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-white" />
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                        <div>
+                          <label className="text-xs font-bold text-slate-600 dark:text-slate-400 mb-1 block">Position</label>
+                          <input type="text" value={selectedUserPosition} onChange={e => setSelectedUserPosition(e.target.value)} className="w-full px-3.5 py-2.5 border border-slate-200 dark:border-slate-700 rounded-xl text-xs sm:text-sm font-semibold focus:ring-2 focus:ring-teal-500 bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-white" />
+                        </div>
+                        <div>
+                          <label className="text-xs font-bold text-slate-600 dark:text-slate-400 mb-1 block">Date of Birth</label>
+                          <input type="date" value={selectedUserBirthdate} onChange={e => setSelectedUserBirthdate(e.target.value)} className="w-full px-3.5 py-2.5 border border-slate-200 dark:border-slate-700 rounded-xl text-xs sm:text-sm font-semibold focus:ring-2 focus:ring-teal-500 bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-white" />
+                        </div>
                       </div>
 
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
@@ -1221,6 +1269,11 @@ export default function Profile() {
                     </div>
                   </div>
 
+                  <div>
+                    <label className="text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5 block">Date of Birth (Optional)</label>
+                    <input type="date" value={newUserBirthdate} onChange={e => setNewUserBirthdate(e.target.value)} className="w-full px-4 py-3 border border-slate-200 dark:border-slate-700 rounded-xl text-xs sm:text-sm font-semibold focus:ring-2 focus:ring-teal-500 bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-white" />
+                  </div>
+
                   <div className="pt-4 flex justify-end gap-3 border-t border-slate-100 dark:border-slate-800">
                     <button
                       type="button"
@@ -1233,6 +1286,7 @@ export default function Profile() {
                         setNewUserPosition('');
                         setNewUserEmpStat('');
                         setNewUserRole('');
+                        setNewUserBirthdate('');
                         setCreateUserSuccess('');
                       }}
                       className="px-4 py-2.5 text-xs font-bold text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-colors"

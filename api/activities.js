@@ -16,6 +16,119 @@ if (BUCKET_NAME) {
   });
 }
 
+function sanitizeEmails(emails) {
+  if (!Array.isArray(emails)) return [];
+  const cleaned = emails
+    .map(e => (typeof e === 'string' ? e.trim().toLowerCase() : ''))
+    .filter(e => e && e.includes('@') && !e.includes(' '));
+  return [...new Set(cleaned)];
+}
+
+function normalizeStr(str) {
+  return (str || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+}
+
+async function resolveAssigneeEmails(turso, assignedNames) {
+  if (!assignedNames || !Array.isArray(assignedNames) || assignedNames.length === 0) {
+    return [];
+  }
+
+  if (assignedNames.includes('All')) {
+    const allRes = await turso.execute(
+      "SELECT Email FROM User_Permissions WHERE (LOWER(Status) != 'inactive' OR Status IS NULL) AND IFNULL(is_regional, 0) != 1 AND IFNULL(Role, '') NOT IN ('Super Admin', 'External Signatory')"
+    );
+    return sanitizeEmails(allRes.rows.map(r => r.Email));
+  }
+
+  const allRes = await turso.execute(
+    "SELECT Email, First_Name, Middle_Name, Last_Name, Suffix FROM User_Permissions WHERE (LOWER(Status) != 'inactive' OR Status IS NULL) AND IFNULL(is_regional, 0) != 1 AND IFNULL(Role, '') NOT IN ('Super Admin', 'External Signatory')"
+  );
+
+  const matched = allRes.rows.filter(r => {
+    const f = (r.First_Name || '').trim();
+    const m = (r.Middle_Name || '').trim();
+    const l = (r.Last_Name || '').trim();
+    const s = (r.Suffix || '').trim();
+
+    const fullNameWithMi = `${f} ${m ? m.charAt(0) + '. ' : ''}${l}${s ? ' ' + s : ''}`.trim();
+    const fullNameNoMi = `${f} ${l}${s ? ' ' + s : ''}`.trim();
+    const plainFirstLast = `${f} ${l}`.trim();
+
+    return assignedNames.some(assigned => {
+      const a = (assigned || '').trim();
+      if (a === fullNameWithMi || a === fullNameNoMi || a === plainFirstLast) return true;
+      const nAssigned = normalizeStr(a);
+      return (
+        nAssigned === normalizeStr(fullNameWithMi) ||
+        nAssigned === normalizeStr(fullNameNoMi) ||
+        nAssigned === normalizeStr(plainFirstLast)
+      );
+    });
+  }).map(r => r.Email);
+
+  return sanitizeEmails(matched);
+}
+
+function createMailer() {
+  const host = process.env.SMTP_HOST;
+  const port = parseInt(process.env.SMTP_PORT || '587');
+  const user = process.env.SMTP_USER;
+  const pass = process.env.SMTP_PASS;
+
+  if (!host || !user || !pass) {
+    console.warn("[Mailer] SMTP credentials missing in environment variables.");
+    return null;
+  }
+
+  return nodemailer.createTransport({
+    pool: true,
+    maxConnections: 3,
+    maxMessages: 100,
+    rateDelta: 1000,
+    rateLimit: 5,
+    host,
+    port,
+    secure: port === 465,
+    auth: { user, pass },
+    tls: {
+      rejectUnauthorized: false
+    }
+  });
+}
+
+async function sendBatchMail(transporter, emails, mailOptionsGenerator) {
+  if (!transporter || !emails || emails.length === 0) return 0;
+
+  let failedCount = 0;
+  const BATCH_SIZE = 4;
+
+  for (let i = 0; i < emails.length; i += BATCH_SIZE) {
+    const batch = emails.slice(i, i + BATCH_SIZE);
+    const results = await Promise.allSettled(
+      batch.map(async (targetEmail) => {
+        const mailOptions = mailOptionsGenerator(targetEmail);
+        try {
+          return await transporter.sendMail(mailOptions);
+        } catch (err) {
+          console.warn(`[Nodemailer] First dispatch attempt failed for ${targetEmail}: ${err.message}. Retrying in 400ms...`);
+          await new Promise(r => setTimeout(r, 400));
+          return await transporter.sendMail(mailOptions);
+        }
+      })
+    );
+
+    for (let idx = 0; idx < results.length; idx++) {
+      const res = results[idx];
+      if (res.status === 'rejected') {
+        console.error(`[Nodemailer] Final delivery failed for recipient ${batch[idx]}:`, res.reason);
+        failedCount++;
+      }
+    }
+  }
+
+  return failedCount;
+}
+
 export default async function handler(req, res) {
   try {
     const authHeader = req.headers.authorization;
@@ -32,8 +145,6 @@ export default async function handler(req, res) {
         return res.status(401).json({ error: 'Unauthorized: Invalid token' });
       }
     } else {
-      // Local dev bypass since CLERK_SECRET_KEY is missing from .env.local
-      // In production (Vercel), ensure CLERK_SECRET_KEY is set in the environment variables!
       session = { id: 'local-bypass' };
     }
 
@@ -53,7 +164,9 @@ export default async function handler(req, res) {
       });
 
       // Fetch Employees for Dropdown
-      const empRes = await turso.execute("SELECT First_Name, Middle_Name, Last_Name FROM User_Permissions WHERE (LOWER(Status) != 'inactive' OR Status IS NULL) AND IFNULL(is_regional, 0) != 1 AND IFNULL(Role, '') != 'Super Admin' ORDER BY First_Name ASC");
+      const empRes = await turso.execute(
+        "SELECT First_Name, Middle_Name, Last_Name FROM User_Permissions WHERE (LOWER(Status) != 'inactive' OR Status IS NULL) AND IFNULL(is_regional, 0) != 1 AND IFNULL(Role, '') NOT IN ('Super Admin', 'External Signatory') ORDER BY First_Name ASC"
+      );
       const uniqueEmps = new Set();
       empRes.rows.forEach(row => {
         if (row.First_Name && row.Last_Name) {
@@ -65,10 +178,45 @@ export default async function handler(req, res) {
       // Fetch Activities
       const actRes = await turso.execute("SELECT * FROM Office_Activities ORDER BY start_date DESC, created_at DESC");
 
+      // Fetch Today's Birthday Celebrants
+      let todayCelebrants = [];
+      try {
+        const todayBdayRes = await turso.execute(
+          "SELECT First_Name, Middle_Name, Last_Name, Suffix, Position, birthdate FROM User_Permissions WHERE (LOWER(Status) != 'inactive' OR Status IS NULL) AND IFNULL(is_regional, 0) != 1 AND IFNULL(Role, '') != 'External Signatory' AND birthdate IS NOT NULL AND birthdate != ''"
+        );
+        
+        const now = new Date();
+        const currentMonth = now.getMonth() + 1;
+        const currentDay = now.getDate();
+        
+        todayCelebrants = todayBdayRes.rows.filter(row => {
+          if (!row.birthdate) return false;
+          const parts = row.birthdate.split('-');
+          if (parts.length < 2) return false;
+          const m = parseInt(parts[parts.length - 2], 10);
+          const d = parseInt(parts[parts.length - 1], 10);
+          return m === currentMonth && d === currentDay;
+        }).map(row => {
+          const f = (row.First_Name || '').trim();
+          const m = (row.Middle_Name || '').trim() ? row.Middle_Name.trim().charAt(0) + '. ' : '';
+          const l = (row.Last_Name || '').trim();
+          const s = (row.Suffix || '').trim() ? ' ' + row.Suffix.trim() : '';
+          return {
+            name: `${f} ${m}${l}${s}`.trim(),
+            firstName: f,
+            position: row.Position || 'Staff',
+            birthdate: row.birthdate
+          };
+        });
+      } catch (e) {
+        console.warn("Could not fetch today's birthdays in activities API:", e);
+      }
+
       return res.status(200).json({ 
         user: roleRes.rows[0] || null,
         employees: Array.from(uniqueEmps),
-        activities: actRes.rows 
+        activities: actRes.rows,
+        todayBirthdays: todayCelebrants
       });
 
     } else if (req.method === 'POST') {
@@ -111,21 +259,8 @@ export default async function handler(req, res) {
         }
       }
 
-      // We do NOT block on sending emails, but Vercel requires waiting for promises before returning if not using edge/background functions.
-      // We will do it synchronously but fast.
-      const assignedNames = formData.assigned_to;
-      let emails = [];
-
-      if (assignedNames.includes('All')) {
-        const allRes = await turso.execute("SELECT Email FROM User_Permissions WHERE (LOWER(Status) != 'inactive' OR Status IS NULL) AND IFNULL(is_regional, 0) != 1");
-        emails = allRes.rows.map(r => r.Email).filter(Boolean);
-      } else {
-        const allRes = await turso.execute("SELECT Email, First_Name, Middle_Name, Last_Name FROM User_Permissions WHERE (LOWER(Status) != 'inactive' OR Status IS NULL) AND IFNULL(is_regional, 0) != 1");
-        emails = allRes.rows.filter(r => {
-          const fullName = `${r.First_Name} ${r.Middle_Name ? r.Middle_Name.charAt(0) + '. ' : ''}${r.Last_Name}`.trim();
-          return assignedNames.includes(fullName);
-        }).map(r => r.Email).filter(Boolean);
-      }
+      // Resolve emails for assignees (with deduplication & sanitization)
+      const emails = await resolveAssigneeEmails(turso, formData.assigned_to);
 
       let failedCount = 0;
       if (emails.length > 0) {
@@ -139,16 +274,10 @@ export default async function handler(req, res) {
         );
         await Promise.all(calendarPromises);
 
-        // Send Emails
-        const transporter = nodemailer.createTransport({
-          host: process.env.SMTP_HOST,
-          port: parseInt(process.env.SMTP_PORT || '587'),
-          secure: process.env.SMTP_PORT === '465',
-          auth: { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS },
-        });
-
-        const mailPromises = emails.map(targetEmail => {
-          return transporter.sendMail({
+        // Send Emails via pooled transport and chunked batching
+        const mailer = createMailer();
+        if (mailer) {
+          failedCount = await sendBatchMail(mailer, emails, (targetEmail) => ({
             from: { name: 'OpsHUB Notifier', address: process.env.SMTP_USER || 'kalinga@psa.gov.ph' },
             to: targetEmail,
             subject: `New Activity Assigned: ${formData.title}`,
@@ -169,13 +298,10 @@ export default async function handler(req, res) {
               </div>
             `,
             attachments: emailAttachments
-          }).catch(e => {
-            console.error("Failed to email", targetEmail, e);
-            failedCount++;
-          });
-        });
-        
-        await Promise.all(mailPromises);
+          }));
+
+          try { mailer.close(); } catch (_) {}
+        }
 
         // Send Push Notifications
         import('../lib/pushHelper.js').then(({ sendPushNotification }) => {
@@ -239,18 +365,7 @@ export default async function handler(req, res) {
         });
         
         // Add new entries for all newly assigned users
-        let emails = [];
-        const assignedNames = formData.assigned_to;
-        if (assignedNames.includes('All')) {
-          const allRes = await turso.execute("SELECT Email FROM User_Permissions WHERE (LOWER(Status) != 'inactive' OR Status IS NULL) AND IFNULL(is_regional, 0) != 1");
-          emails = allRes.rows.map(r => r.Email).filter(Boolean);
-        } else {
-          const allRes = await turso.execute("SELECT Email, First_Name, Middle_Name, Last_Name FROM User_Permissions WHERE (LOWER(Status) != 'inactive' OR Status IS NULL) AND IFNULL(is_regional, 0) != 1");
-          emails = allRes.rows.filter(r => {
-            const fullName = `${r.First_Name} ${r.Middle_Name ? r.Middle_Name.charAt(0) + '. ' : ''}${r.Last_Name}`.trim();
-            return assignedNames.includes(fullName);
-          }).map(r => r.Email).filter(Boolean);
-        }
+        const emails = await resolveAssigneeEmails(turso, formData.assigned_to);
 
         if (emails.length > 0) {
           const calendarPromises = emails.map(assigneeEmail => 
@@ -289,28 +404,12 @@ export default async function handler(req, res) {
           assignedNames = ['All'];
         }
         
-        let emails = [];
-        if (assignedNames.includes('All')) {
-          const allRes = await turso.execute("SELECT Email FROM User_Permissions WHERE (LOWER(Status) != 'inactive' OR Status IS NULL) AND IFNULL(is_regional, 0) != 1");
-          emails = allRes.rows.map(r => r.Email).filter(Boolean);
-        } else {
-          const allRes = await turso.execute("SELECT Email, First_Name, Middle_Name, Last_Name FROM User_Permissions WHERE (LOWER(Status) != 'inactive' OR Status IS NULL) AND IFNULL(is_regional, 0) != 1");
-          emails = allRes.rows.filter(r => {
-            const fullName = `${r.First_Name} ${r.Middle_Name ? r.Middle_Name.charAt(0) + '. ' : ''}${r.Last_Name}`.trim();
-            return assignedNames.includes(fullName);
-          }).map(r => r.Email).filter(Boolean);
-        }
+        const emails = await resolveAssigneeEmails(turso, assignedNames);
 
         if (emails.length > 0) {
-          const transporter = nodemailer.createTransport({
-            host: process.env.SMTP_HOST,
-            port: parseInt(process.env.SMTP_PORT || '587'),
-            secure: process.env.SMTP_PORT === '465',
-            auth: { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS },
-          });
-
-          const mailPromises = emails.map(targetEmail => {
-            return transporter.sendMail({
+          const mailer = createMailer();
+          if (mailer) {
+            await sendBatchMail(mailer, emails, (targetEmail) => ({
               from: { name: 'OpsHUB Notifier', address: process.env.SMTP_USER || 'kalinga@psa.gov.ph' },
               to: targetEmail,
               subject: `Activity Canceled: ${title}`,
@@ -329,10 +428,10 @@ export default async function handler(req, res) {
                   <p style="font-size: 12px; color: #64748b;">This is an automated notification from OpsHUB.</p>
                 </div>
               `
-            }).catch(e => console.error("Failed to email", targetEmail, e));
-          });
-          
-          await Promise.all(mailPromises);
+            }));
+
+            try { mailer.close(); } catch (_) {}
+          }
         }
 
         const actRes = await turso.execute("SELECT * FROM Office_Activities ORDER BY start_date DESC, created_at DESC");

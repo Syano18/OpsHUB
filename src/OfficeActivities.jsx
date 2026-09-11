@@ -282,7 +282,7 @@ export default function OfficeActivities() {
 
   const handleFileChange = (e) => {
     setAttachmentError('');
-    const file = e.target.files[0];
+    const file = e.target.files?.[0];
     if (!file) {
       setFormData(prev => ({ ...prev, attachment: null }));
       return;
@@ -310,6 +310,7 @@ export default function OfficeActivities() {
         ...prev,
         attachment: {
           name: file.name,
+          size: file.size,
           type: file.type,
           base64: event.target.result
         }
@@ -320,6 +321,50 @@ export default function OfficeActivities() {
       setFormData(prev => ({ ...prev, attachment: null }));
     };
     reader.readAsDataURL(file);
+  };
+
+  const getInitials = (name) => {
+    if (!name || name === 'All') return 'ALL';
+    const parts = name.trim().split(' ').filter(Boolean);
+    if (parts.length === 1) return parts[0].substring(0, 2).toUpperCase();
+    return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+  };
+
+  const getAvatarBg = (name) => {
+    if (name === 'All') return 'bg-teal-600 text-white';
+    const palettes = [
+      'bg-emerald-600 text-white',
+      'bg-blue-600 text-white',
+      'bg-indigo-600 text-white',
+      'bg-violet-600 text-white',
+      'bg-rose-600 text-white',
+      'bg-amber-600 text-white',
+      'bg-cyan-600 text-white',
+      'bg-teal-700 text-white',
+    ];
+    let sum = 0;
+    for (let i = 0; i < (name || '').length; i++) {
+      sum += name.charCodeAt(i);
+    }
+    return palettes[sum % palettes.length];
+  };
+
+  const getDurationText = (start, end) => {
+    if (!start) return '';
+    if (!end || start === end) return '1-day event';
+    const d1 = new Date(start);
+    const d2 = new Date(end);
+    if (isNaN(d1) || isNaN(d2)) return '';
+    const diffTime = Math.abs(d2 - d1);
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
+    return `${diffDays} days`;
+  };
+
+  const formatFileSize = (bytes) => {
+    if (!bytes) return '';
+    if (bytes < 1024) return `${bytes} B`;
+    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
   };
 
   const getStatusBadge = (status) => {
@@ -347,6 +392,7 @@ export default function OfficeActivities() {
 
   const ongoing = [];
   const upcoming = [];
+  const pastPending = [];
   const finished = [];
 
   const todayDate = new Date();
@@ -359,6 +405,8 @@ export default function OfficeActivities() {
 
     if (act.status === 'Completed' || act.status === 'Canceled') {
       finished.push(act);
+    } else if (e < todayYMD) {
+      pastPending.push(act);
     } else if (s > todayYMD) {
       upcoming.push(act);
     } else {
@@ -512,9 +560,21 @@ export default function OfficeActivities() {
           <button onClick={() => setIsSidebarOpen(true)} className="hidden p-2 -ml-2 mr-1 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors">
             <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" /></svg>
           </button>
-          <h2 className="text-xl font-bold text-slate-800 dark:text-white flex items-center gap-2">
-            Office Activities
-          </h2>
+          <div className="flex items-center gap-2.5">
+            <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-teal-500 to-emerald-400 flex items-center justify-center text-white shadow-md shadow-teal-500/20">
+              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+              </svg>
+            </div>
+            <div>
+              <h2 className="text-lg sm:text-xl font-bold text-slate-800 dark:text-white leading-tight">
+                Office Activities
+              </h2>
+              <p className="text-[11px] text-slate-500 dark:text-slate-400 hidden sm:block">
+                Schedule, track, and assign office events and activities
+              </p>
+            </div>
+          </div>
         </div>
         <div className="flex items-center gap-3 md:gap-5">
           <div className="text-sm text-slate-600 dark:text-slate-300 font-medium hidden sm:block">
@@ -565,7 +625,7 @@ export default function OfficeActivities() {
                   </svg>
                   <span>Active</span>
                   <span className={`px-1.5 py-0.5 text-[10px] font-bold rounded-full ${currentTab === 'active' ? 'bg-teal-100 dark:bg-teal-900/50 text-teal-700 dark:text-teal-300' : 'bg-slate-300/60 dark:bg-slate-700 text-slate-700 dark:text-slate-300'}`}>
-                    {ongoing.length + upcoming.length}
+                    {ongoing.length + upcoming.length + pastPending.length}
                   </span>
                 </button>
                 <button
@@ -602,7 +662,36 @@ export default function OfficeActivities() {
           {loading ? (
             <Loading type="grid" />
           ) : currentTab === 'active' ? (
-            <div className="flex-1 overflow-y-auto pr-1 pb-10">
+            <div className="flex-1 overflow-y-auto pr-1 pb-10 flex flex-col gap-6">
+              {/* For Status Update Container (Past Pending Activities) */}
+              {pastPending.length > 0 && (
+                <div className="bg-amber-50/60 dark:bg-amber-950/20 border border-amber-200/80 dark:border-amber-800/60 rounded-2xl p-4 sm:p-5 flex flex-col gap-4 shadow-sm">
+                  <div className="flex items-center justify-between pb-3 border-b border-amber-200/80 dark:border-amber-800/60">
+                    <div className="flex items-center gap-2.5">
+                      <span className="relative flex h-3 w-3">
+                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
+                        <span className="relative inline-flex rounded-full h-3 w-3 bg-amber-500"></span>
+                      </span>
+                      <div>
+                        <h3 className="text-base font-bold text-slate-800 dark:text-slate-100">
+                          For Status Update
+                        </h3>
+                        <p className="text-xs text-amber-700/80 dark:text-amber-400/80 mt-0.5">
+                          Concluded activities awaiting status update to Completed or Canceled.
+                        </p>
+                      </div>
+                    </div>
+                    <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-amber-100 dark:bg-amber-900/50 text-amber-700 dark:text-amber-300 border border-amber-300 dark:border-amber-700">
+                      {pastPending.length} {pastPending.length === 1 ? 'Activity' : 'Activities'}
+                    </span>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {pastPending.map(renderActivityCard)}
+                  </div>
+                </div>
+              )}
+
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
                 {/* Today Container */}
                 <div className="bg-slate-100/70 dark:bg-slate-900/40 border border-slate-200/80 dark:border-slate-800/80 rounded-2xl p-4 sm:p-5 flex flex-col gap-4 shadow-sm">
@@ -736,162 +825,440 @@ export default function OfficeActivities() {
         </div>
       </div>
 
-      {/* Add Activity Modal */}
+      {/* Add / Edit Activity Modal */}
       {isAddModalOpen && (
-        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-          <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden flex flex-col max-h-[100dvh] sm:max-h-[90vh]">
-            <div className="px-6 py-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between bg-slate-50/50 dark:bg-slate-800/50 shrink-0">
-              <h3 className="text-lg font-bold text-slate-800 dark:text-white">Assign New Activity</h3>
-              <button onClick={handleCloseModal} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 p-1">
-                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
-              </button>
+        <div className="fixed inset-0 bg-slate-950/70 backdrop-blur-md flex items-center justify-center p-3 sm:p-5 z-50 animate-fadeIn">
+          <div className="bg-white dark:bg-slate-900 rounded-3xl shadow-2xl w-full max-w-2xl overflow-hidden flex flex-col max-h-[92vh] border border-slate-200 dark:border-slate-800 transform transition-all">
+            
+            {/* Modal Header */}
+            <div className="px-6 py-5 border-b border-slate-100 dark:border-slate-800/80 bg-slate-50/70 dark:bg-slate-900/70 flex flex-col gap-3 shrink-0">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-teal-500 to-emerald-400 flex items-center justify-center text-white shadow-md shadow-teal-500/20">
+                    {editingActivityId ? (
+                      <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5"><path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
+                    ) : (
+                      <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5"><path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" /></svg>
+                    )}
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-bold text-slate-900 dark:text-white leading-tight">
+                      {editingActivityId ? 'Edit Office Activity' : 'Assign New Activity'}
+                    </h3>
+                    <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                      {editingActivityId ? 'Update schedule and assigned staff members' : 'Schedule an activity and dispatch notifications to staff'}
+                    </p>
+                  </div>
+                </div>
+                <button
+                  onClick={handleCloseModal}
+                  className="p-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-200/60 dark:hover:bg-slate-800 rounded-xl transition-colors"
+                >
+                  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
+                </button>
+              </div>
+
+              {/* Progress Stepper Bar */}
+              <div className="flex items-center gap-2 pt-1">
+                <div className={`flex-1 flex items-center gap-2 pb-1.5 border-b-2 transition-all ${modalStep === 1 ? 'border-teal-500 text-teal-600 dark:text-teal-400 font-bold' : 'border-slate-200 dark:border-slate-800 text-slate-400 font-medium'}`}>
+                  <span className={`w-5 h-5 rounded-full text-[11px] flex items-center justify-center font-bold ${modalStep === 1 ? 'bg-teal-500 text-white' : 'bg-slate-200 dark:bg-slate-800 text-slate-500'}`}>1</span>
+                  <span className="text-xs">Activity Details</span>
+                </div>
+                <div className={`flex-1 flex items-center gap-2 pb-1.5 border-b-2 transition-all ${modalStep === 2 ? 'border-teal-500 text-teal-600 dark:text-teal-400 font-bold' : 'border-slate-200 dark:border-slate-800 text-slate-400 font-medium'}`}>
+                  <span className={`w-5 h-5 rounded-full text-[11px] flex items-center justify-center font-bold ${modalStep === 2 ? 'bg-teal-500 text-white' : 'bg-slate-200 dark:bg-slate-800 text-slate-500'}`}>2</span>
+                  <span className="text-xs">Review & Confirm</span>
+                </div>
+              </div>
             </div>
 
-            <div className="p-6 overflow-y-auto flex-1">
+            {/* Modal Body */}
+            <div className="p-6 overflow-y-auto flex-1 custom-scrollbar">
               {modalStep === 1 ? (
-                <form id="add-activity-form" onSubmit={handleProceedToReview} className="flex flex-col gap-5">
+                <form id="add-activity-form" onSubmit={handleProceedToReview} className="flex flex-col gap-6">
+                  
+                  {/* Activity Title */}
                   <div>
-                    <label className="block text-sm font-semibold text-slate-700 mb-1">Activity Title <span className="text-red-500">*</span></label>
-                    <input required type="text" value={formData.title} onChange={e => setFormData({ ...formData, title: e.target.value })} className="w-full px-4 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-teal-500 text-slate-800 dark:text-slate-100 font-medium" placeholder="E.g., Tree Planting Activity" />
-                  </div>
-
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-sm font-semibold text-slate-700 mb-1">Start Date <span className="text-red-500">*</span></label>
-                      <input required type="date" value={formData.start_date} onChange={e => setFormData({ ...formData, start_date: e.target.value })} className="w-full px-4 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-teal-500 text-slate-800 dark:text-slate-100 font-medium" />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-semibold text-slate-700 mb-1">End Date <span className="text-red-500">*</span></label>
-                      <input required type="date" value={formData.end_date} onChange={e => setFormData({ ...formData, end_date: e.target.value })} className="w-full px-4 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-teal-500 text-slate-800 dark:text-slate-100 font-medium" />
-                    </div>
-                  </div>
-
-                  <div>
-                    <div className="flex items-center justify-between mb-2">
-                      <label className="block text-sm font-semibold text-slate-700">Assign To <span className="text-red-500">*</span></label>
-                      <label className="flex items-center gap-2 cursor-pointer group">
-                        <span className="text-xs font-bold text-slate-500 group-hover:text-teal-700 transition-colors">Assign to Everyone</span>
-                        <div className={`relative inline-flex h-5 w-9 shrink-0 items-center rounded-full transition-colors duration-200 ease-in-out focus:outline-none ${formData.assigned_to.includes('All') ? 'bg-teal-500' : 'bg-slate-200'}`}>
-                          <input type="checkbox" checked={formData.assigned_to.includes('All')} onChange={() => toggleAssignee('All')} className="sr-only" />
-                          <span className={`pointer-events-none inline-block h-3.5 w-3.5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out`} style={{ transform: formData.assigned_to.includes('All') ? 'translateX(18px)' : 'translateX(4px)' }} />
-                        </div>
-                      </label>
-                    </div>
-                    <div className="mb-2 relative">
-                      <svg className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
-                      <input
-                        type="text"
-                        placeholder="Search employees..."
-                        value={assigneeSearchTerm}
-                        onChange={(e) => setAssigneeSearchTerm(e.target.value)}
-                        className="w-full pl-9 pr-4 py-1.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 text-sm disabled:opacity-50"
-                        disabled={formData.assigned_to.includes('All')}
+                    <label className="flex items-center justify-between text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400 mb-1.5">
+                      <span>Activity Title <span className="text-rose-500">*</span></span>
+                    </label>
+                    <div className="relative">
+                      <textarea
+                        required
+                        rows="2"
+                        value={formData.title}
+                        onChange={e => setFormData({ ...formData, title: e.target.value })}
+                        className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700/80 rounded-xl focus:outline-none focus:ring-2 focus:ring-teal-500/50 focus:border-teal-500 text-slate-900 dark:text-slate-100 text-sm font-medium transition-all shadow-sm placeholder:text-slate-400 resize-y min-h-[58px]"
+                        placeholder="e.g., Annual Strategic Planning & Team Building"
                       />
                     </div>
-                    <div className={`bg-slate-50/50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-700 rounded-xl p-3 max-h-56 overflow-y-auto flex flex-col gap-1.5 shadow-inner transition-opacity ${formData.assigned_to.includes('All') ? 'opacity-50 pointer-events-none' : ''}`}>
-                      {employees.filter(emp => emp.toLowerCase().includes(assigneeSearchTerm.toLowerCase())).map(emp => {
-                        const isChecked = formData.assigned_to.includes(emp);
-                        return (
-                          <label key={emp} className={`flex items-center gap-3 p-2.5 rounded-lg cursor-pointer transition-all border ${isChecked ? 'bg-white dark:bg-slate-800 border-teal-500 shadow-sm ring-1 ring-teal-500' : 'bg-transparent border-transparent hover:bg-white dark:hover:bg-slate-800 hover:border-slate-200 dark:hover:border-slate-700 hover:shadow-sm'}`}>
-                            <div className={`flex shrink-0 items-center justify-center w-5 h-5 rounded border ${isChecked ? 'bg-teal-500 border-teal-500 text-white' : 'bg-white dark:bg-slate-900 border-slate-300 dark:border-slate-600'}`}>
-                              {isChecked && <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="3"><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>}
-                            </div>
-                            <input
-                              type="checkbox"
-                              checked={isChecked}
-                              onChange={() => toggleAssignee(emp)}
-                              className="hidden"
-                            />
-                            <span className={`text-sm font-medium ${isChecked ? 'text-teal-900 dark:text-teal-400' : 'text-slate-700 dark:text-slate-300'}`}>{emp}</span>
-                          </label>
-                        );
-                      })}
-                      {employees.filter(emp => emp.toLowerCase().includes(assigneeSearchTerm.toLowerCase())).length === 0 && (
-                        <div className="text-sm text-slate-500 dark:text-slate-400 text-center py-4 italic bg-slate-100/50 dark:bg-slate-800/50 rounded-lg border border-dashed border-slate-200 dark:border-slate-700">No employees found matching "{assigneeSearchTerm}".</div>
+                  </div>
+
+                  {/* Date Pickers with Duration Badge */}
+                  <div className="bg-slate-50/60 dark:bg-slate-800/40 p-4 rounded-2xl border border-slate-200/70 dark:border-slate-700/60 flex flex-col gap-3">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400 flex items-center gap-1.5">
+                        <svg className="w-4 h-4 text-teal-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+                        Activity Schedule <span className="text-rose-500">*</span>
+                      </span>
+                      {formData.start_date && (
+                        <span className="text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-teal-100 dark:bg-teal-900/50 text-teal-700 dark:text-teal-300 border border-teal-200 dark:border-teal-800">
+                          {getDurationText(formData.start_date, formData.end_date)}
+                        </span>
                       )}
                     </div>
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-semibold text-slate-700 mb-1">Description <span className="text-red-500">*</span></label>
-                    <textarea required value={formData.description} onChange={e => setFormData({ ...formData, description: e.target.value })} rows="3" className="w-full px-4 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-teal-500 text-slate-800 dark:text-slate-100 font-medium resize-none" placeholder="Provide instructions or details..." />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-semibold text-slate-700 mb-1">Attachment <span className="text-slate-400 font-normal">(Optional)</span></label>
-                    <div className="flex items-center">
-                      <input
-                        type="file"
-                        onChange={handleFileChange}
-                        className="w-full text-sm text-slate-500 dark:text-slate-400 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-sm file:font-bold file:bg-teal-50 dark:file:bg-teal-900/50 file:text-teal-700 dark:file:text-teal-400 hover:file:bg-teal-100 dark:hover:file:bg-teal-900 file:transition-colors file:cursor-pointer cursor-pointer border border-slate-200 dark:border-slate-700 rounded-xl bg-slate-50 dark:bg-slate-800 p-1"
-                        accept=".pdf,.docx,.xlsx,.png,.jpg,.jpeg"
-                      />
+                    
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1">Start Date</label>
+                        <input
+                          required
+                          type="date"
+                          value={formData.start_date}
+                          onChange={e => {
+                            const newStart = e.target.value;
+                            setFormData(prev => ({
+                              ...prev,
+                              start_date: newStart,
+                              end_date: prev.end_date && prev.end_date < newStart ? newStart : prev.end_date || newStart
+                            }));
+                          }}
+                          className="w-full px-3.5 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-teal-500/50 focus:border-teal-500 text-slate-900 dark:text-slate-100 text-sm font-medium transition-all shadow-sm"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1">End Date</label>
+                        <input
+                          required
+                          type="date"
+                          min={formData.start_date}
+                          value={formData.end_date}
+                          onChange={e => setFormData({ ...formData, end_date: e.target.value })}
+                          className="w-full px-3.5 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-teal-500/50 focus:border-teal-500 text-slate-900 dark:text-slate-100 text-sm font-medium transition-all shadow-sm"
+                        />
+                      </div>
                     </div>
-                    {attachmentError && <p className="text-red-500 text-xs mt-2 font-bold">{attachmentError}</p>}
+                  </div>
+
+                  {/* Assignees Selection Area */}
+                  <div>
+                    <div className="flex items-center justify-between mb-2">
+                      <label className="text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400">
+                        Assign Attendees <span className="text-rose-500">*</span>
+                      </label>
+                      <button
+                        type="button"
+                        onClick={() => toggleAssignee('All')}
+                        className={`flex items-center gap-2 px-3 py-1 rounded-full text-xs font-bold border transition-all ${
+                          formData.assigned_to.includes('All')
+                            ? 'bg-teal-500 text-white border-teal-600 shadow-sm shadow-teal-500/20'
+                            : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-700 hover:bg-slate-200'
+                        }`}
+                      >
+                        <span className={`w-2 h-2 rounded-full ${formData.assigned_to.includes('All') ? 'bg-white' : 'bg-slate-400'}`}></span>
+                        <span>Assign to Everyone ({employees.length})</span>
+                      </button>
+                    </div>
+
+                    {/* Search & Quick Action Toolbar */}
+                    {!formData.assigned_to.includes('All') && (
+                      <div className="flex items-center gap-2 mb-2">
+                        <div className="relative flex-1">
+                          <svg className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
+                          <input
+                            type="text"
+                            placeholder="Search employee name..."
+                            value={assigneeSearchTerm}
+                            onChange={(e) => setAssigneeSearchTerm(e.target.value)}
+                            className="w-full pl-9 pr-3 py-1.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-teal-500/50 text-xs text-slate-800 dark:text-slate-200"
+                          />
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => setFormData(prev => ({ ...prev, assigned_to: [...employees] }))}
+                          className="px-2.5 py-1.5 text-xs font-semibold text-teal-600 dark:text-teal-400 hover:bg-teal-50 dark:hover:bg-teal-950/40 rounded-lg transition-colors whitespace-nowrap"
+                        >
+                          Select All
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setFormData(prev => ({ ...prev, assigned_to: [] }))}
+                          className="px-2.5 py-1.5 text-xs font-semibold text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors whitespace-nowrap"
+                        >
+                          Clear
+                        </button>
+                      </div>
+                    )}
+
+                    {/* Employee Checklist Grid */}
+                    <div className={`bg-slate-50/60 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 rounded-2xl p-2.5 max-h-52 overflow-y-auto custom-scrollbar transition-opacity ${
+                      formData.assigned_to.includes('All') ? 'opacity-50 pointer-events-none' : ''
+                    }`}>
+                      {formData.assigned_to.includes('All') ? (
+                        <div className="py-6 text-center text-xs font-bold text-teal-600 dark:text-teal-400 flex flex-col items-center gap-1">
+                          <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" /></svg>
+                          <span>All {employees.length} employees will be assigned</span>
+                        </div>
+                      ) : (
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
+                          {employees.filter(emp => emp.toLowerCase().includes(assigneeSearchTerm.toLowerCase())).map(emp => {
+                            const isChecked = formData.assigned_to.includes(emp);
+                            return (
+                              <label
+                                key={emp}
+                                className={`flex items-center gap-2.5 p-2 rounded-xl cursor-pointer transition-all border ${
+                                  isChecked
+                                    ? 'bg-teal-50/80 dark:bg-teal-950/40 border-teal-400/80 dark:border-teal-700 shadow-sm'
+                                    : 'bg-white dark:bg-slate-800/80 border-slate-100 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700'
+                                }`}
+                              >
+                                <div className={`w-7 h-7 rounded-lg shrink-0 flex items-center justify-center font-bold text-xs shadow-sm ${getAvatarBg(emp)}`}>
+                                  {getInitials(emp)}
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                  <p className={`text-xs font-semibold truncate ${isChecked ? 'text-teal-900 dark:text-teal-200' : 'text-slate-800 dark:text-slate-200'}`}>
+                                    {emp}
+                                  </p>
+                                </div>
+                                <div className={`w-4 h-4 rounded-md border flex items-center justify-center shrink-0 transition-colors ${
+                                  isChecked ? 'bg-teal-500 border-teal-500 text-white' : 'border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900'
+                                }`}>
+                                  {isChecked && (
+                                    <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="3"><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
+                                  )}
+                                </div>
+                                <input
+                                  type="checkbox"
+                                  checked={isChecked}
+                                  onChange={() => toggleAssignee(emp)}
+                                  className="sr-only"
+                                />
+                              </label>
+                            );
+                          })}
+                          {employees.filter(emp => emp.toLowerCase().includes(assigneeSearchTerm.toLowerCase())).length === 0 && (
+                            <div className="col-span-2 py-4 text-center text-xs text-slate-400 italic">
+                              No employees matching "{assigneeSearchTerm}"
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+
+                    {!formData.assigned_to.includes('All') && formData.assigned_to.length > 0 && (
+                      <p className="text-[11px] font-semibold text-teal-600 dark:text-teal-400 mt-1.5">
+                        ✓ {formData.assigned_to.length} {formData.assigned_to.length === 1 ? 'person' : 'people'} selected
+                      </p>
+                    )}
+                  </div>
+
+                  {/* Description */}
+                  <div>
+                    <label className="block text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400 mb-1.5">
+                      Activity Description <span className="text-rose-500">*</span>
+                    </label>
+                    <textarea
+                      required
+                      value={formData.description}
+                      onChange={e => setFormData({ ...formData, description: e.target.value })}
+                      rows="3"
+                      className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700/80 rounded-xl focus:outline-none focus:ring-2 focus:ring-teal-500/50 focus:border-teal-500 text-slate-900 dark:text-slate-100 text-sm font-medium resize-none shadow-sm placeholder:text-slate-400"
+                      placeholder="Provide specific guidelines, agenda, objectives, venue, or attire requirements..."
+                    />
+                  </div>
+
+                  {/* Attachment Dropzone */}
+                  <div>
+                    <label className="block text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400 mb-1.5">
+                      Supporting Attachment <span className="text-slate-400 font-normal lowercase">(optional)</span>
+                    </label>
+
+                    {!formData.attachment ? (
+                      <label className="border-2 border-dashed border-slate-200 dark:border-slate-700 hover:border-teal-400 dark:hover:border-teal-500/60 bg-slate-50/50 dark:bg-slate-800/30 hover:bg-teal-50/30 dark:hover:bg-teal-950/20 rounded-2xl p-5 flex flex-col items-center justify-center text-center cursor-pointer transition-all group">
+                        <div className="w-10 h-10 rounded-full bg-slate-100 dark:bg-slate-800 group-hover:bg-teal-100 dark:group-hover:bg-teal-900/50 text-slate-400 group-hover:text-teal-600 dark:group-hover:text-teal-400 flex items-center justify-center mb-2 transition-colors">
+                          <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" /></svg>
+                        </div>
+                        <p className="text-xs font-bold text-slate-700 dark:text-slate-200">
+                          Click to upload or drag & drop file
+                        </p>
+                        <p className="text-[11px] text-slate-400 dark:text-slate-500 mt-0.5">
+                          PDF, DOCX, XLSX, PNG, JPG (Max 5MB)
+                        </p>
+                        <input
+                          type="file"
+                          onChange={handleFileChange}
+                          accept=".pdf,.docx,.xlsx,.png,.jpg,.jpeg"
+                          className="sr-only"
+                        />
+                      </label>
+                    ) : (
+                      <div className="bg-teal-50/60 dark:bg-teal-950/30 border border-teal-200 dark:border-teal-800/60 rounded-2xl p-3.5 flex items-center justify-between gap-3 shadow-sm">
+                        <div className="flex items-center gap-3 min-w-0">
+                          <div className="w-9 h-9 rounded-xl bg-teal-500 text-white flex items-center justify-center shrink-0 shadow-sm shadow-teal-500/20">
+                            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+                          </div>
+                          <div className="min-w-0">
+                            <p className="text-xs font-bold text-slate-900 dark:text-slate-100 truncate">
+                              {formData.attachment.name}
+                            </p>
+                            <p className="text-[10px] text-slate-500 dark:text-slate-400 font-medium">
+                              {formatFileSize(formData.attachment.size)} • Ready to send
+                            </p>
+                          </div>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => setFormData(prev => ({ ...prev, attachment: null }))}
+                          className="p-1.5 text-rose-500 hover:text-rose-700 hover:bg-rose-100 dark:hover:bg-rose-900/40 rounded-lg transition-colors"
+                          title="Remove attachment"
+                        >
+                          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                        </button>
+                      </div>
+                    )}
+                    {attachmentError && <p className="text-rose-500 text-xs mt-1.5 font-bold">{attachmentError}</p>}
                   </div>
 
                   <input type="hidden" value={formData.status} />
                 </form>
               ) : (
-                <div className="flex flex-col gap-5">
-                  <div className="bg-slate-50 dark:bg-slate-800 p-5 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm">
-                    <h4 className="text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 mb-1">Activity Title</h4>
-                    <p className="text-slate-800 dark:text-slate-100 font-bold text-lg">{formData.title}</p>
-                  </div>
-                  <div className="bg-slate-50 dark:bg-slate-800 p-5 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div>
-                      <h4 className="text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 mb-1">Start Date</h4>
-                      <p className="text-slate-800 dark:text-slate-100 font-semibold">{formatDate(formData.start_date)}</p>
+                /* Step 2: Review & Summary Screen */
+                <div className="flex flex-col gap-4 animate-fadeIn">
+                  
+                  {/* Summary Banner Card */}
+                  <div className="bg-gradient-to-br from-slate-900 to-slate-800 text-white p-5 rounded-2xl shadow-md flex flex-col gap-2">
+                    <div className="flex items-center justify-between">
+                      <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold tracking-wider uppercase bg-teal-400/20 text-teal-300 border border-teal-400/30">
+                        {editingActivityId ? 'Activity Update' : 'New Activity'}
+                      </span>
+                      <span className="text-xs text-slate-300 font-medium">
+                        {getDurationText(formData.start_date, formData.end_date)}
+                      </span>
                     </div>
-                    <div>
-                      <h4 className="text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 mb-1">End Date</h4>
-                      <p className="text-slate-800 dark:text-slate-100 font-semibold">{formatDate(formData.end_date) || formatDate(formData.start_date)}</p>
+                    <h4 className="text-lg font-bold text-white break-words mt-1">
+                      {formData.title}
+                    </h4>
+                    <div className="flex items-center gap-2 text-xs text-slate-300">
+                      <svg className="w-4 h-4 text-teal-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+                      {formData.start_date === formData.end_date || !formData.end_date
+                        ? formatDate(formData.start_date)
+                        : `${formatDate(formData.start_date)} - ${formatDate(formData.end_date)}`}
                     </div>
                   </div>
-                  <div className="bg-slate-50 dark:bg-slate-800 p-5 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm">
-                    <h4 className="text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 mb-3">Assigned To</h4>
-                    <div className="flex flex-wrap gap-2">
+
+                  {/* Assigned Attendees Summary */}
+                  <div className="bg-slate-50 dark:bg-slate-800/60 p-4 rounded-2xl border border-slate-200/80 dark:border-slate-700/80">
+                    <div className="flex items-center justify-between mb-3">
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">
+                        Assigned Attendees
+                      </span>
+                      <span className="text-xs font-bold text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-700 px-2 py-0.5 rounded-md border border-slate-200 dark:border-slate-600">
+                        {formData.assigned_to.includes('All') ? `Everyone (${employees.length})` : `${formData.assigned_to.length} selected`}
+                      </span>
+                    </div>
+                    <div className="flex flex-wrap gap-1.5 max-h-32 overflow-y-auto custom-scrollbar">
                       {formData.assigned_to.map(emp => (
-                        <span key={emp} className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 px-3 py-1.5 rounded-md text-xs font-bold text-slate-700 dark:text-slate-300 shadow-sm">
-                          {emp === 'All' ? 'Everyone' : emp}
-                        </span>
+                        <div
+                          key={emp}
+                          className="flex items-center gap-1.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 px-2.5 py-1 rounded-lg text-xs font-semibold text-slate-800 dark:text-slate-200 shadow-sm"
+                        >
+                          <span className={`w-5 h-5 rounded-full flex items-center justify-center text-[9px] font-bold ${getAvatarBg(emp)}`}>
+                            {getInitials(emp)}
+                          </span>
+                          <span>{emp === 'All' ? 'Everyone' : emp}</span>
+                        </div>
                       ))}
                     </div>
                   </div>
+
+                  {/* Description Preview */}
                   {formData.description && (
-                    <div className="bg-slate-50 dark:bg-slate-800 p-5 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm">
-                      <h4 className="text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 mb-2">Description</h4>
-                      <p className="text-slate-700 dark:text-slate-300 text-sm leading-relaxed whitespace-pre-wrap">{formData.description}</p>
+                    <div className="bg-slate-50 dark:bg-slate-800/60 p-4 rounded-2xl border border-slate-200/80 dark:border-slate-700/80">
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 block mb-1.5">
+                        Description & Instructions
+                      </span>
+                      <p className="text-slate-700 dark:text-slate-300 text-xs leading-relaxed whitespace-pre-wrap">
+                        {formData.description}
+                      </p>
                     </div>
                   )}
+
+                  {/* Attachment Preview */}
                   {formData.attachment && (
-                    <div className="bg-slate-50 dark:bg-slate-800 p-5 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm">
-                      <h4 className="text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 mb-2">Attachment</h4>
-                      <div className="flex items-center gap-2">
-                        <svg className="w-5 h-5 text-teal-600 dark:text-teal-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" /></svg>
-                        <p className="text-slate-800 dark:text-slate-200 text-sm font-bold truncate">{formData.attachment.name}</p>
+                    <div className="bg-slate-50 dark:bg-slate-800/60 p-4 rounded-2xl border border-slate-200/80 dark:border-slate-700/80 flex items-center gap-3">
+                      <div className="w-8 h-8 rounded-lg bg-teal-500 text-white flex items-center justify-center shrink-0">
+                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" /></svg>
+                      </div>
+                      <div className="min-w-0">
+                        <p className="text-xs font-bold text-slate-800 dark:text-slate-200 truncate">
+                          {formData.attachment.name}
+                        </p>
+                        <p className="text-[10px] text-slate-400">
+                          {formatFileSize(formData.attachment.size)}
+                        </p>
                       </div>
                     </div>
                   )}
+
+                  {/* Dispatch Notice Alert */}
+                  <div className="p-3.5 bg-teal-50/80 dark:bg-teal-950/30 border border-teal-200 dark:border-teal-800/50 rounded-xl flex items-start gap-2.5">
+                    <svg className="w-4 h-4 text-teal-600 dark:text-teal-400 shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                    <p className="text-xs text-teal-800 dark:text-teal-300 leading-relaxed">
+                      Instant email notifications and personal calendar entries will automatically be dispatched to all assigned personnel upon confirmation.
+                    </p>
+                  </div>
                 </div>
               )}
             </div>
 
-            <div className="px-6 py-4 bg-slate-50 dark:bg-slate-800 border-t border-slate-100 dark:border-slate-700 flex gap-3 shrink-0">
+            {/* Modal Footer */}
+            <div className="px-6 py-4 bg-slate-50/80 dark:bg-slate-900/80 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between gap-3 shrink-0">
               {modalStep === 1 ? (
                 <>
-                  <button type="button" onClick={handleCloseModal} className="flex-1 py-2.5 font-medium text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900/40 bg-red-50 dark:bg-red-900/20 rounded-xl transition-colors">Cancel</button>
-                  <button type="submit" form="add-activity-form" disabled={formData.assigned_to.length === 0} className="flex-1 py-2.5 font-medium text-white bg-gradient-to-r from-teal-500 to-emerald-500 hover:from-teal-400 hover:to-emerald-400 rounded-xl shadow-sm hover:shadow-md transition-all disabled:opacity-50 disabled:hover:translate-y-0 disabled:hover:shadow-sm">
-                    Review Details
+                  <button
+                    type="button"
+                    onClick={handleCloseModal}
+                    className="px-5 py-2.5 font-bold text-xs text-slate-600 dark:text-slate-300 hover:bg-slate-200/60 dark:hover:bg-slate-800 rounded-xl transition-colors"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    form="add-activity-form"
+                    disabled={formData.assigned_to.length === 0}
+                    className="flex items-center gap-2 px-6 py-2.5 font-bold text-xs text-white bg-gradient-to-r from-teal-500 to-emerald-500 hover:from-teal-400 hover:to-emerald-400 rounded-xl shadow-md hover:shadow-teal-500/20 hover:-translate-y-0.5 transition-all disabled:opacity-50 disabled:hover:translate-y-0 disabled:hover:shadow-none"
+                  >
+                    <span>Review Details</span>
+                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5"><path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" /></svg>
                   </button>
                 </>
               ) : (
                 <>
-                  <button type="button" onClick={() => setModalStep(1)} disabled={isSaving} className="flex-1 py-2.5 font-medium text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900/40 bg-red-50 dark:bg-red-900/20 rounded-xl transition-colors disabled:opacity-50 disabled:cursor-not-allowed">Back to Edit</button>
-                  <button type="button" onClick={handleSaveActivity} disabled={isSaving} className="flex-1 py-2.5 font-medium text-white bg-gradient-to-r from-teal-500 to-emerald-500 hover:from-teal-400 hover:to-emerald-400 rounded-xl shadow-sm hover:shadow-md transition-all disabled:opacity-50 disabled:hover:translate-y-0 disabled:hover:shadow-sm">
-                    {isSaving
-                      ? (emailProgress.total > 0 ? `Sending emails (${emailProgress.current}/${emailProgress.total})...` : 'Assigning...')
-                      : 'Confirm & Assign'}
+                  <button
+                    type="button"
+                    onClick={() => setModalStep(1)}
+                    disabled={isSaving}
+                    className="flex items-center gap-1.5 px-5 py-2.5 font-bold text-xs text-slate-600 dark:text-slate-300 hover:bg-slate-200/60 dark:hover:bg-slate-800 rounded-xl transition-colors disabled:opacity-50"
+                  >
+                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5"><path strokeLinecap="round" strokeLinejoin="round" d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18" /></svg>
+                    <span>Back to Edit</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleSaveActivity}
+                    disabled={isSaving}
+                    className="flex items-center gap-2 px-6 py-2.5 font-bold text-xs text-white bg-gradient-to-r from-teal-500 to-emerald-500 hover:from-teal-400 hover:to-emerald-400 rounded-xl shadow-md hover:shadow-teal-500/20 hover:-translate-y-0.5 transition-all disabled:opacity-50 disabled:hover:translate-y-0"
+                  >
+                    {isSaving ? (
+                      <>
+                        <svg className="animate-spin w-4 h-4 text-white" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                        <span>{emailProgress.total > 0 ? `Sending (${emailProgress.current}/${emailProgress.total})...` : 'Saving Activity...'}</span>
+                      </>
+                    ) : (
+                      <>
+                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5"><path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" /></svg>
+                        <span>{editingActivityId ? 'Save Changes' : 'Confirm & Assign'}</span>
+                      </>
+                    )}
                   </button>
                 </>
               )}

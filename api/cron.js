@@ -79,7 +79,7 @@ export default async function handler(req, res) {
         return res.status(200).json({ success: true, message: `No upcoming activities for ${dateString}` });
       }
 
-      const usersRes = await client.execute("SELECT Email, First_Name, Middle_Name, Last_Name FROM User_Permissions WHERE Email IS NOT NULL AND Email != ''");
+      const usersRes = await client.execute("SELECT Email, First_Name, Middle_Name, Last_Name FROM User_Permissions WHERE Email IS NOT NULL AND Email != '' AND (LOWER(Status) != 'inactive' OR Status IS NULL) AND IFNULL(is_regional, 0) != 1 AND IFNULL(Role, '') NOT IN ('Super Admin', 'External Signatory')");
       const allUsers = usersRes.rows.map(u => {
         const displayName = `${u.First_Name || ''} ${u.Middle_Name ? u.Middle_Name.charAt(0) + '. ' : ''}${u.Last_Name || ''}`.trim();
         return { email: u.Email, name: displayName };
@@ -99,7 +99,8 @@ export default async function handler(req, res) {
         let assignedArray = [];
         try { assignedArray = JSON.parse(activity.assigned_to); } catch (e) { }
 
-        let targetEmails = assignedArray.includes('All') ? allUsers.map(u => u.email) : allUsers.filter(u => assignedArray.includes(u.name)).map(u => u.email);
+        let rawTargetEmails = assignedArray.includes('All') ? allUsers.map(u => u.email) : allUsers.filter(u => assignedArray.includes(u.name)).map(u => u.email);
+        let targetEmails = [...new Set((rawTargetEmails || []).map(e => (e || '').trim().toLowerCase()).filter(e => e && e.includes('@')))];
 
         if (targetEmails.length > 0) {
           await transporter.sendMail({

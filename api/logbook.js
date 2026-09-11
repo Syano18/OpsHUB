@@ -78,6 +78,19 @@ export default async function handler(req, res) {
         transmitterName, section, modeOfTransmittal, remarks, encodedBy 
       } = req.body;
 
+      // Clean addressee to ensure Names only (stripping <email@...> and extra whitespace)
+      const cleanAddressee = (addresse || '')
+        .replace(/<[^>]+>/g, '')
+        .replace(/\([^)]*@[^)]*\)/g, '')
+        .replace(/\s+/g, ' ')
+        .trim();
+
+      const normalizedAddressee = cleanAddressee.toLowerCase().replace(/[^a-z0-9]/g, '');
+      const genericAddressees = ['co', 'centraloffice', 'psaco', 'rsso', 'rssocar', 'carrsso', 'psarsso', 'psarssocar', 'car'];
+      if (genericAddressees.includes(normalizedAddressee)) {
+        return res.status(400).json({ error: "Addressee cannot be just '" + cleanAddressee + "' alone. Please specify a specific person name, section, or division (e.g., 'CO - ITDS' or 'RSSO CAR - SOCD')." });
+      }
+
       let generatedRef = "";
 
       if (referenceOverride) {
@@ -89,7 +102,7 @@ export default async function handler(req, res) {
                     REMARKS, ENCODED_BY
                   ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
             args: [
-              referenceOverride, timestampOverride, particulars, addresse,
+              referenceOverride, timestampOverride, particulars, cleanAddressee,
               transmitterName, section, modeOfTransmittal, remarks, encodedBy
             ]
           });
@@ -101,7 +114,7 @@ export default async function handler(req, res) {
                     REMARKS, ENCODED_BY
                   ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
             args: [
-              referenceOverride, particulars, addresse,
+              referenceOverride, particulars, cleanAddressee,
               transmitterName, section, modeOfTransmittal, remarks, encodedBy
             ]
           });
@@ -115,7 +128,7 @@ export default async function handler(req, res) {
                   REMARKS, ENCODED_BY
                 ) VALUES (?, ?, ?, ?, ?, ?, ?)`,
           args: [
-            particulars, addresse, transmitterName, section, 
+            particulars, cleanAddressee, transmitterName, section, 
             modeOfTransmittal, remarks, encodedBy
           ]
         });
@@ -145,13 +158,25 @@ export default async function handler(req, res) {
 
       if (!id) return res.status(400).json({ error: 'ID is required' });
 
+      const cleanAddressee = (addresse || '')
+        .replace(/<[^>]+>/g, '')
+        .replace(/\([^)]*@[^)]*\)/g, '')
+        .replace(/\s+/g, ' ')
+        .trim();
+
+      const normalizedAddressee = cleanAddressee.toLowerCase().replace(/[^a-z0-9]/g, '');
+      const genericAddressees = ['co', 'centraloffice', 'psaco', 'rsso', 'rssocar', 'carrsso', 'psarsso', 'psarssocar', 'car'];
+      if (genericAddressees.includes(normalizedAddressee)) {
+        return res.status(400).json({ error: "Addressee cannot be just '" + cleanAddressee + "' alone. Please specify a specific person name, section, or division (e.g., 'CO - ITDS' or 'RSSO CAR - SOCD')." });
+      }
+
       await turso.execute({
         sql: `UPDATE Digital_Logbook SET 
                 PARTICULARS = ?, ADDRESSE = ?, TRANSMITTER = ?, 
                 SECTION = ?, MODE_OF_TRANSMITTAL = ?, REMARKS = ?, ENCODED_BY = ?
               WHERE id = ?`,
         args: [
-          particulars, addresse, transmitterName, section, 
+          particulars, cleanAddressee, transmitterName, section, 
           modeOfTransmittal, remarks, encodedBy, id
         ]
       });

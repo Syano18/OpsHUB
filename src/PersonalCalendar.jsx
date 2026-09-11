@@ -348,7 +348,7 @@ export default function PersonalCalendar() {
       </header>
 
       {/* Main Content Area */}
-      <div className="flex-1 flex flex-col p-2 sm:p-4 min-h-0 overflow-hidden">
+      <div className="flex-1 flex flex-col px-2 pb-2 pt-4 min-h-0 overflow-hidden">
         <div className="w-full h-full flex flex-col gap-3 min-h-0">
 
           {error && (

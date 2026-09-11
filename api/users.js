@@ -32,9 +32,10 @@ export default async function handler(req, res) {
 
     try {
       await turso.execute("ALTER TABLE User_Permissions ADD COLUMN signature_url TEXT");
-    } catch (e) {
-      // Ignore error if column already exists
-    }
+    } catch (e) {}
+    try {
+      await turso.execute("ALTER TABLE User_Permissions ADD COLUMN birthdate TEXT");
+    } catch (e) {}
 
     if (req.method === 'GET') {
       const { email, fetchAll } = req.query;
@@ -59,23 +60,35 @@ export default async function handler(req, res) {
         allUsers = allUsersRs.rows;
       }
       
-      return res.status(200).json({ user: loggedInUser, allUsers });
+      return res.status(200).json({ 
+        user: loggedInUser,
+        allUsers 
+      });
       
     } else if (req.method === 'PUT') {
       // Update own profile
       const { email, editForm } = req.body;
       if (!email || !editForm) return res.status(400).json({ error: 'Missing email or editForm' });
       
+      const userCheck = await turso.execute({
+        sql: "SELECT Role, birthdate FROM User_Permissions WHERE LOWER(Email) = LOWER(?)",
+        args: [email]
+      });
+      const userRole = userCheck.rows[0]?.Role;
+      const isAdmin = userRole === 'Admin' || userRole === 'Super Admin';
+      const effectiveBirthdate = isAdmin ? (editForm.birthdate || null) : (userCheck.rows[0]?.birthdate || null);
+
       await turso.execute({
         sql: `UPDATE User_Permissions SET 
                 First_Name = ?, Middle_Name = ?, Last_Name = ?, Suffix = ?, 
-                Position = ?, sex = ?, emp_stat = ?, Salary_Grade = ?, Salary = ?
+                Position = ?, sex = ?, emp_stat = ?, Salary_Grade = ?, Salary = ?, birthdate = ?
               WHERE LOWER(Email) = LOWER(?)`,
         args: [
           editForm.First_Name || '', editForm.Middle_Name || '', editForm.Last_Name || '', editForm.Suffix || '',
           editForm.Position || '', editForm.sex || '', editForm.emp_stat || '', 
           editForm.Salary_Grade ? parseInt(editForm.Salary_Grade) : null,
           editForm.Salary ? parseFloat(editForm.Salary) : null,
+          effectiveBirthdate,
           email
         ]
       });
@@ -84,7 +97,7 @@ export default async function handler(req, res) {
       
     } else if (req.method === 'PATCH') {
       // Admin updating a user's role and details
-      const { adminEmail, targetEmail, targetRole, firstName, lastName, middleName, suffix, position, salary, salaryGrade, isRegional, emp_stat } = req.body;
+      const { adminEmail, targetEmail, targetRole, firstName, lastName, middleName, suffix, position, salary, salaryGrade, isRegional, emp_stat, birthdate } = req.body;
       if (!adminEmail || !targetEmail || !targetRole) {
         return res.status(400).json({ error: 'Missing required fields' });
       }
@@ -100,7 +113,7 @@ export default async function handler(req, res) {
       
       await turso.execute({
         sql: `UPDATE User_Permissions SET 
-                Role = ?, First_Name = ?, Last_Name = ?, Middle_Name = ?, Suffix = ?, Position = ?, Salary = ?, Salary_Grade = ?, is_regional = ?, emp_stat = ? 
+                Role = ?, First_Name = ?, Last_Name = ?, Middle_Name = ?, Suffix = ?, Position = ?, Salary = ?, Salary_Grade = ?, is_regional = ?, emp_stat = ?, birthdate = ? 
               WHERE LOWER(Email) = LOWER(?)`,
         args: [
           targetRole, 
@@ -113,6 +126,7 @@ export default async function handler(req, res) {
           salaryGrade ? parseInt(salaryGrade) : null,
           isRegional ? 1 : 0, 
           emp_stat || '',
+          birthdate || null,
           targetEmail
         ]
       });
@@ -121,7 +135,7 @@ export default async function handler(req, res) {
     }
 
     if (req.method === 'POST') {
-      const { action, email, firstName, lastName, middleName, suffix, role, empStat, position, isRegional } = req.body;
+      const { action, email, firstName, lastName, middleName, suffix, role, empStat, position, isRegional, birthdate } = req.body;
       
       if (action === 'check_status') {
         if (!email) return res.status(400).json({ error: 'Email is required', success: false });
@@ -143,8 +157,8 @@ export default async function handler(req, res) {
         }
 
         await turso.execute({
-          sql: `INSERT INTO User_Permissions (Email, First_Name, Last_Name, Middle_Name, Suffix, Role, emp_stat, Position, is_regional) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-          args: [email, firstName, lastName, middleName || '', suffix || '', role, empStat || '', position || '', isRegional ? 1 : 0]
+          sql: `INSERT INTO User_Permissions (Email, First_Name, Last_Name, Middle_Name, Suffix, Role, emp_stat, Position, is_regional, birthdate) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          args: [email, firstName, lastName, middleName || '', suffix || '', role, empStat || '', position || '', isRegional ? 1 : 0, birthdate || null]
         });
 
         if (role !== 'External Signatory') {
