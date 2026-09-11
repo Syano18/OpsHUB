@@ -357,7 +357,7 @@ export default function OfficeActivities() {
     const s = act.start_date;
     const e = act.end_date || act.start_date;
 
-    if (act.status === 'Completed' || act.status === 'Canceled' || e < todayYMD) {
+    if (act.status === 'Completed' || act.status === 'Canceled') {
       finished.push(act);
     } else if (s > todayYMD) {
       upcoming.push(act);
@@ -683,7 +683,7 @@ export default function OfficeActivities() {
                     Archive
                   </h3>
                   <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                    Completed, canceled, and past office activities.
+                    Completed and canceled office activities.
                   </p>
                 </div>
 
