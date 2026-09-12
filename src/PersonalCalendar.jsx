@@ -33,6 +33,7 @@ export default function PersonalCalendar() {
   const [formData, setFormData] = useState({
     title: '',
     event_type: 'Meeting',
+    other_category: '',
     start_date: '',
     end_date: '',
     description: ''
@@ -144,6 +145,14 @@ export default function PersonalCalendar() {
       dot: 'bg-purple-500',
       gradient: 'from-purple-500 to-pink-600'
     },
+    'Travel': {
+      label: 'Travel',
+      icon: '✈️',
+      badge: 'bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-500/30',
+      pill: 'bg-amber-50 text-amber-700 dark:bg-amber-950/40 dark:text-amber-300 border border-amber-200 dark:border-amber-800/50',
+      dot: 'bg-amber-500',
+      gradient: 'from-amber-500 to-orange-600'
+    },
     'Leave': {
       label: 'Leave',
       icon: '🌴',
@@ -176,15 +185,24 @@ export default function PersonalCalendar() {
 
   const handleSaveEvent = async (e) => {
     e.preventDefault();
+    if (formData.event_type === 'Other' && !formData.other_category?.trim()) {
+      setAlertConfig({ message: 'Please specify the event category.', type: 'error' });
+      return;
+    }
+
     setIsSaving(true);
     try {
       const email = user.primaryEmailAddress.emailAddress;
       const token = await getToken();
       
+      const finalEventType = formData.event_type === 'Other' 
+        ? (formData.other_category?.trim() || 'Other')
+        : formData.event_type;
+
       const payload = {
         email,
         title: formData.title,
-        event_type: formData.event_type || 'Other',
+        event_type: finalEventType,
         start_date: formData.start_date,
         end_date: formData.end_date || formData.start_date,
         description: formData.description
@@ -210,7 +228,7 @@ export default function PersonalCalendar() {
       await fetchCalendar();
       setIsAddModalOpen(false);
       setEditingEventId(null);
-      setFormData({ title: '', event_type: 'Meeting', start_date: '', end_date: '', description: '' });
+      setFormData({ title: '', event_type: 'Meeting', other_category: '', start_date: '', end_date: '', description: '' });
       setAlertConfig({ message: editingEventId ? 'Event updated successfully!' : 'Event created successfully!', type: 'success' });
     } catch (err) {
       console.error("Error saving event:", err);
@@ -226,6 +244,7 @@ export default function PersonalCalendar() {
     setFormData({
       title: '',
       event_type: 'Meeting',
+      other_category: '',
       start_date: defaultDate,
       end_date: defaultDate,
       description: ''
@@ -236,9 +255,13 @@ export default function PersonalCalendar() {
   const handleEditEvent = (evt = null) => {
     const target = evt || selectedEvent;
     if (!target) return;
+    const standardCategories = ['Meeting', 'Training', 'Seminar', 'Travel'];
+    const isStandard = standardCategories.includes(target.event_type);
+
     setFormData({
       title: target.title,
-      event_type: target.event_type || 'Other',
+      event_type: isStandard ? target.event_type : 'Other',
+      other_category: isStandard ? '' : (target.event_type === 'Other' ? '' : target.event_type),
       start_date: target.start_date,
       end_date: target.end_date || target.start_date,
       description: target.description || ''
@@ -604,11 +627,11 @@ export default function PersonalCalendar() {
                             {conf.icon}
                           </div>
                           <div className="min-w-0">
-                            <div className="flex items-center gap-2 flex-wrap mb-0.5">
-                              <h4 className="font-bold text-slate-800 dark:text-white text-sm sm:text-base group-hover:text-teal-600 dark:group-hover:text-teal-400 transition-colors truncate">
+                            <div className="flex items-start gap-2 flex-wrap mb-0.5">
+                              <h4 className="font-bold text-slate-800 dark:text-white text-sm sm:text-base group-hover:text-teal-600 dark:group-hover:text-teal-400 transition-colors break-words">
                                 {event.title}
                               </h4>
-                              <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold border ${conf.pill}`}>
+                              <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold border shrink-0 ${conf.pill}`}>
                                 {event.event_type}
                               </span>
                             </div>
@@ -702,12 +725,12 @@ export default function PersonalCalendar() {
                       }} 
                       className={`p-4 rounded-xl border transition-all cursor-pointer hover:shadow-md ${conf.pill}`}
                     >
-                      <div className="flex items-center justify-between gap-2 mb-1.5">
-                        <div className="font-bold text-sm text-slate-800 dark:text-white truncate flex items-center gap-2">
-                          <span>{conf.icon}</span>
-                          <span>{event.title}</span>
+                      <div className="flex items-start justify-between gap-2 mb-1.5">
+                        <div className="font-bold text-sm text-slate-800 dark:text-white flex items-start gap-2 flex-1 min-w-0">
+                          <span className="shrink-0 mt-0.5">{conf.icon}</span>
+                          <span className="break-words">{event.title}</span>
                         </div>
-                        <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-md bg-white/60 dark:bg-slate-900/60">
+                        <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-md bg-white/60 dark:bg-slate-900/60 shrink-0">
                           {event.event_type}
                         </span>
                       </div>
@@ -797,7 +820,7 @@ export default function PersonalCalendar() {
                   Event Category <span className="text-red-500">*</span>
                 </label>
                 <div className="grid grid-cols-3 sm:grid-cols-5 gap-2">
-                  {['Meeting', 'Training', 'Seminar', 'Leave', 'Other'].map(type => {
+                  {['Meeting', 'Training', 'Seminar', 'Travel', 'Other'].map(type => {
                     const conf = getEventConfig(type);
                     const isSelected = formData.event_type === type;
                     return (
@@ -817,6 +840,23 @@ export default function PersonalCalendar() {
                     );
                   })}
                 </div>
+
+                {/* Specify Custom Category when Other is selected */}
+                {formData.event_type === 'Other' && (
+                  <div className="mt-3 animate-in fade-in slide-in-from-top-1 duration-200">
+                    <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1.5">
+                      Specify Category / Type <span className="text-red-500">*</span>
+                    </label>
+                    <input 
+                      required 
+                      type="text" 
+                      value={formData.other_category || ''} 
+                      onChange={e => setFormData({ ...formData, other_category: e.target.value })} 
+                      className="w-full px-4 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-teal-500 text-sm font-medium text-slate-800 dark:text-slate-100 placeholder-slate-400" 
+                      placeholder="E.g., Workshop, Audit, Field Work, Inspection..." 
+                    />
+                  </div>
+                )}
               </div>
 
               {/* Date Inputs */}
@@ -902,19 +942,19 @@ export default function PersonalCalendar() {
 
               return (
                 <>
-                  <div className={`px-6 py-5 bg-gradient-to-r ${conf.gradient} text-white flex items-center justify-between`}>
-                    <div className="flex items-center gap-3 min-w-0">
-                      <span className="text-2xl">{conf.icon}</span>
-                      <div className="min-w-0">
+                  <div className={`px-6 py-5 bg-gradient-to-r ${conf.gradient} text-white flex items-start justify-between gap-3`}>
+                    <div className="flex items-start gap-3 min-w-0 flex-1">
+                      <span className="text-2xl shrink-0 mt-0.5">{conf.icon}</span>
+                      <div className="min-w-0 flex-1">
                         <span className="text-[10px] font-bold uppercase tracking-wider bg-black/20 px-2 py-0.5 rounded-full inline-block mb-1">
                           {selectedEvent.event_type}
                         </span>
-                        <h3 className="text-base sm:text-lg font-bold truncate pr-2">
+                        <h3 className="text-base sm:text-lg font-bold leading-snug break-words">
                           {selectedEvent.title}
                         </h3>
                       </div>
                     </div>
-                    <button onClick={() => setSelectedEvent(null)} className="text-white/80 hover:text-white p-1.5 rounded-lg hover:bg-white/10 transition-colors">
+                    <button onClick={() => setSelectedEvent(null)} className="text-white/80 hover:text-white p-1.5 rounded-lg hover:bg-white/10 transition-colors shrink-0">
                       <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
                     </button>
                   </div>

@@ -172,6 +172,55 @@ export default async function handler(req, res) {
         }
         return res.status(200).json({ success: true, clerkUserId: clerkUser ? clerkUser.id : null });
       }
+
+      if (action === 'subscribe') {
+        const { email: subEmail, subscription } = req.body;
+        if (!subEmail) return res.status(400).json({ error: 'Email required' });
+        if (!subscription || !subscription.endpoint || !subscription.keys) {
+          return res.status(400).json({ error: 'Invalid subscription object' });
+        }
+
+        await turso.execute(`
+          CREATE TABLE IF NOT EXISTS Push_Subscriptions (
+            user_email TEXT NOT NULL,
+            endpoint TEXT PRIMARY KEY,
+            p256dh TEXT,
+            auth TEXT,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+          )
+        `);
+
+        await turso.execute({
+          sql: `INSERT INTO Push_Subscriptions (user_email, endpoint, p256dh, auth) 
+                VALUES (?, ?, ?, ?)
+                ON CONFLICT(endpoint) DO UPDATE SET 
+                  user_email = excluded.user_email,
+                  p256dh = excluded.p256dh,
+                  auth = excluded.auth`,
+          args: [
+            subEmail, 
+            subscription.endpoint, 
+            subscription.keys.p256dh, 
+            subscription.keys.auth
+          ]
+        });
+
+        return res.status(200).json({ success: true });
+      }
+
+      if (action === 'unsubscribe') {
+        const { subscription } = req.body;
+        if (!subscription || !subscription.endpoint) {
+          return res.status(400).json({ error: 'Endpoint required for unsubscribe' });
+        }
+        
+        await turso.execute({
+          sql: `DELETE FROM Push_Subscriptions WHERE endpoint = ?`,
+          args: [subscription.endpoint]
+        });
+
+        return res.status(200).json({ success: true });
+      }
     }
 
     return res.status(405).json({ error: 'Method Not Allowed' });

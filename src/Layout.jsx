@@ -71,7 +71,7 @@ export default function Layout() {
           applicationServerKey: urlBase64ToUint8Array(publicVapidKey)
         });
 
-        await fetch('/api/push-subscribe', {
+        await fetch('/api/users', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',

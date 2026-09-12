@@ -379,8 +379,8 @@ export default function COSWEvaluation() {
         {/* Content Area */}
         <div className="flex-1 flex flex-col min-h-0">
           {isLoading ? (
-            <div className="flex-1 flex items-center justify-center p-12">
-              <Loading text="Loading COSW Evaluations..." />
+            <div className="w-full pb-6">
+              <Loading type="grid" />
             </div>
           ) : filteredEmployments.length === 0 ? (
             <div className="flex-1 flex flex-col items-center justify-center p-12 text-center bg-white dark:bg-slate-900 rounded-3xl border border-slate-200/80 dark:border-slate-800">

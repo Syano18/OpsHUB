@@ -273,10 +273,13 @@ export default function LeaveCredits() {
       setHistoryData(prev => prev.map(h => h.id === row.id ? { ...h, status: 'Transmitted' } : h));
 
       try {
-        await fetch('/api/notify-transmit', {
+        await fetch('/api/leave', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ leaveId: row.id })
+          headers: { 
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({ action: 'notifyTransmit', leaveId: row.id })
         });
       } catch (emailErr) {
         console.error("Failed to trigger transmit API:", emailErr);

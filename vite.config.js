@@ -75,6 +75,11 @@ export default defineConfig(({ mode }) => {
     define: {
       __APP_VERSION__: JSON.stringify(version),
     },
+    server: {
+      watch: {
+        ignored: ['**/*.docx', '**/*.xlsx']
+      }
+    },
     plugins: [react(), tailwindcss(), apiMiddleware(), generateVersion()],
   }
 })
