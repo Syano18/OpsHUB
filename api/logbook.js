@@ -91,6 +91,13 @@ export default async function handler(req, res) {
         return res.status(400).json({ error: "Addressee cannot be just '" + cleanAddressee + "' alone. Please specify a specific person name, section, or division (e.g., 'CO - ITDS' or 'RSSO CAR - SOCD')." });
       }
 
+      const safeParticulars = particulars || '';
+      const safeTransmitter = transmitterName || '';
+      const safeSection = section || '';
+      const safeModeOfTransmittal = modeOfTransmittal || '';
+      const safeRemarks = remarks || '';
+      const safeEncodedBy = encodedBy || '';
+
       let generatedRef = "";
 
       if (referenceOverride) {
@@ -102,8 +109,8 @@ export default async function handler(req, res) {
                     REMARKS, ENCODED_BY
                   ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
             args: [
-              referenceOverride, timestampOverride, particulars, cleanAddressee,
-              transmitterName, section, modeOfTransmittal, remarks, encodedBy
+              referenceOverride, timestampOverride, safeParticulars, cleanAddressee,
+              safeTransmitter, safeSection, safeModeOfTransmittal, safeRemarks, safeEncodedBy
             ]
           });
         } else {
@@ -114,8 +121,8 @@ export default async function handler(req, res) {
                     REMARKS, ENCODED_BY
                   ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
             args: [
-              referenceOverride, particulars, cleanAddressee,
-              transmitterName, section, modeOfTransmittal, remarks, encodedBy
+              referenceOverride, safeParticulars, cleanAddressee,
+              safeTransmitter, safeSection, safeModeOfTransmittal, safeRemarks, safeEncodedBy
             ]
           });
         }
@@ -128,24 +135,27 @@ export default async function handler(req, res) {
                   REMARKS, ENCODED_BY
                 ) VALUES (?, ?, ?, ?, ?, ?, ?)`,
           args: [
-            particulars, cleanAddressee, transmitterName, section, 
-            modeOfTransmittal, remarks, encodedBy
+            safeParticulars, cleanAddressee, safeTransmitter, safeSection, 
+            safeModeOfTransmittal, safeRemarks, safeEncodedBy
           ]
         });
 
-        const refResult = await turso.execute({
-          sql: `SELECT REFERENCE_NUMBER FROM Digital_Logbook WHERE id = ?`,
-          args: [Number(insertResult.lastInsertRowid)]
-        });
-        generatedRef = refResult.rows[0].REFERENCE_NUMBER;
+        const lastId = insertResult.lastInsertRowid ? Number(insertResult.lastInsertRowid) : null;
+        if (lastId) {
+          const refResult = await turso.execute({
+            sql: `SELECT REFERENCE_NUMBER FROM Digital_Logbook WHERE id = ?`,
+            args: [lastId]
+          });
+          generatedRef = refResult.rows[0]?.REFERENCE_NUMBER || '';
+        }
       }
 
       // Add to dropdown tables if they exist
-      if (section && section.trim() !== '') {
-        await turso.execute({ sql: `INSERT OR IGNORE INTO Sections (name) VALUES (?)`, args: [section.trim()] });
+      if (safeSection.trim() !== '') {
+        await turso.execute({ sql: `INSERT OR IGNORE INTO Sections (name) VALUES (?)`, args: [safeSection.trim()] });
       }
-      if (modeOfTransmittal && modeOfTransmittal.trim() !== '') {
-        await turso.execute({ sql: `INSERT OR IGNORE INTO TransmittalModes (name) VALUES (?)`, args: [modeOfTransmittal.trim()] });
+      if (safeModeOfTransmittal.trim() !== '') {
+        await turso.execute({ sql: `INSERT OR IGNORE INTO TransmittalModes (name) VALUES (?)`, args: [safeModeOfTransmittal.trim()] });
       }
 
       return res.status(200).json({ success: true, generatedRef });
@@ -170,14 +180,21 @@ export default async function handler(req, res) {
         return res.status(400).json({ error: "Addressee cannot be just '" + cleanAddressee + "' alone. Please specify a specific person name, section, or division (e.g., 'CO - ITDS' or 'RSSO CAR - SOCD')." });
       }
 
+      const safeParticulars = particulars || '';
+      const safeTransmitter = transmitterName || '';
+      const safeSection = section || '';
+      const safeModeOfTransmittal = modeOfTransmittal || '';
+      const safeRemarks = remarks || '';
+      const safeEncodedBy = encodedBy || '';
+
       await turso.execute({
         sql: `UPDATE Digital_Logbook SET 
                 PARTICULARS = ?, ADDRESSE = ?, TRANSMITTER = ?, 
                 SECTION = ?, MODE_OF_TRANSMITTAL = ?, REMARKS = ?, ENCODED_BY = ?
               WHERE id = ?`,
         args: [
-          particulars, cleanAddressee, transmitterName, section, 
-          modeOfTransmittal, remarks, encodedBy, id
+          safeParticulars, cleanAddressee, safeTransmitter, safeSection, 
+          safeModeOfTransmittal, safeRemarks, safeEncodedBy, id
         ]
       });
 
@@ -186,14 +203,14 @@ export default async function handler(req, res) {
         args: [id]
       });
       
-      const generatedRef = refResult.rows[0].REFERENCE_NUMBER;
+      const generatedRef = refResult.rows[0]?.REFERENCE_NUMBER || '';
 
       // Add to dropdown tables if they exist
-      if (section && section.trim() !== '') {
-        await turso.execute({ sql: `INSERT OR IGNORE INTO Sections (name) VALUES (?)`, args: [section.trim()] });
+      if (safeSection.trim() !== '') {
+        await turso.execute({ sql: `INSERT OR IGNORE INTO Sections (name) VALUES (?)`, args: [safeSection.trim()] });
       }
-      if (modeOfTransmittal && modeOfTransmittal.trim() !== '') {
-        await turso.execute({ sql: `INSERT OR IGNORE INTO TransmittalModes (name) VALUES (?)`, args: [modeOfTransmittal.trim()] });
+      if (safeModeOfTransmittal.trim() !== '') {
+        await turso.execute({ sql: `INSERT OR IGNORE INTO TransmittalModes (name) VALUES (?)`, args: [safeModeOfTransmittal.trim()] });
       }
 
       return res.status(200).json({ success: true, generatedRef });

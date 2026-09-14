@@ -230,7 +230,12 @@ export default function DigitalLogbook() {
 
     try {
       const token = await getToken();
-      const payload = { ...formData };
+      const userEncodedBy = user?.primaryEmailAddress?.emailAddress || user?.fullName || user?.id || '';
+      const payload = { 
+        ...formData,
+        transmitterName: transmitterName || '',
+        encodedBy: userEncodedBy
+      };
       let res;
 
       if (editingId) {
@@ -250,7 +255,10 @@ export default function DigitalLogbook() {
         });
       }
 
-      if (!res.ok) throw new Error("Failed to save logbook entry");
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({}));
+        throw new Error(errorData.error || "Failed to save logbook entry");
+      }
       const data = await res.json();
       const generatedRef = data.generatedRef;
 
@@ -291,6 +299,7 @@ export default function DigitalLogbook() {
       modeOfTransmittal: entry.MODE_OF_TRANSMITTAL || '',
       remarks: entry.REMARKS || ''
     });
+    if (entry.TRANSMITTER) setTransmitterName(entry.TRANSMITTER);
     setShowForm(true);
   };
 
