@@ -123,13 +123,10 @@ export default function DigitalLogbook() {
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
-    if (name === 'addresse') {
-      const cleaned = cleanAddresseeName(value);
-      setFormData(prev => ({ ...prev, [name]: cleaned }));
-      if (error && !cleaned.includes('@')) setError("");
-      return;
-    }
     setFormData(prev => ({ ...prev, [name]: value }));
+    if (name === 'addresse' && error && !value.includes('@')) {
+      setError("");
+    }
   };
 
   const handleCloseForm = () => {
