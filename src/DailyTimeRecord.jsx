@@ -259,6 +259,9 @@ export default function DailyTimeRecord() {
       totalMinutes += renderedMinutes;
       if (renderedMinutes > 0) daysPresentCount++;
 
+      const hasAnyPunch = !!(record.time_in_am || record.time_out_am || record.time_in_pm || record.time_out_pm);
+      const isCompletePunches = !!(record.time_in_am && record.time_out_am && record.time_in_pm && record.time_out_pm);
+
       if (record.time_in_am) {
         if (record.time_in_am > "08:30") {
           isLate = true;
@@ -267,32 +270,26 @@ export default function DailyTimeRecord() {
         }
       }
 
-      if (isLate) {
-        lateCount++;
-      } else if (renderedMinutes > 0) {
-        onTimeCount++;
-      }
-
-      if (record.error_message) {
+      if (!hasAnyPunch) {
+        if (isWeekend) {
+          status = 'Rest day';
+          statusCategory = 'REST';
+          statusColor = 'text-slate-400 dark:text-slate-500';
+          statusBadgeClass = 'bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 border-slate-200 dark:border-slate-700';
+        } else {
+          status = 'No Record';
+          statusCategory = 'ABSENT';
+          statusColor = 'text-red-600 dark:text-red-400';
+          statusBadgeClass = 'bg-red-50 dark:bg-red-950/40 text-red-600 dark:text-red-400 border-red-200 dark:border-red-800/60';
+          absentCount++;
+        }
+      } else if (!isCompletePunches || (record.error_message && !isCompletePunches)) {
         status = 'Missing punch';
         statusCategory = 'MISSING';
         statusColor = 'text-rose-700 dark:text-rose-400';
         statusBadgeClass = 'bg-rose-50 dark:bg-rose-950/50 text-rose-700 dark:text-rose-300 border-rose-200 dark:border-rose-800/80';
         rowBorderClass = 'border-l-4 border-rose-500';
         punchErrorCount++;
-      } else if (!record.time_in_am && !record.time_out_am && !record.time_in_pm && !record.time_out_pm) {
-         if (isWeekend) {
-            status = 'Rest day';
-            statusCategory = 'REST';
-            statusColor = 'text-slate-400 dark:text-slate-500';
-            statusBadgeClass = 'bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 border-slate-200 dark:border-slate-700';
-         } else {
-            status = 'No Record';
-            statusCategory = 'ABSENT';
-            statusColor = 'text-red-600 dark:text-red-400';
-            statusBadgeClass = 'bg-red-50 dark:bg-red-950/40 text-red-600 dark:text-red-400 border-red-200 dark:border-red-800/60';
-            absentCount++;
-         }
       } else {
         if (isLate) {
           status = 'Late';
@@ -300,12 +297,14 @@ export default function DailyTimeRecord() {
           statusColor = 'text-amber-600 dark:text-amber-400';
           statusBadgeClass = 'bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-800/80';
           rowBorderClass = 'border-l-4 border-amber-500';
+          lateCount++;
         } else {
           status = 'On time';
           statusCategory = 'PRESENT';
           statusColor = 'text-teal-600 dark:text-teal-400';
           statusBadgeClass = 'bg-teal-50 dark:bg-teal-950/40 text-teal-700 dark:text-teal-300 border-teal-200 dark:border-teal-800/80';
           rowBorderClass = 'border-l-4 border-teal-500';
+          onTimeCount++;
         }
       }
     } else {
