@@ -39,28 +39,32 @@ export default function NotificationBell() {
             }
           }
 
-          const pendingFinished = (data.activities || []).filter(act => {
-            const e = act.end_date || act.start_date;
-            const isPendingFinished = e < todayYMD && act.status === 'Pending';
-            const canSee = role === 'Super Admin' || role === 'Admin' || act.created_by === currentUserDisplayName;
-            return isPendingFinished && canSee;
-          }).map(act => ({
-            id: `act_${act.id}`,
-            title: act.title,
-            message: `This activity is finished but still marked as Pending. Please update its status.`,
-            link: '/office-activities'
-          }));
-          
-          newNotifications = [...newNotifications, ...pendingFinished];
+          const isSuperAdmin = role === 'Super Admin' || role === 'SuperAdmin';
 
-          if (data.todayBirthdays && data.todayBirthdays.length > 0) {
-            const bdayNotifs = data.todayBirthdays.map((b, idx) => ({
-              id: `bday_${idx}_${todayYMD}`,
-              title: `🎂 Today is ${b.firstName || b.name}'s Birthday!`,
-              message: `Celebrate with ${b.name} (${b.position}) today!`,
-              link: '/birthday-celebrants'
+          if (!isSuperAdmin) {
+            const pendingFinished = (data.activities || []).filter(act => {
+              const e = act.end_date || act.start_date;
+              const isPendingFinished = e < todayYMD && act.status === 'Pending';
+              const canSee = role === 'Admin' || act.created_by === currentUserDisplayName;
+              return isPendingFinished && canSee;
+            }).map(act => ({
+              id: `act_${act.id}`,
+              title: act.title,
+              message: `This activity is finished but still marked as Pending. Please update its status.`,
+              link: '/office-activities'
             }));
-            newNotifications = [...bdayNotifs, ...newNotifications];
+            
+            newNotifications = [...newNotifications, ...pendingFinished];
+
+            if (data.todayBirthdays && data.todayBirthdays.length > 0) {
+              const bdayNotifs = data.todayBirthdays.map((b, idx) => ({
+                id: `bday_${idx}_${todayYMD}`,
+                title: `🎂 Today is ${b.firstName || b.name}'s Birthday!`,
+                message: `Celebrate with ${b.name} (${b.position}) today!`,
+                link: '/birthday-celebrants'
+              }));
+              newNotifications = [...bdayNotifs, ...newNotifications];
+            }
           }
         }
 

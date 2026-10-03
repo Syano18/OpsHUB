@@ -24,7 +24,6 @@ export default function Login() {
 
       let params = new URLSearchParams(window.location.search);
 
-      // Robustly parse the hash if the error is hidden there
       if (!params.get('error') && window.location.hash.includes('error=')) {
          const hashStr = window.location.hash;
          const queryPart = hashStr.includes('?') ? hashStr.substring(hashStr.indexOf('?') + 1) : hashStr.substring(1);
@@ -96,13 +95,13 @@ export default function Login() {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ action: 'verify_turnstile', token: turnstileToken })
          });
-         
+
          const turnstileData = await turnstileRes.json();
          if (!turnstileRes.ok || !turnstileData.success) {
-             setError(turnstileData.error || "Security check failed. Please try again.");
-             setIsLoading(false);
-             setLoadingAction(null);
-             return;
+            setError(turnstileData.error || "Security check failed. Please try again.");
+            setIsLoading(false);
+            setLoadingAction(null);
+            return;
          }
 
          const result = await signIn.create({
@@ -144,13 +143,13 @@ export default function Login() {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ action: 'verify_turnstile', token: turnstileToken })
          });
-         
+
          const turnstileData = await turnstileRes.json();
          if (!turnstileRes.ok || !turnstileData.success) {
-             setError(turnstileData.error || "Security check failed. Please try again.");
-             setIsLoading(false);
-             setLoadingAction(null);
-             return;
+            setError(turnstileData.error || "Security check failed. Please try again.");
+            setIsLoading(false);
+            setLoadingAction(null);
+            return;
          }
 
          await signIn.authenticateWithRedirect({
@@ -372,8 +371,8 @@ export default function Login() {
 
                         {/* Turnstile Widget */}
                         <div className="flex justify-center w-full">
-                           <Turnstile 
-                              siteKey={import.meta.env.VITE_TURNSTILE_SITE_KEY} 
+                           <Turnstile
+                              siteKey={import.meta.env.VITE_TURNSTILE_SITE_KEY}
                               onSuccess={(token) => setTurnstileToken(token)}
                               options={{ theme: 'auto' }}
                            />
@@ -445,13 +444,13 @@ export default function Login() {
 
             {/* App Footer */}
             <footer className="mt-2 flex justify-between text-slate-500 dark:text-slate-400 text-sm font-medium px-2">
-               <a 
-                 href="https://www.facebook.com/chanotot" 
-                 target="_blank" 
-                 rel="noopener noreferrer" 
-                 className="hover:text-teal-600 dark:hover:text-teal-400 hover:underline transition-colors"
+               <a
+                  href="https://www.facebook.com/chanotot"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="hover:text-teal-600 dark:hover:text-teal-400 hover:underline transition-colors"
                >
-                 TechCraft by Chano
+                  TechCraft by Chano
                </a>
                <span>{__APP_VERSION__}</span>
             </footer>

@@ -16,7 +16,7 @@ export default function Profile() {
   const [successMessage, setSuccessMessage] = useState('');
   const [isUploadingImage, setIsUploadingImage] = useState(false);
 
-  // Active Tab: 'profile' | 'security' | 'admin'
+
   const [activeTab, setActiveTab] = useState('profile');
   const [adminSubTab, setAdminSubTab] = useState('update'); // 'update' | 'create' | 'directory'
 
@@ -373,7 +373,7 @@ export default function Profile() {
   const filteredDirectoryUsers = useMemo(() => {
     if (!directorySearch) return allUsers;
     const q = directorySearch.toLowerCase();
-    return allUsers.filter(u => 
+    return allUsers.filter(u =>
       (u.First_Name && u.First_Name.toLowerCase().includes(q)) ||
       (u.Last_Name && u.Last_Name.toLowerCase().includes(q)) ||
       (u.Email && u.Email.toLowerCase().includes(q)) ||
@@ -390,18 +390,18 @@ export default function Profile() {
     );
   }
 
-  const fullName = userData 
+  const fullName = userData
     ? `${userData.First_Name || ''} ${userData.Middle_Name ? userData.Middle_Name.charAt(0).toUpperCase() + '.' : ''} ${userData.Last_Name || ''} ${userData.Suffix || ''}`.replace(/\s+/g, ' ').trim()
     : user?.fullName || 'User Profile';
 
   return (
     <div className="h-full flex flex-col overflow-hidden bg-slate-50/50 dark:bg-slate-950 text-slate-900 dark:text-slate-100">
-      
+
       {/* Header */}
       <header className="shrink-0 h-16 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between pl-4 pr-2 md:pl-8 md:pr-4 shadow-xs sticky top-0 z-20">
         <div className="flex items-center gap-2">
-          <button 
-            onClick={() => setIsSidebarOpen(true)} 
+          <button
+            onClick={() => setIsSidebarOpen(true)}
             className="lg:hidden p-2 -ml-2 mr-1 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors"
           >
             <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" /></svg>
@@ -434,7 +434,7 @@ export default function Profile() {
 
       {/* Main Content Area */}
       <div className="flex-1 overflow-y-auto px-2 pb-2 pt-4 flex flex-col gap-4 min-h-0 w-full">
-        
+
         {/* Alerts */}
         <Alert message={error} onClose={() => setError('')} duration={5000} />
         {successMessage && (
@@ -458,16 +458,15 @@ export default function Profile() {
 
           <div className="px-5 sm:px-8 pb-6 sm:pb-8">
             <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4">
-              
+
               {/* Avatar & User Core Details */}
               <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 sm:gap-6 w-full md:w-auto">
                 {/* Avatar with negative margin so ONLY the avatar pops out over the banner */}
                 <div className="relative -mt-14 sm:-mt-16 shrink-0 w-28 h-28 sm:w-32 sm:h-32 rounded-3xl bg-white dark:bg-slate-900 p-1.5 shadow-xl border-4 border-white dark:border-slate-900 group z-10">
-                  <label 
-                    htmlFor="profile-upload" 
-                    className={`absolute inset-1.5 rounded-2xl bg-black/50 flex flex-col items-center justify-center cursor-pointer transition-opacity z-10 ${
-                      isUploadingImage ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'
-                    }`}
+                  <label
+                    htmlFor="profile-upload"
+                    className={`absolute inset-1.5 rounded-2xl bg-black/50 flex flex-col items-center justify-center cursor-pointer transition-opacity z-10 ${isUploadingImage ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'
+                      }`}
                   >
                     {isUploadingImage ? (
                       <div className="w-6 h-6 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
@@ -547,11 +546,10 @@ export default function Profile() {
             <div className="flex items-center gap-2 py-2">
               <button
                 onClick={() => setActiveTab('profile')}
-                className={`px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all flex items-center gap-2 whitespace-nowrap ${
-                  activeTab === 'profile'
+                className={`px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all flex items-center gap-2 whitespace-nowrap ${activeTab === 'profile'
                     ? 'bg-white dark:bg-slate-800 text-teal-600 dark:text-teal-400 shadow-xs border border-slate-200 dark:border-slate-700'
                     : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
-                }`}
+                  }`}
               >
                 <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>
                 Personal & Employment Details
@@ -559,11 +557,10 @@ export default function Profile() {
 
               <button
                 onClick={() => setActiveTab('security')}
-                className={`px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all flex items-center gap-2 whitespace-nowrap ${
-                  activeTab === 'security'
+                className={`px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all flex items-center gap-2 whitespace-nowrap ${activeTab === 'security'
                     ? 'bg-white dark:bg-slate-800 text-teal-600 dark:text-teal-400 shadow-xs border border-slate-200 dark:border-slate-700'
                     : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
-                }`}
+                  }`}
               >
                 <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>
                 Security & Password
@@ -572,11 +569,10 @@ export default function Profile() {
               {isAdmin && (
                 <button
                   onClick={() => setActiveTab('admin')}
-                  className={`px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all flex items-center gap-2 whitespace-nowrap ${
-                    activeTab === 'admin'
+                  className={`px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all flex items-center gap-2 whitespace-nowrap ${activeTab === 'admin'
                       ? 'bg-white dark:bg-slate-800 text-teal-600 dark:text-teal-400 shadow-xs border border-slate-200 dark:border-slate-700'
                       : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
-                  }`}
+                    }`}
                 >
                   <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" /></svg>
                   Admin Management
@@ -600,7 +596,7 @@ export default function Profile() {
         {/* Tab 1: Personal & Employment Information */}
         {activeTab === 'profile' && (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
-            
+
             {/* General Information Card */}
             <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 sm:p-7 border border-slate-200/80 dark:border-slate-800 shadow-xs flex flex-col justify-between">
               <div>
@@ -672,9 +668,8 @@ export default function Profile() {
                           disabled={!isAdmin}
                           value={editForm.birthdate || ''}
                           onChange={(e) => setEditForm({ ...editForm, birthdate: e.target.value })}
-                          className={`w-full px-3.5 py-2.5 border border-slate-200 dark:border-slate-700 rounded-xl text-xs sm:text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-teal-500 ${
-                            !isAdmin ? 'bg-slate-100 dark:bg-slate-800/60 text-slate-400 dark:text-slate-500 cursor-not-allowed' : 'bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-white'
-                          }`}
+                          className={`w-full px-3.5 py-2.5 border border-slate-200 dark:border-slate-700 rounded-xl text-xs sm:text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-teal-500 ${!isAdmin ? 'bg-slate-100 dark:bg-slate-800/60 text-slate-400 dark:text-slate-500 cursor-not-allowed' : 'bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-white'
+                            }`}
                         />
                       </div>
                     </div>
@@ -739,12 +734,12 @@ export default function Profile() {
                         <span>Employment Status</span>
                         {!isAdmin && <span className="text-[10px] text-slate-400 font-normal">Admin editable</span>}
                       </label>
-                      <input 
-                        type="text" 
-                        value={editForm.emp_stat} 
-                        onChange={e => setEditForm({ ...editForm, emp_stat: e.target.value })} 
+                      <input
+                        type="text"
+                        value={editForm.emp_stat}
+                        onChange={e => setEditForm({ ...editForm, emp_stat: e.target.value })}
                         disabled={!isAdmin}
-                        className="w-full px-3.5 py-2.5 border border-slate-200 dark:border-slate-700 rounded-xl text-xs sm:text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-teal-500 disabled:bg-slate-100 dark:disabled:bg-slate-800/60 disabled:text-slate-400 bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-white" 
+                        className="w-full px-3.5 py-2.5 border border-slate-200 dark:border-slate-700 rounded-xl text-xs sm:text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-teal-500 disabled:bg-slate-100 dark:disabled:bg-slate-800/60 disabled:text-slate-400 bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-white"
                       />
                     </div>
 
@@ -754,12 +749,12 @@ export default function Profile() {
                           <span>Salary Grade</span>
                           {!isAdmin && <span className="text-[10px] text-slate-400 font-normal">Admin editable</span>}
                         </label>
-                        <input 
-                          type="number" 
-                          value={editForm.Salary_Grade} 
-                          onChange={e => setEditForm({ ...editForm, Salary_Grade: e.target.value })} 
+                        <input
+                          type="number"
+                          value={editForm.Salary_Grade}
+                          onChange={e => setEditForm({ ...editForm, Salary_Grade: e.target.value })}
                           disabled={!isAdmin}
-                          className="w-full px-3.5 py-2.5 border border-slate-200 dark:border-slate-700 rounded-xl text-xs sm:text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-teal-500 disabled:bg-slate-100 dark:disabled:bg-slate-800/60 disabled:text-slate-400 bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-white" 
+                          className="w-full px-3.5 py-2.5 border border-slate-200 dark:border-slate-700 rounded-xl text-xs sm:text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-teal-500 disabled:bg-slate-100 dark:disabled:bg-slate-800/60 disabled:text-slate-400 bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-white"
                         />
                       </div>
                       <div>
@@ -767,13 +762,13 @@ export default function Profile() {
                           <span>Monthly Salary (PHP)</span>
                           {!isAdmin && <span className="text-[10px] text-slate-400 font-normal">Admin editable</span>}
                         </label>
-                        <input 
-                          type="number" 
-                          step="0.01" 
-                          value={editForm.Salary} 
-                          onChange={e => setEditForm({ ...editForm, Salary: e.target.value })} 
+                        <input
+                          type="number"
+                          step="0.01"
+                          value={editForm.Salary}
+                          onChange={e => setEditForm({ ...editForm, Salary: e.target.value })}
                           disabled={!isAdmin}
-                          className="w-full px-3.5 py-2.5 border border-slate-200 dark:border-slate-700 rounded-xl text-xs sm:text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-teal-500 disabled:bg-slate-100 dark:disabled:bg-slate-800/60 disabled:text-slate-400 bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-white" 
+                          className="w-full px-3.5 py-2.5 border border-slate-200 dark:border-slate-700 rounded-xl text-xs sm:text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-teal-500 disabled:bg-slate-100 dark:disabled:bg-slate-800/60 disabled:text-slate-400 bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-white"
                         />
                       </div>
                     </div>
@@ -954,17 +949,16 @@ export default function Profile() {
         {/* Tab 3: Admin User Management */}
         {activeTab === 'admin' && isAdmin && (
           <div className="flex flex-col gap-5">
-            
+
             {/* Sub-navigation bar */}
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 bg-white dark:bg-slate-900 p-2 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xs">
               <div className="flex items-center gap-1.5 p-1 bg-slate-100 dark:bg-slate-800/60 rounded-xl w-full sm:w-auto overflow-x-auto">
                 <button
                   onClick={() => setAdminSubTab('update')}
-                  className={`px-4 py-2 rounded-lg text-xs font-bold transition-all flex items-center gap-2 whitespace-nowrap ${
-                    adminSubTab === 'update'
+                  className={`px-4 py-2 rounded-lg text-xs font-bold transition-all flex items-center gap-2 whitespace-nowrap ${adminSubTab === 'update'
                       ? 'bg-white dark:bg-slate-900 text-teal-600 dark:text-teal-400 shadow-xs'
                       : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
-                  }`}
+                    }`}
                 >
                   <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg>
                   Update User Record
@@ -972,11 +966,10 @@ export default function Profile() {
 
                 <button
                   onClick={() => setAdminSubTab('create')}
-                  className={`px-4 py-2 rounded-lg text-xs font-bold transition-all flex items-center gap-2 whitespace-nowrap ${
-                    adminSubTab === 'create'
+                  className={`px-4 py-2 rounded-lg text-xs font-bold transition-all flex items-center gap-2 whitespace-nowrap ${adminSubTab === 'create'
                       ? 'bg-white dark:bg-slate-900 text-teal-600 dark:text-teal-400 shadow-xs'
                       : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
-                  }`}
+                    }`}
                 >
                   <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" /></svg>
                   Create New User
@@ -984,11 +977,10 @@ export default function Profile() {
 
                 <button
                   onClick={() => setAdminSubTab('directory')}
-                  className={`px-4 py-2 rounded-lg text-xs font-bold transition-all flex items-center gap-2 whitespace-nowrap ${
-                    adminSubTab === 'directory'
+                  className={`px-4 py-2 rounded-lg text-xs font-bold transition-all flex items-center gap-2 whitespace-nowrap ${adminSubTab === 'directory'
                       ? 'bg-white dark:bg-slate-900 text-teal-600 dark:text-teal-400 shadow-xs'
                       : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
-                  }`}
+                    }`}
                 >
                   <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 10h16M4 14h16M4 18h16" /></svg>
                   Staff Directory ({allUsers.length})
@@ -1030,8 +1022,8 @@ export default function Profile() {
                       {isUserDropdownOpen && (
                         <div className="absolute z-50 w-full mt-1.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl shadow-xl max-h-72 overflow-y-auto py-1">
                           {allUsers
-                            .filter(u => 
-                              u.Email.toLowerCase().includes((selectedUserEmail || "").toLowerCase()) || 
+                            .filter(u =>
+                              u.Email.toLowerCase().includes((selectedUserEmail || "").toLowerCase()) ||
                               (u.First_Name || "").toLowerCase().includes((selectedUserEmail || "").toLowerCase()) ||
                               (u.Last_Name || "").toLowerCase().includes((selectedUserEmail || "").toLowerCase())
                             )
@@ -1359,11 +1351,10 @@ export default function Profile() {
                             </span>
                           </td>
                           <td className="py-3 px-4">
-                            <span className={`px-2 py-0.5 rounded-md text-[10px] font-bold ${
-                              u.emp_stat === 'COSW' 
+                            <span className={`px-2 py-0.5 rounded-md text-[10px] font-bold ${u.emp_stat === 'COSW'
                                 ? 'bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-800/40'
                                 : 'bg-teal-50 dark:bg-teal-950/40 text-teal-700 dark:text-teal-400 border border-teal-200 dark:border-teal-800/40'
-                            }`}>
+                              }`}>
                               {u.emp_stat || 'Permanent'}
                             </span>
                           </td>

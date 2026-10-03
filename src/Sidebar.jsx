@@ -3,16 +3,22 @@ import { useAuth, useUser } from '@clerk/clerk-react';
 import { NavLink } from 'react-router-dom';
 import { useTheme } from './contexts/ThemeContext';
 
-export default function Sidebar({ isOpen, setIsOpen }) {
+export default function Sidebar({ isOpen, setIsOpen, userRole: propUserRole }) {
   const { signOut, getToken } = useAuth();
   const { user } = useUser();
   const { theme, setTheme } = useTheme();
   
-  const [userRole, setUserRole] = useState(null);
+  const [userRole, setUserRole] = useState(propUserRole || null);
   const [todayBirthdaysCount, setTodayBirthdaysCount] = useState(0);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isNavVisible, setIsNavVisible] = useState(true);
   const lastScrollY = useRef(0);
+
+  useEffect(() => {
+    if (propUserRole) {
+      setUserRole(propUserRole);
+    }
+  }, [propUserRole]);
 
   useEffect(() => {
     let ticking = false;
@@ -67,76 +73,125 @@ export default function Sidebar({ isOpen, setIsOpen }) {
     fetchRole();
   }, [user, getToken]);
 
-  const navItems = [
-    { 
-      name: 'Office Activities', 
-      shortName: 'Activities', 
-      path: '/office-activities',
-      gradient: 'from-teal-500 to-emerald-400',
-      icon: (
-        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-          <path strokeLinecap="round" strokeLinejoin="round" d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-        </svg>
-      )
-    },
-    { 
-      name: 'Digital Logbook', 
-      shortName: 'Logbook', 
-      path: '/digital-logbook',
-      gradient: 'from-blue-500 to-indigo-500',
-      icon: (
-        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-          <path strokeLinecap="round" strokeLinejoin="round" d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25" />
-        </svg>
-      )
-    },
-    { 
-      name: 'Daily Time Record', 
-      shortName: 'DTR', 
-      path: '/daily-time-record',
-      gradient: 'from-cyan-500 to-blue-500',
-      icon: (
-        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-          <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
-        </svg>
-      )
-    },
-    { 
-      name: 'Leave Credits', 
-      shortName: 'Leave', 
-      path: '/leave-credits',
-      gradient: 'from-amber-500 to-orange-500',
-      icon: (
-        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-          <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-        </svg>
-      )
-    },
-    { 
-      name: 'Personal Calendar', 
-      shortName: 'Calendar', 
-      path: '/personal-calendar',
-      gradient: 'from-teal-500 to-emerald-400',
-      icon: (
-        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.2">
-          <path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-        </svg>
-      )
-    },
-    { 
-      name: 'Birthday Celebrants', 
-      shortName: 'Birthdays', 
-      path: '/birthday-celebrants',
-      gradient: 'from-pink-500 to-rose-500',
-      icon: (
-        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-          <path strokeLinecap="round" strokeLinejoin="round" d="M12 6.5a1 1 0 100-2 1 1 0 000 2zM8.5 6.5a1 1 0 100-2 1 1 0 000 2zm7 0a1 1 0 100-2 1 1 0 000 2zM4 11a2 2 0 012-2h12a2 2 0 012 2v9a2 2 0 01-2 2H6a2 2 0 01-2-2v-9zm0 4h16" />
-        </svg>
-      )
-    },
-  ];
+  const isSuperAdmin = userRole === 'Super Admin' || userRole === 'SuperAdmin';
 
-  if (['Super Admin', 'Admin', 'Focal Person'].includes(userRole)) {
+  const navItems = isSuperAdmin
+    ? [
+        { 
+          name: 'Daily Time Record', 
+          shortName: 'DTR', 
+          path: '/daily-time-record',
+          gradient: 'from-cyan-500 to-blue-500',
+          icon: (
+            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+          )
+        },
+        { 
+          name: 'Leave Credits', 
+          shortName: 'Leave', 
+          path: '/leave-credits',
+          gradient: 'from-amber-500 to-orange-500',
+          icon: (
+            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+            </svg>
+          )
+        },
+        { 
+          name: 'Personal Calendar', 
+          shortName: 'Calendar', 
+          path: '/personal-calendar',
+          gradient: 'from-teal-500 to-emerald-400',
+          icon: (
+            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.2">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+            </svg>
+          )
+        },
+        { 
+          name: 'COSW Evaluation', 
+          shortName: 'Evaluation', 
+          path: '/cosw-evaluation',
+          gradient: 'from-purple-500 to-indigo-600',
+          icon: (
+            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
+            </svg>
+          )
+        }
+      ]
+    : [
+        { 
+          name: 'Office Activities', 
+          shortName: 'Activities', 
+          path: '/office-activities',
+          gradient: 'from-teal-500 to-emerald-400',
+          icon: (
+            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+            </svg>
+          )
+        },
+        { 
+          name: 'Digital Logbook', 
+          shortName: 'Logbook', 
+          path: '/digital-logbook',
+          gradient: 'from-blue-500 to-indigo-500',
+          icon: (
+            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25" />
+            </svg>
+          )
+        },
+        { 
+          name: 'Daily Time Record', 
+          shortName: 'DTR', 
+          path: '/daily-time-record',
+          gradient: 'from-cyan-500 to-blue-500',
+          icon: (
+            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+          )
+        },
+        { 
+          name: 'Leave Credits', 
+          shortName: 'Leave', 
+          path: '/leave-credits',
+          gradient: 'from-amber-500 to-orange-500',
+          icon: (
+            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+            </svg>
+          )
+        },
+        { 
+          name: 'Personal Calendar', 
+          shortName: 'Calendar', 
+          path: '/personal-calendar',
+          gradient: 'from-teal-500 to-emerald-400',
+          icon: (
+            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.2">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+            </svg>
+          )
+        },
+        { 
+          name: 'Birthday Celebrants', 
+          shortName: 'Birthdays', 
+          path: '/birthday-celebrants',
+          gradient: 'from-pink-500 to-rose-500',
+          icon: (
+            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 6.5a1 1 0 100-2 1 1 0 000 2zM8.5 6.5a1 1 0 100-2 1 1 0 000 2zm7 0a1 1 0 100-2 1 1 0 000 2zM4 11a2 2 0 012-2h12a2 2 0 012 2v9a2 2 0 01-2 2H6a2 2 0 01-2-2v-9zm0 4h16" />
+            </svg>
+          )
+        },
+      ];
+
+  if (!isSuperAdmin && ['Admin', 'Focal Person'].includes(userRole)) {
     navItems.push({ 
       name: 'COSW Evaluation', 
       shortName: 'Evaluation', 
