@@ -46,10 +46,10 @@ export default function Layout() {
   const isSuperAdmin = userRole === 'Super Admin' || userRole === 'SuperAdmin';
 
   useEffect(() => {
-    if (!isChecking && isSuperAdmin) {
-      const allowedPaths = ['/daily-time-record', '/personal-calendar', '/cosw-evaluation', '/leave-credits', '/profile'];
-      if (!allowedPaths.includes(location.pathname)) {
-        navigate('/daily-time-record', { replace: true });
+    if (!isChecking && !isSuperAdmin) {
+      const restrictedPaths = ['/daily-time-record', '/personal-calendar', '/cosw-evaluation', '/leave-credits', '/birthday-celebrants'];
+      if (restrictedPaths.includes(location.pathname)) {
+        navigate('/office-activities', { replace: true });
       }
     }
   }, [isChecking, isSuperAdmin, location.pathname, navigate]);

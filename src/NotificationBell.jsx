@@ -41,35 +41,35 @@ export default function NotificationBell() {
 
           const isSuperAdmin = role === 'Super Admin' || role === 'SuperAdmin';
 
-          if (!isSuperAdmin) {
-            const pendingFinished = (data.activities || []).filter(act => {
-              const e = act.end_date || act.start_date;
-              const isPendingFinished = e < todayYMD && act.status === 'Pending';
-              const canSee = role === 'Admin' || act.created_by === currentUserDisplayName;
-              return isPendingFinished && canSee;
-            }).map(act => ({
-              id: `act_${act.id}`,
-              title: act.title,
-              message: `This activity is finished but still marked as Pending. Please update its status.`,
-              link: '/office-activities'
-            }));
-            
-            newNotifications = [...newNotifications, ...pendingFinished];
+          const pendingFinished = (data.activities || []).filter(act => {
+            const e = act.end_date || act.start_date;
+            const isPendingFinished = e < todayYMD && act.status === 'Pending';
+            const canSee = isSuperAdmin || role === 'Admin' || act.created_by === currentUserDisplayName;
+            return isPendingFinished && canSee;
+          }).map(act => ({
+            id: `act_${act.id}`,
+            title: act.title,
+            message: `This activity is finished but still marked as Pending. Please update its status.`,
+            link: '/office-activities'
+          }));
+          
+          newNotifications = [...newNotifications, ...pendingFinished];
 
-            if (data.todayBirthdays && data.todayBirthdays.length > 0) {
-              const bdayNotifs = data.todayBirthdays.map((b, idx) => ({
-                id: `bday_${idx}_${todayYMD}`,
-                title: `🎂 Today is ${b.firstName || b.name}'s Birthday!`,
-                message: `Celebrate with ${b.name} (${b.position}) today!`,
-                link: '/birthday-celebrants'
-              }));
-              newNotifications = [...bdayNotifs, ...newNotifications];
-            }
+          if (isSuperAdmin && data.todayBirthdays && data.todayBirthdays.length > 0) {
+            const bdayNotifs = data.todayBirthdays.map((b, idx) => ({
+              id: `bday_${idx}_${todayYMD}`,
+              title: `🎂 Today is ${b.firstName || b.name}'s Birthday!`,
+              message: `Celebrate with ${b.name} (${b.position}) today!`,
+              link: '/birthday-celebrants'
+            }));
+            newNotifications = [...bdayNotifs, ...newNotifications];
           }
         }
 
-        // Fetch pending leaves if Admin/Super Admin
-        if (role === 'Super Admin' || role === 'Admin') {
+        const isSuperAdmin = role === 'Super Admin' || role === 'SuperAdmin';
+
+        // Fetch pending leaves if Super Admin
+        if (isSuperAdmin) {
           const resLeave = await fetch(`/api/leave?action=getPendingLeaves&t=${Date.now()}`, {
             headers: { 'Authorization': `Bearer ${token}` },
             cache: 'no-store'
@@ -86,8 +86,8 @@ export default function NotificationBell() {
           }
         }
 
-        // Fetch pending evaluations
-        if (role === 'Super Admin' || role === 'Admin' || role === 'Focal Person') {
+        // Fetch pending evaluations if Super Admin
+        if (isSuperAdmin) {
           const resEval = await fetch(`/api/employments?action=getPendingEvaluations&email=${encodeURIComponent(email)}&t=${Date.now()}`, {
             headers: { 'Authorization': `Bearer ${token}` },
             cache: 'no-store'

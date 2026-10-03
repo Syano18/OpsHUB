@@ -59,7 +59,7 @@ export default function COSWEvaluation() {
       const roleData = await roleRes.json();
       setUserRole(roleData.user?.Role);
 
-      if (!['Super Admin', 'Admin', 'Focal Person'].includes(roleData.user?.Role)) {
+      if (!['Super Admin', 'SuperAdmin'].includes(roleData.user?.Role)) {
         setError('Access Denied');
         setIsLoading(false);
         return;

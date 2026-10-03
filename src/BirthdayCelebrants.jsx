@@ -129,10 +129,15 @@ export default function BirthdayCelebrants() {
       if (!res.ok) {
         throw new Error(data.error || 'Failed to load birthday celebrants.');
       }
-      setEmployees(data.employees || []);
       if (data.currentUser?.Role) {
         setUserRole(data.currentUser.Role);
+        if (data.currentUser.Role !== 'Super Admin' && data.currentUser.Role !== 'SuperAdmin') {
+          setError('Access Denied: You do not have permission to view Birthday Celebrants.');
+          setLoading(false);
+          return;
+        }
       }
+      setEmployees(data.employees || []);
     } catch (err) {
       console.error(err);
       setError(err.message || 'Could not load birthday celebrants.');
