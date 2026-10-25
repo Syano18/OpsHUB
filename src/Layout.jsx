@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Outlet, useLocation, useNavigate } from 'react-router-dom';
+import { Outlet } from 'react-router-dom';
 import { useUser, useClerk, useAuth } from '@clerk/clerk-react';
 import Sidebar from './Sidebar';
 
@@ -7,8 +7,6 @@ export default function Layout() {
   const { user } = useUser();
   const { signOut } = useClerk();
   const { getToken } = useAuth();
-  const location = useLocation();
-  const navigate = useNavigate();
   const [isChecking, setIsChecking] = useState(true);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [userRole, setUserRole] = useState(null);
@@ -42,17 +40,6 @@ export default function Layout() {
     };
     checkStatus();
   }, [user, signOut]);
-
-  const isSuperAdmin = userRole === 'Super Admin' || userRole === 'SuperAdmin';
-
-  useEffect(() => {
-    if (!isChecking && !isSuperAdmin) {
-      const restrictedPaths = ['/daily-time-record', '/personal-calendar', '/cosw-evaluation', '/leave-credits', '/birthday-celebrants'];
-      if (restrictedPaths.includes(location.pathname)) {
-        navigate('/office-activities', { replace: true });
-      }
-    }
-  }, [isChecking, isSuperAdmin, location.pathname, navigate]);
 
   useEffect(() => {
     const setupWebPush = async () => {
@@ -114,9 +101,9 @@ export default function Layout() {
 
   return (
     <div className="flex h-[100dvh] bg-slate-50 dark:bg-black overflow-hidden relative text-slate-900 dark:text-slate-100 flex-col md:flex-row">
-      <Sidebar isOpen={isSidebarOpen} setIsOpen={setIsSidebarOpen} userRole={userRole} />
+      <Sidebar isOpen={isSidebarOpen} setIsOpen={setIsSidebarOpen} />
       <main className="flex-1 flex flex-col overflow-hidden min-h-0 relative">
-        <Outlet context={{ setIsSidebarOpen, userRole }} />
+        <Outlet context={{ setIsSidebarOpen }} />
       </main>
     </div>
   );

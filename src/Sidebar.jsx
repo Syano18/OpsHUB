@@ -3,22 +3,16 @@ import { useAuth, useUser } from '@clerk/clerk-react';
 import { NavLink } from 'react-router-dom';
 import { useTheme } from './contexts/ThemeContext';
 
-export default function Sidebar({ isOpen, setIsOpen, userRole: propUserRole }) {
+export default function Sidebar({ isOpen, setIsOpen }) {
   const { signOut, getToken } = useAuth();
   const { user } = useUser();
   const { theme, setTheme } = useTheme();
   
-  const [userRole, setUserRole] = useState(propUserRole || null);
+  const [userRole, setUserRole] = useState(null);
   const [todayBirthdaysCount, setTodayBirthdaysCount] = useState(0);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isNavVisible, setIsNavVisible] = useState(true);
   const lastScrollY = useRef(0);
-
-  useEffect(() => {
-    if (propUserRole) {
-      setUserRole(propUserRole);
-    }
-  }, [propUserRole]);
 
   useEffect(() => {
     let ticking = false;
@@ -73,8 +67,6 @@ export default function Sidebar({ isOpen, setIsOpen, userRole: propUserRole }) {
     fetchRole();
   }, [user, getToken]);
 
-  const isSuperAdmin = userRole === 'Super Admin' || userRole === 'SuperAdmin';
-
   const navItems = [
     { 
       name: 'Office Activities', 
@@ -98,64 +90,65 @@ export default function Sidebar({ isOpen, setIsOpen, userRole: propUserRole }) {
         </svg>
       )
     },
-    ...(isSuperAdmin ? [
-      { 
-        name: 'Daily Time Record', 
-        shortName: 'DTR', 
-        path: '/daily-time-record',
-        gradient: 'from-cyan-500 to-blue-500',
-        icon: (
-          <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-            <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
-          </svg>
-        )
-      },
-      { 
-        name: 'Leave Credits', 
-        shortName: 'Leave', 
-        path: '/leave-credits',
-        gradient: 'from-amber-500 to-orange-500',
-        icon: (
-          <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-            <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-          </svg>
-        )
-      },
-      { 
-        name: 'Personal Calendar', 
-        shortName: 'Calendar', 
-        path: '/personal-calendar',
-        gradient: 'from-teal-500 to-emerald-400',
-        icon: (
-          <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.2">
-            <path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-          </svg>
-        )
-      },
-      { 
-        name: 'Birthday Celebrants', 
-        shortName: 'Birthdays', 
-        path: '/birthday-celebrants',
-        gradient: 'from-pink-500 to-rose-500',
-        icon: (
-          <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-            <path strokeLinecap="round" strokeLinejoin="round" d="M12 6.5a1 1 0 100-2 1 1 0 000 2zM8.5 6.5a1 1 0 100-2 1 1 0 000 2zm7 0a1 1 0 100-2 1 1 0 000 2zM4 11a2 2 0 012-2h12a2 2 0 012 2v9a2 2 0 01-2 2H6a2 2 0 01-2-2v-9zm0 4h16" />
-          </svg>
-        )
-      },
-      { 
-        name: 'COSW Evaluation', 
-        shortName: 'Evaluation', 
-        path: '/cosw-evaluation',
-        gradient: 'from-purple-500 to-indigo-600',
-        icon: (
-          <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-            <path strokeLinecap="round" strokeLinejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
-          </svg>
-        )
-      }
-    ] : [])
+    { 
+      name: 'Daily Time Record', 
+      shortName: 'DTR', 
+      path: '/daily-time-record',
+      gradient: 'from-cyan-500 to-blue-500',
+      icon: (
+        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+          <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
+      )
+    },
+    { 
+      name: 'Leave Credits', 
+      shortName: 'Leave', 
+      path: '/leave-credits',
+      gradient: 'from-amber-500 to-orange-500',
+      icon: (
+        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+          <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+        </svg>
+      )
+    },
+    { 
+      name: 'Personal Calendar', 
+      shortName: 'Calendar', 
+      path: '/personal-calendar',
+      gradient: 'from-teal-500 to-emerald-400',
+      icon: (
+        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.2">
+          <path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+        </svg>
+      )
+    },
+    { 
+      name: 'Birthday Celebrants', 
+      shortName: 'Birthdays', 
+      path: '/birthday-celebrants',
+      gradient: 'from-pink-500 to-rose-500',
+      icon: (
+        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+          <path strokeLinecap="round" strokeLinejoin="round" d="M12 6.5a1 1 0 100-2 1 1 0 000 2zM8.5 6.5a1 1 0 100-2 1 1 0 000 2zm7 0a1 1 0 100-2 1 1 0 000 2zM4 11a2 2 0 012-2h12a2 2 0 012 2v9a2 2 0 01-2 2H6a2 2 0 01-2-2v-9zm0 4h16" />
+        </svg>
+      )
+    },
   ];
+
+  if (['Super Admin', 'Admin', 'Focal Person'].includes(userRole)) {
+    navItems.push({ 
+      name: 'COSW Evaluation', 
+      shortName: 'Evaluation', 
+      path: '/cosw-evaluation',
+      gradient: 'from-purple-500 to-indigo-600',
+      icon: (
+        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+          <path strokeLinecap="round" strokeLinejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
+        </svg>
+      )
+    });
+  }
 
   return (
     <>
@@ -244,21 +237,19 @@ export default function Sidebar({ isOpen, setIsOpen, userRole: propUserRole }) {
           ))}
           
           {/* Hamburger Menu */}
-          {navItems.length > 3 && (
-            <button 
-               onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-               className={`flex items-center justify-center h-12 px-4 rounded-full transition-all duration-200 ${isMobileMenuOpen ? 'bg-white/10 text-white' : 'text-white/70 hover:bg-white/5 hover:text-white'}`}
-            >
-               <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="flex items-center justify-center">
-                 <line x1="4" y1="12" x2="20" y2="12"></line>
-                 <line x1="4" y1="6" x2="20" y2="6"></line>
-                 <line x1="4" y1="18" x2="20" y2="18"></line>
-               </svg>
-            </button>
-          )}
+          <button 
+             onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+             className={`flex items-center justify-center h-12 px-4 rounded-full transition-all duration-200 ${isMobileMenuOpen ? 'bg-white/10 text-white' : 'text-white/70 hover:bg-white/5 hover:text-white'}`}
+          >
+             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="flex items-center justify-center">
+               <line x1="4" y1="12" x2="20" y2="12"></line>
+               <line x1="4" y1="6" x2="20" y2="6"></line>
+               <line x1="4" y1="18" x2="20" y2="18"></line>
+             </svg>
+          </button>
 
           {/* Extra Items Popup */}
-          {isMobileMenuOpen && navItems.length > 3 && (
+          {isMobileMenuOpen && (
             <div className="absolute bottom-[4.2rem] right-0 bg-[#242526] shadow-[0_8px_30px_rgb(0,0,0,0.4)] rounded-2xl p-2 flex flex-col gap-1 min-w-[200px] pointer-events-auto border border-white/5 origin-bottom-right animate-in fade-in zoom-in-95 duration-200">
                {navItems.slice(3).map((item, index) => (
                  <NavLink

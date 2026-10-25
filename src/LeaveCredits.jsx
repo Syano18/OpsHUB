@@ -472,6 +472,7 @@ export default function LeaveCredits() {
         setAlertConfig({ message: `Leave ${newStatus.toLowerCase()} successfully!`, type: 'success' });
         fetchAllFiledLeaves();
         fetchAllUsersCredits();
+        window.dispatchEvent(new Event('refresh_notifications'));
       } else {
         const errorData = await res.json();
         setAlertConfig({ message: `Error: ${errorData.error || 'Failed to update status'}`, type: 'error' });

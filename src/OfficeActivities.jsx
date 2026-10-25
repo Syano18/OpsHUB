@@ -11,6 +11,8 @@ export default function OfficeActivities() {
   const { getToken } = useAuth();
   const [activities, setActivities] = useState([]);
   const [employees, setEmployees] = useState([]);
+  const [allEmployees, setAllEmployees] = useState([]);
+  const [reads, setReads] = useState([]);
   const [userRole, setUserRole] = useState(null);
   const [currentUserDisplayName, setCurrentUserDisplayName] = useState('');
   const [isAdmin, setIsAdmin] = useState(false);
@@ -25,6 +27,12 @@ export default function OfficeActivities() {
   const [searchTerm, setSearchTerm] = useState('');
   const [assigneeSearchTerm, setAssigneeSearchTerm] = useState('');
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [isUnackModalOpen, setIsUnackModalOpen] = useState(false);
+  const [hasAutoPrompted, setHasAutoPrompted] = useState(false);
+  const [markingReadId, setMarkingReadId] = useState(null);
+  const [receiptsModalAct, setReceiptsModalAct] = useState(null);
+  const [receiptsSearchTerm, setReceiptsSearchTerm] = useState('');
+  const [receiptsTabFilter, setReceiptsTabFilter] = useState('all');
   const [modalStep, setModalStep] = useState(1);
   const [activityToDelete, setActivityToDelete] = useState(null);
   const [activityToCancel, setActivityToCancel] = useState(null);
@@ -69,7 +77,9 @@ export default function OfficeActivities() {
         }
 
         setEmployees(data.employees || []);
+        setAllEmployees(data.allEmployees || []);
         setActivities(data.activities || []);
+        setReads(data.reads || []);
       } catch (err) {
         console.error("Error setting up Office Activities:", err);
         setError("Failed to load Office Activities.");
@@ -80,6 +90,191 @@ export default function OfficeActivities() {
 
     initAndFetch();
   }, [user]);
+
+  const normalizeStr = (str) => (str || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+
+  const isUserAssigned = (act) => {
+    if (!act || !act.assigned_to) return false;
+    let assignedArray = [];
+    try {
+      assignedArray = JSON.parse(act.assigned_to);
+    } catch (e) {
+      return false;
+    }
+    if (!Array.isArray(assignedArray)) return false;
+    if (assignedArray.includes('All')) return true;
+
+    const userEmail = (user?.primaryEmailAddress?.emailAddress || '').toLowerCase();
+    const currentName = currentUserDisplayName || user?.fullName || '';
+    const normCurrentName = normalizeStr(currentName);
+
+    return assignedArray.some(assigned => {
+      const a = (assigned || '').trim();
+      if (a.toLowerCase() === userEmail) return true;
+      if (currentName && a.toLowerCase() === currentName.toLowerCase()) return true;
+      const normA = normalizeStr(a);
+      if (normA && normCurrentName && (normA === normCurrentName || normCurrentName.includes(normA) || normA.includes(normCurrentName))) {
+        return true;
+      }
+      const matchedEmp = allEmployees.find(e =>
+        e.name.toLowerCase() === a.toLowerCase() ||
+        normalizeStr(e.name) === normA
+      );
+      if (matchedEmp && matchedEmp.email && matchedEmp.email.toLowerCase() === userEmail) {
+        return true;
+      }
+      return false;
+    });
+  };
+
+  const getUserReadRecord = (actId) => {
+    if (!reads || !Array.isArray(reads)) return null;
+    const userEmail = (user?.primaryEmailAddress?.emailAddress || '').toLowerCase();
+    const currentName = currentUserDisplayName || user?.fullName || '';
+    const normCurrentName = normalizeStr(currentName);
+
+    return reads.find(r => {
+      if (r.activity_id !== actId) return false;
+      if (r.user_email && r.user_email.toLowerCase() === userEmail) return true;
+      if (r.user_name && currentName && r.user_name.toLowerCase() === currentName.toLowerCase()) return true;
+      if (r.user_name && normCurrentName && normalizeStr(r.user_name) === normCurrentName) return true;
+      return false;
+    });
+  };
+
+  const handleMarkAsRead = async (activityId) => {
+    try {
+      setMarkingReadId(activityId);
+      const token = await getToken();
+      const userEmail = user?.primaryEmailAddress?.emailAddress;
+      const userName = currentUserDisplayName || user?.fullName || '';
+
+      const res = await fetch('/api/activities', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        body: JSON.stringify({
+          action: 'markAsRead',
+          activityId,
+          email: userEmail,
+          userName
+        })
+      });
+      const data = await res.json();
+      if (data.success) {
+        setReads(data.reads || []);
+        window.dispatchEvent(new Event('refresh_notifications'));
+        setAlertConfig({ message: 'Activity marked as read / acknowledged!', type: 'success' });
+      } else {
+        throw new Error(data.error || 'Failed to mark as read');
+      }
+    } catch (err) {
+      console.error('Error marking activity as read:', err);
+      setAlertConfig({ message: 'Failed to mark activity as read.', type: 'error' });
+    } finally {
+      setMarkingReadId(null);
+    }
+  };
+
+  const handleMarkAsReadBatch = async (activityIds) => {
+    if (!activityIds || activityIds.length === 0) return;
+    try {
+      setMarkingReadId('batch');
+      const token = await getToken();
+      const userEmail = user?.primaryEmailAddress?.emailAddress;
+      const userName = currentUserDisplayName || user?.fullName || '';
+
+      const res = await fetch('/api/activities', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        body: JSON.stringify({
+          action: 'markAsReadBatch',
+          activityIds,
+          email: userEmail,
+          userName
+        })
+      });
+      const data = await res.json();
+      if (data.success) {
+        setReads(data.reads || []);
+        window.dispatchEvent(new Event('refresh_notifications'));
+        setAlertConfig({ message: 'All activities acknowledged successfully!', type: 'success' });
+        setIsUnackModalOpen(false);
+      } else {
+        throw new Error(data.error || 'Failed to acknowledge activities');
+      }
+    } catch (err) {
+      console.error('Error acknowledging activities:', err);
+      setAlertConfig({ message: 'Failed to acknowledge activities.', type: 'error' });
+    } finally {
+      setMarkingReadId(null);
+    }
+  };
+
+  const formatReadTime = (dateStr) => {
+    if (!dateStr) return '';
+    try {
+      const d = new Date(dateStr);
+      if (isNaN(d.getTime())) return dateStr;
+      return d.toLocaleDateString('en-US', {
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric',
+        hour: 'numeric',
+        minute: '2-digit',
+        hour12: true
+      });
+    } catch (e) {
+      return dateStr;
+    }
+  };
+
+  const getActAssignees = (act) => {
+    if (!act || !act.assigned_to) return [];
+    let assignedArray = [];
+    try { assignedArray = JSON.parse(act.assigned_to); } catch (e) { assignedArray = []; }
+    if (assignedArray.includes('All')) {
+      return allEmployees.map(emp => ({
+        name: emp.name,
+        email: emp.email,
+        position: emp.position
+      }));
+    }
+    return assignedArray.map(name => {
+      const emp = allEmployees.find(e =>
+        e.name.toLowerCase() === name.toLowerCase() ||
+        normalizeStr(e.name) === normalizeStr(name)
+      );
+      return {
+        name,
+        email: emp?.email || '',
+        position: emp?.position || 'Staff'
+      };
+    });
+  };
+
+  const getActReceiptSummary = (act) => {
+    const assignees = getActAssignees(act);
+    const total = assignees.length;
+    if (total === 0) return { total: 0, read: 0, percent: 0, list: [] };
+
+    const actReads = (reads || []).filter(r => r.activity_id === act.id);
+    const list = assignees.map(assignee => {
+      const read = actReads.find(r => {
+        if (assignee.email && r.user_email && r.user_email.toLowerCase() === assignee.email.toLowerCase()) return true;
+        if (assignee.name && r.user_name && normalizeStr(assignee.name) === normalizeStr(r.user_name)) return true;
+        return false;
+      });
+      return {
+        ...assignee,
+        read: !!read,
+        read_at: read?.read_at || null
+      };
+    });
+
+    const readCount = list.filter(a => a.read).length;
+    const percent = total > 0 ? Math.round((readCount / total) * 100) : 0;
+    return { total, read: readCount, percent, list };
+  };
 
   const handleSaveActivity = async (e) => {
     e.preventDefault();
@@ -399,6 +594,34 @@ export default function OfficeActivities() {
   const tzOffset = todayDate.getTimezoneOffset() * 60000;
   const todayYMD = new Date(todayDate.getTime() - tzOffset).toISOString().split('T')[0];
 
+  const unacknowledgedActivities = activities.filter(act => {
+    if (act.status === 'Completed' || act.status === 'Canceled') return false;
+    const e = act.end_date || act.start_date;
+    if (e && e < todayYMD) return false;
+    return isUserAssigned(act) && !getUserReadRecord(act.id);
+  });
+
+  useEffect(() => {
+    if (!loading && !hasAutoPrompted && unacknowledgedActivities.length > 0) {
+      setIsUnackModalOpen(true);
+      setHasAutoPrompted(true);
+    }
+  }, [loading, hasAutoPrompted, unacknowledgedActivities.length]);
+
+  useEffect(() => {
+    const checkParam = () => {
+      const params = new URLSearchParams(window.location.search);
+      if (params.get('openUnack') === 'true') {
+        setIsUnackModalOpen(true);
+      }
+    };
+    checkParam();
+
+    const handleOpenUnack = () => setIsUnackModalOpen(true);
+    window.addEventListener('open_unack_activities', handleOpenUnack);
+    return () => window.removeEventListener('open_unack_activities', handleOpenUnack);
+  }, []);
+
   filteredActivities.forEach(act => {
     const s = act.start_date;
     const e = act.end_date || act.start_date;
@@ -426,7 +649,11 @@ export default function OfficeActivities() {
     try { assignedArray = JSON.parse(act.assigned_to); } catch (e) { }
     const isAll = assignedArray.includes('All');
 
-    const isCreator = act.created_by === currentUserDisplayName || act.created_by === user?.primaryEmailAddress?.emailAddress || act.created_by === user?.fullName;
+    const isCreator = (act.created_by && (
+      act.created_by.toLowerCase() === (currentUserDisplayName || '').toLowerCase() ||
+      act.created_by.toLowerCase() === (user?.primaryEmailAddress?.emailAddress || '').toLowerCase() ||
+      act.created_by.toLowerCase() === (user?.fullName || '').toLowerCase()
+    ));
 
     const s = act.start_date;
     const e = act.end_date || act.start_date;
@@ -443,23 +670,64 @@ export default function OfficeActivities() {
     const canEdit = displayStatus !== 'Completed' && displayStatus !== 'Canceled' && isCreator;
     const canDelete = isCreator || isAdmin;
     const canUpdateStatus = isAdmin || isCreator;
+    const assignedToUser = isUserAssigned(act);
+    const userRead = getUserReadRecord(act.id);
+    const receiptCounts = getActReceiptSummary(act);
 
     return (
-      <div key={act.id} className="w-full bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 overflow-hidden flex flex-col group hover:shadow-md transition-shadow">
+      <div
+        key={act.id}
+        onClick={() => {
+          if (isAdmin) {
+            setReceiptsModalAct(act);
+            setReceiptsSearchTerm('');
+            setReceiptsTabFilter('all');
+          }
+        }}
+        className={`w-full bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 overflow-hidden flex flex-col group transition-all ${
+          isAdmin
+            ? 'cursor-pointer hover:shadow-xl hover:border-teal-400 dark:hover:border-teal-600 ring-0 hover:ring-2 hover:ring-teal-500/20'
+            : 'hover:shadow-md'
+        }`}
+      >
         <div className="p-6 flex-1 flex flex-col">
           <div className="flex items-start justify-between gap-4 mb-4">
-            <span className={`inline-flex px-2.5 py-1 rounded-full text-xs font-bold border ${getStatusBadge(displayStatus)}`}>
-              {displayStatus}
-            </span>
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className={`inline-flex px-2.5 py-1 rounded-full text-xs font-bold border ${getStatusBadge(displayStatus)}`}>
+                {displayStatus}
+              </span>
+              {isAdmin && (
+                <span className="hidden sm:inline-flex items-center gap-1.5 text-[11px] font-semibold text-slate-500 dark:text-slate-400 group-hover:text-teal-600 dark:group-hover:text-teal-400 transition-colors bg-slate-100/80 dark:bg-slate-800/80 px-2 py-0.5 rounded-md border border-slate-200/80 dark:border-slate-700/80">
+                  <svg className="w-3.5 h-3.5 text-teal-500 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 018.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0111.964-3.07M12 6.375a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zm8.25 2.25a2.625 2.625 0 11-5.25 0 2.625 2.625 0 015.25 0z" />
+                  </svg>
+                  <span>Click card to see receipts</span>
+                </span>
+              )}
+            </div>
             {(canEdit || canDelete) && (
-              <div className="flex gap-2">
+              <div className="flex gap-2" onClick={(e) => e.stopPropagation()}>
                 {canEdit && (
-                  <button onClick={() => handleEditActivity(act)} title="Edit Activity" className="text-blue-400 hover:text-blue-600 p-1 bg-blue-50 hover:bg-blue-100 dark:bg-blue-950/40 dark:hover:bg-blue-900/50 rounded-lg transition-colors">
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleEditActivity(act);
+                    }}
+                    title="Edit Activity"
+                    className="text-blue-400 hover:text-blue-600 p-1 bg-blue-50 hover:bg-blue-100 dark:bg-blue-950/40 dark:hover:bg-blue-900/50 rounded-lg transition-colors"
+                  >
                     <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
                   </button>
                 )}
                 {canDelete && (
-                  <button onClick={() => handleDeleteActivity(act)} title="Delete Activity" className="text-red-400 hover:text-red-600 p-1 bg-red-50 hover:bg-red-100 dark:bg-red-950/40 dark:hover:bg-red-900/50 rounded-lg transition-colors">
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleDeleteActivity(act);
+                    }}
+                    title="Delete Activity"
+                    className="text-red-400 hover:text-red-600 p-1 bg-red-50 hover:bg-red-100 dark:bg-red-950/40 dark:hover:bg-red-900/50 rounded-lg transition-colors"
+                  >
                     <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
                   </button>
                 )}
@@ -487,7 +755,7 @@ export default function OfficeActivities() {
           )}
 
           <div className="mt-auto pt-4 border-t border-slate-100 dark:border-slate-800 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-            <div className="flex flex-col min-w-0 group/assigned relative cursor-pointer sm:cursor-auto" tabIndex="0" onClick={() => { }}>
+            <div className="flex flex-col min-w-0 group/assigned relative cursor-pointer sm:cursor-auto" tabIndex="0" onClick={(e) => { e.stopPropagation(); }}>
               <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 mb-1">Assigned To</span>
               <span
                 className="text-xs font-semibold text-slate-700 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 px-2.5 py-1 rounded-md inline-block max-w-[200px] truncate sm:cursor-help"
@@ -506,11 +774,74 @@ export default function OfficeActivities() {
               <span className="text-xs font-medium text-slate-500 dark:text-slate-400 truncate w-full sm:text-right">{act.created_by}</span>
             </div>
           </div>
+
+          {/* Read Receipt & Acknowledgment Action Strip */}
+          <div className="mt-4 pt-3 border-t border-dashed border-slate-200 dark:border-slate-800 flex flex-wrap items-center justify-between gap-2">
+            {assignedToUser ? (
+              userRead ? (
+                <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border border-emerald-200/80 dark:border-emerald-800/60 text-xs font-semibold">
+                  <svg className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+                  </svg>
+                  <span>Acknowledged {formatReadTime(userRead.read_at)}</span>
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleMarkAsRead(act.id);
+                  }}
+                  disabled={markingReadId === act.id}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-teal-600 hover:bg-teal-700 text-white text-xs font-bold shadow-sm hover:shadow transition-all disabled:opacity-50"
+                  title="Mark this activity as read / acknowledged"
+                >
+                  {markingReadId === act.id ? (
+                    <>
+                      <svg className="animate-spin w-3.5 h-3.5 text-white" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                      <span>Marking...</span>
+                    </>
+                  ) : (
+                    <>
+                      <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+                      </svg>
+                      <span>Mark as Read</span>
+                    </>
+                  )}
+                </button>
+              )
+            ) : (
+              <span className="text-[11px] text-slate-400 dark:text-slate-500 italic">Not assigned to you</span>
+            )}
+
+            {isAdmin && (
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setReceiptsModalAct(act);
+                  setReceiptsSearchTerm('');
+                  setReceiptsTabFilter('all');
+                }}
+                className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-slate-200/80 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 text-xs font-semibold transition-colors border border-slate-200/80 dark:border-slate-700/80 ml-auto"
+                title="View who has read/acknowledged this activity"
+              >
+                <svg className="w-3.5 h-3.5 text-slate-500 dark:text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 018.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0111.964-3.07M12 6.375a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zm8.25 2.25a2.625 2.625 0 11-5.25 0 2.625 2.625 0 015.25 0z" />
+                </svg>
+                <span>Receipts ({receiptCounts.read}/{receiptCounts.total})</span>
+              </button>
+            )}
+          </div>
         </div>
 
         {/* Status Actions */}
         {canUpdateStatus && (
-          <div className="bg-slate-50/80 dark:bg-slate-800/80 px-6 py-3 border-t border-slate-100 dark:border-slate-800 flex items-center gap-2 justify-end">
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className="bg-slate-50/80 dark:bg-slate-800/80 px-6 py-3 border-t border-slate-100 dark:border-slate-800 flex items-center gap-2 justify-end"
+          >
             <span className="text-xs font-semibold text-slate-500 dark:text-slate-400 mr-2">Update Status:</span>
             <div className="relative group/status">
               <div className="flex items-center gap-2 text-xs font-bold bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 py-1.5 pl-3 pr-2 rounded-lg shadow-sm cursor-pointer hover:border-slate-300 dark:hover:border-slate-600 transition-colors">
@@ -1341,6 +1672,325 @@ export default function OfficeActivities() {
           </div>
         </div>
       )}
+
+      {/* Unacknowledged Activities Popup Modal */}
+      {isUnackModalOpen && (
+        <div className="fixed inset-0 bg-slate-950/70 backdrop-blur-md flex items-center justify-center p-3 sm:p-5 z-50 animate-fadeIn">
+          <div className="bg-white dark:bg-slate-900 rounded-3xl shadow-2xl w-full max-w-2xl overflow-hidden flex flex-col max-h-[90vh] border border-slate-200 dark:border-slate-800 transform transition-all">
+            
+            {/* Modal Header */}
+            <div className="px-6 py-5 border-b border-slate-100 dark:border-slate-800 bg-gradient-to-r from-amber-500/10 via-transparent to-orange-500/10 flex items-center justify-between shrink-0">
+              <div className="flex items-center gap-3">
+                <div className="w-11 h-11 rounded-2xl bg-gradient-to-tr from-amber-500 to-orange-500 flex items-center justify-center text-white shadow-lg shadow-amber-500/25">
+                  <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75v-.7V9A6 6 0 006 9v.75a8.967 8.967 0 01-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 01-5.714 0m5.714 0a3 3 0 11-5.714 0" />
+                  </svg>
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h3 className="text-lg font-bold text-slate-900 dark:text-white leading-tight">
+                      Unacknowledged Activities
+                    </h3>
+                    <span className="px-2 py-0.5 rounded-full text-xs font-bold bg-amber-100 dark:bg-amber-900/60 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800">
+                      {unacknowledgedActivities.length} Pending
+                    </span>
+                  </div>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                    Activities assigned to you that require your acknowledgment. Mark them as read below.
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsUnackModalOpen(false)}
+                className="w-8 h-8 rounded-full flex items-center justify-center text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                title="Close"
+              >
+                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
+              </button>
+            </div>
+
+            {/* Modal Body */}
+            <div className="p-6 overflow-y-auto flex-1 flex flex-col gap-4">
+              {unacknowledgedActivities.length === 0 ? (
+                <div className="py-12 flex flex-col items-center justify-center text-center">
+                  <div className="w-14 h-14 rounded-full bg-emerald-50 dark:bg-emerald-900/30 flex items-center justify-center text-emerald-600 dark:text-emerald-400 mb-3">
+                    <svg className="w-7 h-7" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+                    </svg>
+                  </div>
+                  <h4 className="text-base font-bold text-slate-800 dark:text-slate-200">All Caught Up!</h4>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 max-w-sm">
+                    You have acknowledged all active activities assigned to you.
+                  </p>
+                </div>
+              ) : (
+                unacknowledgedActivities.map(act => (
+                  <div
+                    key={act.id}
+                    className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/80 dark:border-slate-700/80 hover:border-amber-300 dark:hover:border-amber-700/70 transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-sm"
+                  >
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 mb-1.5 flex-wrap">
+                        <span className={`inline-flex px-2 py-0.5 rounded-full text-[10px] font-bold border ${getStatusBadge(act.status)}`}>
+                          {act.status}
+                        </span>
+                        <span className="text-xs text-slate-500 dark:text-slate-400 flex items-center gap-1 font-medium">
+                          <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+                          {act.start_date === act.end_date || !act.end_date
+                            ? formatDate(act.start_date)
+                            : `${formatDate(act.start_date)} - ${formatDate(act.end_date)}`}
+                        </span>
+                      </div>
+                      <h4 className="text-sm font-bold text-slate-900 dark:text-white mb-1 break-words">
+                        {act.title}
+                      </h4>
+                      {act.description && (
+                        <p className="text-xs text-slate-600 dark:text-slate-300 line-clamp-2 leading-relaxed mb-2">
+                          {act.description}
+                        </p>
+                      )}
+                      <div className="text-[11px] text-slate-400 dark:text-slate-500 font-medium">
+                        Assigned by <span className="font-semibold text-slate-600 dark:text-slate-300">{act.created_by}</span>
+                      </div>
+                    </div>
+
+                    <div className="shrink-0 sm:self-center">
+                      <button
+                        type="button"
+                        onClick={() => handleMarkAsRead(act.id)}
+                        disabled={markingReadId === act.id}
+                        className="w-full sm:w-auto inline-flex items-center justify-center gap-1.5 px-4 py-2 bg-gradient-to-r from-teal-500 to-emerald-500 hover:from-teal-400 hover:to-emerald-400 text-white text-xs font-bold rounded-xl shadow-md hover:shadow-teal-500/20 transition-all disabled:opacity-50"
+                      >
+                        {markingReadId === act.id ? (
+                          <>
+                            <svg className="animate-spin w-3.5 h-3.5 text-white" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                            <span>Marking...</span>
+                          </>
+                        ) : (
+                          <>
+                            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+                            </svg>
+                            <span>Mark as Read</span>
+                          </>
+                        )}
+                      </button>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+
+            {/* Modal Footer */}
+            <div className="px-6 py-4 bg-slate-50/90 dark:bg-slate-900/90 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between gap-3 shrink-0">
+              <button
+                type="button"
+                onClick={() => setIsUnackModalOpen(false)}
+                className="px-5 py-2.5 font-bold text-xs text-slate-600 dark:text-slate-300 hover:bg-slate-200/60 dark:hover:bg-slate-800 rounded-xl transition-colors"
+              >
+                Close / Review Later
+              </button>
+
+              {unacknowledgedActivities.length > 0 && (
+                <button
+                  type="button"
+                  onClick={() => handleMarkAsReadBatch(unacknowledgedActivities.map(a => a.id))}
+                  disabled={markingReadId === 'batch'}
+                  className="inline-flex items-center gap-2 px-6 py-2.5 font-bold text-xs text-white bg-gradient-to-r from-teal-500 to-emerald-500 hover:from-teal-400 hover:to-emerald-400 rounded-xl shadow-md hover:shadow-teal-500/20 hover:-translate-y-0.5 transition-all disabled:opacity-50"
+                >
+                  {markingReadId === 'batch' ? (
+                    <>
+                      <svg className="animate-spin w-4 h-4 text-white" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                      <span>Acknowledging All...</span>
+                    </>
+                  ) : (
+                    <>
+                      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5"><path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" /></svg>
+                      <span>Acknowledge All ({unacknowledgedActivities.length})</span>
+                    </>
+                  )}
+                </button>
+              )}
+            </div>
+
+          </div>
+        </div>
+      )}
+
+      {/* Read Receipts Modal for Admin & Creator */}
+      {receiptsModalAct && (() => {
+        const summary = getActReceiptSummary(receiptsModalAct);
+        const filteredList = summary.list.filter(item => {
+          if (receiptsTabFilter === 'read' && !item.read) return false;
+          if (receiptsTabFilter === 'pending' && item.read) return false;
+          if (receiptsSearchTerm) {
+            const term = receiptsSearchTerm.toLowerCase();
+            const nameMatch = (item.name || '').toLowerCase().includes(term);
+            const posMatch = (item.position || '').toLowerCase().includes(term);
+            const emailMatch = (item.email || '').toLowerCase().includes(term);
+            return nameMatch || posMatch || emailMatch;
+          }
+          return true;
+        });
+
+        return (
+          <div className="fixed inset-0 bg-slate-950/70 backdrop-blur-md flex items-center justify-center p-3 sm:p-5 z-50 animate-fadeIn">
+            <div className="bg-white dark:bg-slate-900 rounded-3xl shadow-2xl w-full max-w-2xl overflow-hidden flex flex-col max-h-[90vh] border border-slate-200 dark:border-slate-800 transform transition-all">
+              
+              {/* Header */}
+              <div className="px-6 py-5 border-b border-slate-100 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-900/70 flex items-center justify-between shrink-0">
+                <div className="flex items-center gap-3 min-w-0">
+                  <div className="w-10 h-10 rounded-2xl bg-teal-500/10 text-teal-600 dark:text-teal-400 flex items-center justify-center shrink-0">
+                    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 018.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0111.964-3.07M12 6.375a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zm8.25 2.25a2.625 2.625 0 11-5.25 0 2.625 2.625 0 015.25 0z" />
+                    </svg>
+                  </div>
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-2">
+                      <h3 className="text-base font-bold text-slate-900 dark:text-white truncate">
+                        Acknowledgment Tracking: {receiptsModalAct.title}
+                      </h3>
+                      <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-teal-100 dark:bg-teal-900/60 text-teal-700 dark:text-teal-300 border border-teal-200 dark:border-teal-800">
+                        Admin View
+                      </span>
+                    </div>
+                    <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                      Trace which assignees have acknowledged this activity and who have not.
+                    </p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setReceiptsModalAct(null)}
+                  className="w-8 h-8 rounded-full flex items-center justify-center text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors shrink-0"
+                >
+                  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
+                </button>
+              </div>
+
+              {/* Stats Bar */}
+              <div className="px-6 py-4 bg-white dark:bg-slate-900 border-b border-slate-100 dark:border-slate-800 shrink-0">
+                <div className="flex items-center justify-between text-xs font-semibold mb-2">
+                  <span className="text-slate-600 dark:text-slate-300">
+                    Acknowledgment Status: <strong className="text-emerald-600 dark:text-emerald-400">{summary.read}</strong> Acknowledged • <strong className="text-amber-600 dark:text-amber-400">{summary.total - summary.read}</strong> Did Not Acknowledge
+                  </span>
+                  <span className="font-bold text-teal-600 dark:text-teal-400">{summary.percent}%</span>
+                </div>
+                <div className="w-full h-2.5 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
+                  <div
+                    className="h-full bg-gradient-to-r from-teal-500 to-emerald-500 transition-all duration-500 rounded-full"
+                    style={{ width: `${summary.percent}%` }}
+                  />
+                </div>
+
+                {/* Filter and Search */}
+                <div className="mt-4 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+                  <div className="flex items-center bg-slate-100 dark:bg-slate-800 p-1 rounded-xl shrink-0">
+                    <button
+                      type="button"
+                      onClick={() => setReceiptsTabFilter('all')}
+                      className={`px-3 py-1 rounded-lg text-xs font-bold transition-all ${receiptsTabFilter === 'all' ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-sm' : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'}`}
+                    >
+                      All ({summary.total})
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setReceiptsTabFilter('read')}
+                      className={`px-3 py-1 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${receiptsTabFilter === 'read' ? 'bg-white dark:bg-slate-900 text-emerald-600 dark:text-emerald-400 shadow-sm' : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'}`}
+                    >
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                      <span>Acknowledged ({summary.read})</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setReceiptsTabFilter('pending')}
+                      className={`px-3 py-1 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${receiptsTabFilter === 'pending' ? 'bg-white dark:bg-slate-900 text-amber-600 dark:text-amber-400 shadow-sm' : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'}`}
+                    >
+                      <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse"></span>
+                      <span>Did Not Acknowledge ({summary.total - summary.read})</span>
+                    </button>
+                  </div>
+
+                  <div className="relative flex-1 sm:max-w-xs">
+                    <svg className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
+                    <input
+                      type="text"
+                      placeholder="Filter assignee..."
+                      value={receiptsSearchTerm}
+                      onChange={e => setReceiptsSearchTerm(e.target.value)}
+                      className="w-full pl-9 pr-3 py-1.5 bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-teal-500 text-slate-800 dark:text-slate-100"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Assignees Roster List */}
+              <div className="p-6 overflow-y-auto flex-1 flex flex-col gap-2.5">
+                {filteredList.length === 0 ? (
+                  <div className="py-8 text-center text-xs text-slate-400 dark:text-slate-500">
+                    No assignees match your search or filter.
+                  </div>
+                ) : (
+                  filteredList.map((item, idx) => (
+                    <div
+                      key={idx}
+                      className="p-3 rounded-xl bg-slate-50/70 dark:bg-slate-800/40 border border-slate-100 dark:border-slate-800 flex items-center justify-between gap-3"
+                    >
+                      <div className="flex items-center gap-3 min-w-0">
+                        <div className={`w-8 h-8 rounded-lg flex items-center justify-center text-xs font-bold shrink-0 ${getAvatarBg(item.name)}`}>
+                          {getInitials(item.name)}
+                        </div>
+                        <div className="min-w-0">
+                          <p className="text-xs font-bold text-slate-800 dark:text-slate-100 truncate">
+                            {item.name}
+                          </p>
+                          <p className="text-[11px] text-slate-500 dark:text-slate-400 truncate">
+                            {item.position || 'Staff'} {item.email ? `• ${item.email}` : ''}
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="shrink-0 text-right">
+                        {item.read ? (
+                          <div className="flex flex-col items-end">
+                            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800/60">
+                              <svg className="w-3 h-3 text-emerald-600 dark:text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+                              </svg>
+                              Acknowledged
+                            </span>
+                            <span className="text-[10px] text-slate-400 dark:text-slate-500 mt-0.5">
+                              {formatReadTime(item.read_at)}
+                            </span>
+                          </div>
+                        ) : (
+                          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800/60">
+                            <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse"></span>
+                            Did Not Acknowledge
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+
+              {/* Modal Footer */}
+              <div className="px-6 py-4 bg-slate-50/80 dark:bg-slate-900/80 border-t border-slate-100 dark:border-slate-800 flex justify-end shrink-0">
+                <button
+                  type="button"
+                  onClick={() => setReceiptsModalAct(null)}
+                  className="px-5 py-2 font-bold text-xs text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-xl transition-colors shadow-sm"
+                >
+                  Close
+                </button>
+              </div>
+
+            </div>
+          </div>
+        );
+      })()}
 
       {/* Alert Notification */}
       {alertConfig && (
