@@ -1456,20 +1456,20 @@ export default function OfficeActivities() {
                 <div className="flex flex-col gap-4 animate-fadeIn">
                   
                   {/* Summary Banner Card */}
-                  <div className="bg-gradient-to-br from-slate-900 to-slate-800 text-white p-5 rounded-2xl shadow-md flex flex-col gap-2">
+                  <div className="bg-gradient-to-br from-teal-50/70 via-white to-slate-50 dark:from-slate-900 dark:to-slate-800 text-slate-900 dark:text-white p-5 rounded-2xl border border-teal-100 dark:border-slate-700/60 shadow-sm flex flex-col gap-2">
                     <div className="flex items-center justify-between">
-                      <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold tracking-wider uppercase bg-teal-400/20 text-teal-300 border border-teal-400/30">
+                      <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold tracking-wider uppercase bg-teal-100 dark:bg-teal-400/20 text-teal-800 dark:text-teal-300 border border-teal-200 dark:border-teal-400/30">
                         {editingActivityId ? 'Activity Update' : 'New Activity'}
                       </span>
-                      <span className="text-xs text-slate-300 font-medium">
+                      <span className="text-xs text-slate-500 dark:text-slate-300 font-medium">
                         {getDurationText(formData.start_date, formData.end_date)}
                       </span>
                     </div>
-                    <h4 className="text-lg font-bold text-white break-words mt-1">
+                    <h4 className="text-lg font-bold text-slate-900 dark:text-white break-words mt-1">
                       {formData.title}
                     </h4>
-                    <div className="flex items-center gap-2 text-xs text-slate-300">
-                      <svg className="w-4 h-4 text-teal-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+                    <div className="flex items-center gap-2 text-xs text-slate-600 dark:text-slate-300">
+                      <svg className="w-4 h-4 text-teal-600 dark:text-teal-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
                       {formData.start_date === formData.end_date || !formData.end_date
                         ? formatDate(formData.start_date)
                         : `${formatDate(formData.start_date)} - ${formatDate(formData.end_date)}`}
