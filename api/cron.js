@@ -1,5 +1,6 @@
 import { createClient } from "@libsql/client/web";
 import nodemailer from "nodemailer";
+import { renderEmailLayout, escapeHtml, getBaseUrl } from "../lib/emailTemplate.js";
 
 export default async function handler(req, res) {
   // Basic Security Check: Ensure the request comes from Vercel Cron
@@ -103,24 +104,37 @@ export default async function handler(req, res) {
         let targetEmails = [...new Set((rawTargetEmails || []).map(e => (e || '').trim().toLowerCase()).filter(e => e && e.includes('@')))];
 
         if (targetEmails.length > 0) {
+          const appBaseUrl = getBaseUrl(req);
+          const activityBodyHtml = `
+            <p style="margin: 0 0 16px 0; font-size: 15px; color: #0f172a;">
+              Reminder: You have an assigned office activity starting tomorrow.
+            </p>
+
+            <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 18px 20px; margin-bottom: 24px;">
+              <p style="margin: 0 0 8px 0; font-size: 11px; font-weight: 700; text-transform: uppercase; color: #64748b; letter-spacing: 0.5px;">Activity</p>
+              <h3 style="margin: 0 0 10px 0; font-size: 17px; color: #0f172a;">${escapeHtml(activity.title)}</h3>
+              <div style="display: inline-block; padding: 4px 10px; background-color: #f1f5f9; color: #475569; border-radius: 6px; font-size: 12px; font-weight: 600;">
+                📅 Starts Tomorrow: ${escapeHtml(activity.start_date || '')}
+              </div>
+            </div>
+
+            <div style="text-align: center; margin-bottom: 8px;">
+              <a href="${appBaseUrl}/office-activities" style="display: inline-block; padding: 12px 28px; background-color: #0d9488; color: #ffffff; text-decoration: none; border-radius: 8px; font-weight: 700; font-size: 14px; box-shadow: 0 4px 6px -1px rgba(13, 148, 136, 0.3);">
+                Open Office Activities &rarr;
+              </a>
+            </div>
+          `;
+
           await transporter.sendMail({
-            from: process.env.SMTP_FROM || '"OpsHUB" <noreply@opshub.local>',
+            from: process.env.SMTP_FROM || (process.env.SMTP_USER ? `"OpsHUB Notifier" <${process.env.SMTP_USER}>` : '"OpsHUB Notifier" <kalinga@psa.gov.ph>'),
             bcc: targetEmails.join(', '),
             subject: `Reminder: Upcoming Activity - ${activity.title}`,
-            text: `Reminder: You have an upcoming activity starting tomorrow.\n\nTitle: ${activity.title}`,
-            html: `
-              <div style="font-family: sans-serif; padding: 20px;">
-                <h2 style="color: #0f766e;">Upcoming Activity Reminder</h2>
-                <p>You have an upcoming activity starting tomorrow.</p>
-                <p><strong>Title:</strong> ${activity.title}</p>
-                <div style="margin-top: 25px; margin-bottom: 25px;">
-                  <a href="https://operations-hub-iota.vercel.app" style="display: inline-block; padding: 10px 20px; background-color: #0f172a; color: #ffffff; text-decoration: none; border-radius: 6px; font-weight: 500;">Go to OpsHUB</a>
-                </div>
-                <hr style="border: none; border-top: 1px solid #e2e8f0; margin: 20px 0;" />
-                <p style="font-size: 12px; color: #64748b; margin-bottom: 4px;"><strong>Please do not reply to this email.</strong></p>
-                <p style="font-size: 12px; color: #64748b;">This is an automated notification from OpsHUB.</p>
-              </div>
-            `
+            text: `Reminder: You have an upcoming activity starting tomorrow.\n\nTitle: ${activity.title}\n\nView on OpsHUB: ${appBaseUrl}/office-activities`,
+            html: renderEmailLayout({
+              headerTitle: 'Upcoming Activity Reminder',
+              theme: 'teal',
+              bodyHtml: activityBodyHtml
+            })
           });
           emailsSentCount += targetEmails.length;
 
@@ -140,12 +154,39 @@ export default async function handler(req, res) {
       // 5. Send emails for personal events
       for (const event of personalEvents) {
         if (event.user_email) {
+          const appBaseUrl = getBaseUrl(req);
+          const personalBodyHtml = `
+            <p style="margin: 0 0 16px 0; font-size: 15px; color: #0f172a;">
+              Reminder: You have a scheduled personal calendar event starting tomorrow.
+            </p>
+
+            <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 18px 20px; margin-bottom: 24px;">
+              <p style="margin: 0 0 8px 0; font-size: 11px; font-weight: 700; text-transform: uppercase; color: #64748b; letter-spacing: 0.5px;">Personal Event</p>
+              <h3 style="margin: 0 0 6px 0; font-size: 17px; color: #0f172a;">${escapeHtml(event.title)}</h3>
+              ${event.start_date ? `
+                <div style="display: inline-block; padding: 4px 10px; background-color: #f1f5f9; color: #475569; border-radius: 6px; font-size: 12px; font-weight: 600; margin-top: 6px;">
+                  📅 Starts Tomorrow: ${escapeHtml(event.start_date)}
+                </div>
+              ` : ''}
+            </div>
+
+            <div style="text-align: center; margin-bottom: 8px;">
+              <a href="${appBaseUrl}/" style="display: inline-block; padding: 12px 28px; background-color: #0f172a; color: #ffffff; text-decoration: none; border-radius: 8px; font-weight: 600; font-size: 14px;">
+                Open OpsHUB Calendar &rarr;
+              </a>
+            </div>
+          `;
+
           await transporter.sendMail({
-            from: process.env.SMTP_FROM || '"OpsHUB" <noreply@opshub.local>',
+            from: process.env.SMTP_FROM || (process.env.SMTP_USER ? `"OpsHUB Notifier" <${process.env.SMTP_USER}>` : '"OpsHUB Notifier" <kalinga@psa.gov.ph>'),
             to: event.user_email,
             subject: `Reminder: Upcoming Personal Event - ${event.title}`,
-            text: `Reminder: You have an upcoming personal event starting tomorrow.\n\nTitle: ${event.title}`,
-            html: `<div style="font-family: sans-serif; padding: 20px;"><h2>Upcoming Personal Event Reminder</h2><p><strong>Title:</strong> ${event.title}</p></div>`
+            text: `Reminder: You have an upcoming personal event starting tomorrow.\n\nTitle: ${event.title}\n\nView on OpsHUB: ${appBaseUrl}/`,
+            html: renderEmailLayout({
+              headerTitle: 'Personal Event Reminder',
+              theme: 'teal',
+              bodyHtml: personalBodyHtml
+            })
           });
           emailsSentCount++;
         }

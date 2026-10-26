@@ -13,9 +13,15 @@ export default function OfficeActivities() {
   const [employees, setEmployees] = useState([]);
   const [allEmployees, setAllEmployees] = useState([]);
   const [reads, setReads] = useState([]);
+  const [emailLogs, setEmailLogs] = useState([]);
+  const [resendingActId, setResendingActId] = useState(null);
+  const [resendingEmail, setResendingEmail] = useState(null);
   const [userRole, setUserRole] = useState(null);
   const [currentUserDisplayName, setCurrentUserDisplayName] = useState('');
   const [isAdmin, setIsAdmin] = useState(false);
+  const isPACD = (userRole || '').trim().toLowerCase() === 'pacd';
+  const isSuperAdmin = (userRole || '').trim().toLowerCase() === 'super admin' || (userRole || '').trim().toLowerCase() === 'superadmin';
+  const canViewReceipts = isAdmin || isPACD || isSuperAdmin;
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -80,6 +86,7 @@ export default function OfficeActivities() {
         setAllEmployees(data.allEmployees || []);
         setActivities(data.activities || []);
         setReads(data.reads || []);
+        setEmailLogs(data.emailLogs || []);
       } catch (err) {
         console.error("Error setting up Office Activities:", err);
         setError("Failed to load Office Activities.");
@@ -258,22 +265,111 @@ export default function OfficeActivities() {
     if (total === 0) return { total: 0, read: 0, percent: 0, list: [] };
 
     const actReads = (reads || []).filter(r => r.activity_id === act.id);
+    const actEmailLogs = (emailLogs || []).filter(l => l.activity_id === act.id);
+
     const list = assignees.map(assignee => {
       const read = actReads.find(r => {
         if (assignee.email && r.user_email && r.user_email.toLowerCase() === assignee.email.toLowerCase()) return true;
         if (assignee.name && r.user_name && normalizeStr(assignee.name) === normalizeStr(r.user_name)) return true;
         return false;
       });
+
+      const eLog = actEmailLogs.find(l => {
+        if (assignee.email && l.recipient_email && l.recipient_email.toLowerCase() === assignee.email.toLowerCase()) return true;
+        if (assignee.name && l.recipient_name && normalizeStr(assignee.name) === normalizeStr(l.recipient_name)) return true;
+        return false;
+      });
+
       return {
         ...assignee,
         read: !!read,
-        read_at: read?.read_at || null
+        read_at: read?.read_at || null,
+        emailStatus: eLog ? eLog.status : (actEmailLogs.length > 0 ? 'not_sent' : 'not_tracked'),
+        emailError: eLog?.error_message || null,
+        emailSentAt: eLog?.sent_at || null
       };
     });
 
     const readCount = list.filter(a => a.read).length;
     const percent = total > 0 ? Math.round((readCount / total) * 100) : 0;
     return { total, read: readCount, percent, list };
+  };
+
+  const getActEmailSummary = (act) => {
+    if (!act) return { hasTracking: false, sent: 0, failed: 0, total: 0, logs: [] };
+
+    const actLogs = (emailLogs || []).filter(l => l.activity_id === act.id);
+    const hasLogs = actLogs.length > 0;
+    const hasColStats = act.emails_sent !== null && act.emails_sent !== undefined && (act.emails_sent > 0 || act.emails_failed > 0);
+
+    if (!hasLogs && !hasColStats) {
+      return { hasTracking: false, sent: 0, failed: 0, total: 0, logs: [] };
+    }
+
+    const sent = hasLogs ? actLogs.filter(l => l.status === 'sent').length : Number(act.emails_sent || 0);
+    const failed = hasLogs ? actLogs.filter(l => l.status === 'failed').length : Number(act.emails_failed || 0);
+    const total = sent + failed;
+
+    return {
+      hasTracking: true,
+      sent,
+      failed,
+      total,
+      logs: actLogs
+    };
+  };
+
+  const handleResendEmails = async (act, mode = 'failed_only', specificEmail = null) => {
+    if (!act) return;
+    try {
+      setResendingActId(act.id);
+      setResendingEmail(specificEmail || mode);
+      const token = await getToken();
+
+      const body = {
+        action: 'resendEmails',
+        activityId: act.id,
+        mode
+      };
+      if (specificEmail) {
+        body.targetEmails = [specificEmail];
+      }
+
+      const res = await fetch('/api/activities', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        body: JSON.stringify(body)
+      });
+
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        throw new Error(data.error || 'Failed to resend emails');
+      }
+
+      if (data.activities) setActivities(data.activities);
+      if (data.emailLogs) setEmailLogs(data.emailLogs);
+
+      const sent = data.emailsSent ?? 0;
+      const failed = data.failedEmails ?? 0;
+
+      if (failed > 0) {
+        setAlertConfig({
+          message: `Email dispatch update: ${sent} delivered, ${failed} failed.`,
+          type: 'info'
+        });
+      } else {
+        setAlertConfig({
+          message: `Successfully dispatched ${sent} notification email${sent === 1 ? '' : 's'}!`,
+          type: 'success'
+        });
+      }
+    } catch (err) {
+      console.error("Error resending activity emails:", err);
+      setAlertConfig({ message: err.message || "Failed to resend emails.", type: 'error' });
+    } finally {
+      setResendingActId(null);
+      setResendingEmail(null);
+    }
   };
 
   const handleSaveActivity = async (e) => {
@@ -301,10 +397,22 @@ export default function OfficeActivities() {
       const data = await res.json();
       if (data.success) {
         setActivities(data.activities || []);
+        if (data.emailLogs) setEmailLogs(data.emailLogs);
 
         if (!editingActivityId) {
-          if (data.failedEmails && data.failedEmails > 0) {
-            setAlertConfig({ message: `Activity saved, but failed to send ${data.failedEmails} email notifications.`, type: 'info' });
+          const sent = data.emailsSent ?? 0;
+          const failed = data.failedEmails ?? 0;
+
+          if (failed > 0) {
+            setAlertConfig({
+              message: `Activity saved: ${sent} email${sent === 1 ? '' : 's'} sent successfully, ${failed} failed to deliver. Check receipts to retry.`,
+              type: 'info'
+            });
+          } else if (sent > 0) {
+            setAlertConfig({
+              message: `Activity created! ${sent} notification email${sent === 1 ? '' : 's'} sent successfully.`,
+              type: 'success'
+            });
           } else {
             setAlertConfig({ message: 'Activity saved successfully!', type: 'success' });
           }
@@ -673,19 +781,20 @@ export default function OfficeActivities() {
     const assignedToUser = isUserAssigned(act);
     const userRead = getUserReadRecord(act.id);
     const receiptCounts = getActReceiptSummary(act);
+    const emailSummary = getActEmailSummary(act);
 
     return (
       <div
         key={act.id}
         onClick={() => {
-          if (isAdmin) {
+          if (canViewReceipts) {
             setReceiptsModalAct(act);
             setReceiptsSearchTerm('');
             setReceiptsTabFilter('all');
           }
         }}
         className={`w-full bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 overflow-hidden flex flex-col group transition-all ${
-          isAdmin
+          canViewReceipts
             ? 'cursor-pointer hover:shadow-xl hover:border-teal-400 dark:hover:border-teal-600 ring-0 hover:ring-2 hover:ring-teal-500/20'
             : 'hover:shadow-md'
         }`}
@@ -696,7 +805,7 @@ export default function OfficeActivities() {
               <span className={`inline-flex px-2.5 py-1 rounded-full text-xs font-bold border ${getStatusBadge(displayStatus)}`}>
                 {displayStatus}
               </span>
-              {isAdmin && (
+              {canViewReceipts && (
                 <span className="hidden sm:inline-flex items-center gap-1.5 text-[11px] font-semibold text-slate-500 dark:text-slate-400 group-hover:text-teal-600 dark:group-hover:text-teal-400 transition-colors bg-slate-100/80 dark:bg-slate-800/80 px-2 py-0.5 rounded-md border border-slate-200/80 dark:border-slate-700/80">
                   <svg className="w-3.5 h-3.5 text-teal-500 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
                     <path strokeLinecap="round" strokeLinejoin="round" d="M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 018.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0111.964-3.07M12 6.375a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zm8.25 2.25a2.625 2.625 0 11-5.25 0 2.625 2.625 0 015.25 0z" />
@@ -775,6 +884,48 @@ export default function OfficeActivities() {
             </div>
           </div>
 
+          {/* Email Delivery Status Row (Only visible when email tracking exists) */}
+          {emailSummary.hasTracking && (
+            <div className="mt-3 pt-2.5 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between gap-2 flex-wrap">
+              <div className="flex items-center gap-1.5 flex-wrap">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">
+                  Email Status:
+                </span>
+                {emailSummary.failed > 0 ? (
+                  <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-[11px] font-bold bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-300 border border-rose-200 dark:border-rose-800/60 shadow-sm">
+                    <svg className="w-3.5 h-3.5 text-rose-500 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" />
+                    </svg>
+                    <span>{emailSummary.sent} sent • <strong className="text-rose-600 dark:text-rose-400 underline">{emailSummary.failed} failed</strong></span>
+                  </span>
+                ) : (
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-bold bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800/60 shadow-sm">
+                    <svg className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+                    </svg>
+                    <span>{emailSummary.sent} sent</span>
+                  </span>
+                )}
+              </div>
+
+              {canViewReceipts && (
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setReceiptsModalAct(act);
+                    setReceiptsSearchTerm('');
+                    setReceiptsTabFilter(emailSummary.failed > 0 ? 'failed_email' : 'all');
+                  }}
+                  className="text-[11px] font-bold text-teal-600 dark:text-teal-400 hover:text-teal-700 dark:hover:text-teal-300 transition-colors inline-flex items-center gap-1 ml-auto"
+                >
+                  <span>{emailSummary.failed > 0 ? 'View Failed' : 'Email Log'}</span>
+                  <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" /></svg>
+                </button>
+              )}
+            </div>
+          )}
+
           {/* Read Receipt & Acknowledgment Action Strip */}
           <div className="mt-4 pt-3 border-t border-dashed border-slate-200 dark:border-slate-800 flex flex-wrap items-center justify-between gap-2">
             {assignedToUser ? (
@@ -815,7 +966,7 @@ export default function OfficeActivities() {
               <span className="text-[11px] text-slate-400 dark:text-slate-500 italic">Not assigned to you</span>
             )}
 
-            {isAdmin && (
+            {canViewReceipts && (
               <button
                 type="button"
                 onClick={(e) => {
@@ -1818,12 +1969,16 @@ export default function OfficeActivities() {
         </div>
       )}
 
-      {/* Read Receipts Modal for Admin & Creator */}
+      {/* Read Receipts & Email Delivery Modal for Admin & Creator */}
       {receiptsModalAct && (() => {
         const summary = getActReceiptSummary(receiptsModalAct);
+        const emailSummary = getActEmailSummary(receiptsModalAct);
+
         const filteredList = summary.list.filter(item => {
           if (receiptsTabFilter === 'read' && !item.read) return false;
           if (receiptsTabFilter === 'pending' && item.read) return false;
+          if (receiptsTabFilter === 'failed_email' && item.emailStatus !== 'failed') return false;
+          if (receiptsTabFilter === 'sent_email' && item.emailStatus !== 'sent') return false;
           if (receiptsSearchTerm) {
             const term = receiptsSearchTerm.toLowerCase();
             const nameMatch = (item.name || '').toLowerCase().includes(term);
@@ -1849,14 +2004,16 @@ export default function OfficeActivities() {
                   <div className="min-w-0">
                     <div className="flex items-center gap-2">
                       <h3 className="text-base font-bold text-slate-900 dark:text-white truncate">
-                        Acknowledgment Tracking: {receiptsModalAct.title}
+                        Tracking: {receiptsModalAct.title}
                       </h3>
                       <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-teal-100 dark:bg-teal-900/60 text-teal-700 dark:text-teal-300 border border-teal-200 dark:border-teal-800">
-                        Admin View
+                        {isSuperAdmin ? 'Super Admin View' : isAdmin ? 'Admin View' : isPACD ? 'PACD View' : 'Tracking View'}
                       </span>
                     </div>
                     <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                      Trace which assignees have acknowledged this activity and who have not.
+                      {emailSummary.hasTracking
+                        ? 'Check email delivery logs, see who confirmed receipt, and resend notifications.'
+                        : 'See who has read and confirmed receipt of this activity.'}
                     </p>
                   </div>
                 </div>
@@ -1870,34 +2027,114 @@ export default function OfficeActivities() {
               </div>
 
               {/* Stats Bar */}
-              <div className="px-6 py-4 bg-white dark:bg-slate-900 border-b border-slate-100 dark:border-slate-800 shrink-0">
-                <div className="flex items-center justify-between text-xs font-semibold mb-2">
-                  <span className="text-slate-600 dark:text-slate-300">
-                    Acknowledgment Status: <strong className="text-emerald-600 dark:text-emerald-400">{summary.read}</strong> Acknowledged • <strong className="text-amber-600 dark:text-amber-400">{summary.total - summary.read}</strong> Did Not Acknowledge
-                  </span>
-                  <span className="font-bold text-teal-600 dark:text-teal-400">{summary.percent}%</span>
-                </div>
-                <div className="w-full h-2.5 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
-                  <div
-                    className="h-full bg-gradient-to-r from-teal-500 to-emerald-500 transition-all duration-500 rounded-full"
-                    style={{ width: `${summary.percent}%` }}
-                  />
+              <div className="px-6 py-4 bg-white dark:bg-slate-900 border-b border-slate-100 dark:border-slate-800 shrink-0 flex flex-col gap-3.5">
+                {/* Acknowledgment Stats */}
+                <div>
+                  <div className="flex items-center justify-between text-xs font-semibold mb-2">
+                    <span className="text-slate-600 dark:text-slate-300 flex items-center gap-1.5">
+                      <span>Acknowledgment:</span>
+                      <strong className="text-emerald-600 dark:text-emerald-400 font-bold">{summary.read} Acknowledged</strong>
+                      <span>•</span>
+                      <strong className="text-amber-600 dark:text-amber-400 font-bold">{summary.total - summary.read} Did Not Acknowledge</strong>
+                    </span>
+                    <span className="font-bold text-teal-600 dark:text-teal-400">{summary.percent}%</span>
+                  </div>
+                  <div className="w-full h-2 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
+                    <div
+                      className="h-full bg-gradient-to-r from-teal-500 to-emerald-500 transition-all duration-500 rounded-full"
+                      style={{ width: `${summary.percent}%` }}
+                    />
+                  </div>
                 </div>
 
+                {/* Email Delivery Summary Box (Only show when email tracking exists) */}
+                {emailSummary.hasTracking && (
+                  <div className="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/80 dark:border-slate-700/80 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                    <div className="flex items-center gap-3 min-w-0">
+                      <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 shadow-sm ${emailSummary.failed > 0 ? 'bg-rose-100 text-rose-600 dark:bg-rose-900/50 dark:text-rose-400' : 'bg-emerald-100 text-emerald-600 dark:bg-emerald-900/50 dark:text-emerald-400'}`}>
+                        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M21.75 6.75v10.5a2.25 2.25 0 01-2.25 2.25h-15a2.25 2.25 0 01-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25m19.5 0v.243a2.25 2.25 0 01-1.07 1.916l-7.5 4.615a2.25 2.25 0 01-2.36 0L3.32 8.91a2.25 2.25 0 01-1.07-1.916V6.75" />
+                        </svg>
+                      </div>
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs font-bold text-slate-800 dark:text-slate-100">Email Notification Status</span>
+                          <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${emailSummary.failed > 0 ? 'bg-rose-100 text-rose-700 dark:bg-rose-900/60 dark:text-rose-300' : 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/60 dark:text-emerald-300'}`}>
+                            {emailSummary.failed > 0 ? `${emailSummary.failed} Failed` : 'All Delivered'}
+                          </span>
+                        </div>
+                        <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5 truncate">
+                          <strong className="text-emerald-600 dark:text-emerald-400">{emailSummary.sent} Successful</strong>
+                          {' • '}
+                          <strong className={emailSummary.failed > 0 ? 'text-rose-600 dark:text-rose-400' : 'text-slate-500'}>
+                            {emailSummary.failed} Failed
+                          </strong>
+                          <span className="text-slate-400 dark:text-slate-500"> (Total: {emailSummary.total})</span>
+                        </p>
+                      </div>
+                    </div>
+
+                    {canViewReceipts && (
+                      <div className="flex items-center gap-2 shrink-0">
+                        {emailSummary.failed > 0 && (
+                          <button
+                            type="button"
+                            onClick={() => handleResendEmails(receiptsModalAct, 'failed_only')}
+                            disabled={resendingActId === receiptsModalAct.id}
+                            className="px-3 py-1.5 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-xs font-bold shadow-sm hover:shadow transition-all flex items-center gap-1.5 disabled:opacity-50"
+                            title="Resend emails to all recipients who failed to receive it"
+                          >
+                            {resendingActId === receiptsModalAct.id && resendingEmail === 'failed_only' ? (
+                              <>
+                                <svg className="animate-spin w-3.5 h-3.5 text-white" viewBox="0 0 24 24" fill="none"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                                <span>Resending...</span>
+                              </>
+                            ) : (
+                              <>
+                                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99" /></svg>
+                                <span>Resend to Failed ({emailSummary.failed})</span>
+                              </>
+                            )}
+                          </button>
+                        )}
+                        <button
+                          type="button"
+                          onClick={() => handleResendEmails(receiptsModalAct, 'all')}
+                          disabled={resendingActId === receiptsModalAct.id}
+                          className="px-3 py-1.5 bg-slate-200 hover:bg-slate-300 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 rounded-xl text-xs font-semibold transition-all flex items-center gap-1.5 disabled:opacity-50"
+                          title="Resend email notifications to all assigned employees"
+                        >
+                          {resendingActId === receiptsModalAct.id && resendingEmail === 'all' ? (
+                            <>
+                              <svg className="animate-spin w-3.5 h-3.5" viewBox="0 0 24 24" fill="none"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                              <span>Sending...</span>
+                            </>
+                          ) : (
+                            <>
+                              <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M6 12L3.269 3.126A59.768 59.768 0 0121.485 12 59.77 59.77 0 013.27 20.876L5.999 12zm0 0h7.5" /></svg>
+                              <span>Resend to All</span>
+                            </>
+                          )}
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                )}
+
                 {/* Filter and Search */}
-                <div className="mt-4 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
-                  <div className="flex items-center bg-slate-100 dark:bg-slate-800 p-1 rounded-xl shrink-0">
+                <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 pt-1">
+                  <div className="flex items-center bg-slate-100 dark:bg-slate-800 p-1 rounded-xl shrink-0 overflow-x-auto">
                     <button
                       type="button"
                       onClick={() => setReceiptsTabFilter('all')}
-                      className={`px-3 py-1 rounded-lg text-xs font-bold transition-all ${receiptsTabFilter === 'all' ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-sm' : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'}`}
+                      className={`px-3 py-1 rounded-lg text-xs font-bold transition-all whitespace-nowrap ${receiptsTabFilter === 'all' ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-sm' : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'}`}
                     >
                       All ({summary.total})
                     </button>
                     <button
                       type="button"
                       onClick={() => setReceiptsTabFilter('read')}
-                      className={`px-3 py-1 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${receiptsTabFilter === 'read' ? 'bg-white dark:bg-slate-900 text-emerald-600 dark:text-emerald-400 shadow-sm' : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'}`}
+                      className={`px-3 py-1 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 whitespace-nowrap ${receiptsTabFilter === 'read' ? 'bg-white dark:bg-slate-900 text-emerald-600 dark:text-emerald-400 shadow-sm' : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'}`}
                     >
                       <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
                       <span>Acknowledged ({summary.read})</span>
@@ -1905,11 +2142,21 @@ export default function OfficeActivities() {
                     <button
                       type="button"
                       onClick={() => setReceiptsTabFilter('pending')}
-                      className={`px-3 py-1 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${receiptsTabFilter === 'pending' ? 'bg-white dark:bg-slate-900 text-amber-600 dark:text-amber-400 shadow-sm' : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'}`}
+                      className={`px-3 py-1 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 whitespace-nowrap ${receiptsTabFilter === 'pending' ? 'bg-white dark:bg-slate-900 text-amber-600 dark:text-amber-400 shadow-sm' : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'}`}
                     >
                       <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse"></span>
                       <span>Did Not Acknowledge ({summary.total - summary.read})</span>
                     </button>
+                    {emailSummary.failed > 0 && (
+                      <button
+                        type="button"
+                        onClick={() => setReceiptsTabFilter('failed_email')}
+                        className={`px-3 py-1 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 whitespace-nowrap ${receiptsTabFilter === 'failed_email' ? 'bg-rose-500 text-white shadow-sm' : 'text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40'}`}
+                      >
+                        <span className="w-1.5 h-1.5 rounded-full bg-rose-300 animate-ping"></span>
+                        <span>Email Failed ({emailSummary.failed})</span>
+                      </button>
+                    )}
                   </div>
 
                   <div className="relative flex-1 sm:max-w-xs">
@@ -1935,7 +2182,7 @@ export default function OfficeActivities() {
                   filteredList.map((item, idx) => (
                     <div
                       key={idx}
-                      className="p-3 rounded-xl bg-slate-50/70 dark:bg-slate-800/40 border border-slate-100 dark:border-slate-800 flex items-center justify-between gap-3"
+                      className="p-3.5 rounded-xl bg-slate-50/70 dark:bg-slate-800/40 border border-slate-100 dark:border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-3"
                     >
                       <div className="flex items-center gap-3 min-w-0">
                         <div className={`w-8 h-8 rounded-lg flex items-center justify-center text-xs font-bold shrink-0 ${getAvatarBg(item.name)}`}>
@@ -1946,12 +2193,47 @@ export default function OfficeActivities() {
                             {item.name}
                           </p>
                           <p className="text-[11px] text-slate-500 dark:text-slate-400 truncate">
-                            {item.position || 'Staff'} {item.email ? `• ${item.email}` : ''}
+                            {item.position || 'Staff'} {item.email ? `• ${item.email}` : '• No email registered'}
                           </p>
                         </div>
                       </div>
 
-                      <div className="shrink-0 text-right">
+                      <div className="flex flex-wrap items-center gap-2 sm:justify-end shrink-0">
+                        {/* Email Dispatch Pill */}
+                        {item.emailStatus === 'sent' ? (
+                          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border border-emerald-200/80 dark:border-emerald-800/60" title="Notification email successfully delivered">
+                            <svg className="w-3 h-3 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5"><path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" /></svg>
+                            <span>Email Sent</span>
+                          </span>
+                        ) : item.emailStatus === 'failed' ? (
+                          <div className="flex items-center gap-1.5">
+                            <span
+                              className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-rose-100 dark:bg-rose-950/60 text-rose-700 dark:text-rose-300 border border-rose-200 dark:border-rose-800/60 cursor-help"
+                              title={item.emailError || "Email delivery failed"}
+                            >
+                              <svg className="w-3 h-3 text-rose-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
+                              <span>Email Failed</span>
+                            </span>
+                            {canViewReceipts && item.email && (
+                              <button
+                                type="button"
+                                onClick={() => handleResendEmails(receiptsModalAct, 'custom', item.email)}
+                                disabled={resendingActId === receiptsModalAct.id && resendingEmail === item.email}
+                                className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-rose-600 hover:bg-rose-700 text-white transition-colors flex items-center gap-1 shadow-sm disabled:opacity-50"
+                                title="Retry sending notification email to this user"
+                              >
+                                {resendingActId === receiptsModalAct.id && resendingEmail === item.email ? (
+                                  <svg className="animate-spin w-3 h-3 text-white" viewBox="0 0 24 24" fill="none"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                                ) : (
+                                  <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99" /></svg>
+                                )}
+                                <span>Retry</span>
+                              </button>
+                            )}
+                          </div>
+                        ) : null}
+
+                        {/* Acknowledgment Pill */}
                         {item.read ? (
                           <div className="flex flex-col items-end">
                             <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800/60">

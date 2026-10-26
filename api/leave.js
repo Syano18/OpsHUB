@@ -2,6 +2,7 @@ import { createClient } from '@libsql/client';
 import { S3Client, PutObjectCommand, GetObjectCommand, DeleteObjectCommand } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import nodemailer from 'nodemailer';
+import { renderEmailLayout, escapeHtml, getBaseUrl } from '../lib/emailTemplate.js';
 
 const s3Client = new S3Client({
   region: 'auto',
@@ -387,6 +388,60 @@ export default async function handler(req, res) {
         }
 
         const ccParam = ccEmails.length > 0 ? `&cc=${encodeURIComponent(ccEmails.join(','))}` : '';
+        const appBaseUrl = getBaseUrl(req);
+        const leaveBodyHtml = `
+          <p style="margin: 0 0 16px 0; font-size: 15px; color: #0f172a;">
+            A leave application has been transmitted by <strong>${escapeHtml(fullName)}</strong>.
+          </p>
+
+          <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 18px 20px; margin-bottom: 20px;">
+            <p style="margin: 0 0 10px 0; font-size: 11px; font-weight: 700; text-transform: uppercase; color: #64748b; letter-spacing: 0.5px;">Application Summary</p>
+            <table style="width: 100%; border-collapse: collapse; font-size: 13px;">
+              <tr>
+                <td style="padding: 4px 0; color: #64748b; width: 35%;">Applicant</td>
+                <td style="padding: 4px 0; color: #0f172a; font-weight: 600;">${escapeHtml(fullName)}</td>
+              </tr>
+              <tr>
+                <td style="padding: 4px 0; color: #64748b;">Leave Type</td>
+                <td style="padding: 4px 0; color: #0f172a; font-weight: 600;">${escapeHtml(leaveRecord.leave_type || 'N/A')}</td>
+              </tr>
+              <tr>
+                <td style="padding: 4px 0; color: #64748b;">Days Applied</td>
+                <td style="padding: 4px 0; color: #0f172a; font-weight: 600;">${escapeHtml(leaveRecord.days_applied || 'N/A')}</td>
+              </tr>
+              <tr>
+                <td style="padding: 4px 0; color: #64748b;">Inclusive Dates</td>
+                <td style="padding: 4px 0; color: #0f766e; font-weight: 700;">${escapeHtml(leaveRecord.start_date || 'N/A')}</td>
+              </tr>
+            </table>
+          </div>
+
+          ${isCSS ? `
+          <div style="margin-bottom: 24px; padding: 16px; background-color: #f0fdf4; border: 1px solid #bbf7d0; border-left: 4px solid #22c55e; border-radius: 8px;">
+            <p style="margin: 0; color: #166534; font-size: 13px; line-height: 1.6;">
+              <strong>🔒 Official Transaction Verified</strong><br/>
+              This leave application was personally filed and transmitted by the applicant through the secure OpsHUB System. The attached document is the authentic, digitally generated leave form. This is an official system-generated notification.
+            </p>
+          </div>
+          ` : `
+          <p style="margin: 0 0 20px 0; font-size: 13px; color: #475569;">
+            Please review the application and its details in the OpsHUB system.
+          </p>
+          `}
+
+          <div style="text-align: center; margin-bottom: 8px;">
+            ${!isCSS ? `
+              <a href="${appBaseUrl}/leave-credits" style="display: inline-block; padding: 12px 28px; background-color: #0f172a; color: #ffffff; text-decoration: none; border-radius: 8px; font-weight: 600; font-size: 14px;">
+                Review in OpsHUB &rarr;
+              </a>
+            ` : `
+              <a href="mailto:${escapeHtml(leaveRecord.user_email)}?subject=Signed%20Leave%20Application%20-%20${encodeURIComponent(leaveRecord.leave_type || 'Leave')}${ccParam}" style="display: inline-block; padding: 12px 28px; background-color: #16a34a; color: #ffffff; text-decoration: none; border-radius: 8px; font-weight: 700; font-size: 14px; box-shadow: 0 4px 6px -1px rgba(22, 163, 74, 0.3);">
+                Email Signed Leave to Applicant
+              </a>
+            `}
+          </div>
+        `;
+
         const mailOptions = {
           from: {
             name: 'OpsHUB Notification',
@@ -395,33 +450,11 @@ export default async function handler(req, res) {
           to: toEmails.join(', '),
           subject: `Leave Application Transmitted: ${leaveRecord.leave_type || 'Leave'}`,
           text: `A leave application has been transmitted by ${fullName}.\n\nLeave Type: ${leaveRecord.leave_type || 'N/A'}\nDays Applied: ${leaveRecord.days_applied || 'N/A'}\nInclusive Dates: ${leaveRecord.start_date || 'N/A'}${!isCSS ? '\n\nPlease review the application in the OpsHUB system.' : '\n\nVERIFICATION NOTICE: This leave application was officially filed and transmitted directly by the applicant through the internal OpsHUB System. The attached document is the authentic, signed leave form generated securely by the system. You can personally contact the filer to verify the received email.'}`,
-          html: `
-            <div style="font-family: sans-serif; padding: 20px;">
-              <h2 style="color: #0f766e;">Leave Application</h2>
-              <p>A leave application has been transmitted by <strong>${fullName}</strong>.</p>
-              <p><strong>Leave Type:</strong> ${leaveRecord.leave_type || 'N/A'}</p>
-              <p><strong>Days Applied:</strong> ${leaveRecord.days_applied || 'N/A'}</p>
-              <p><strong>Inclusive Dates:</strong> ${leaveRecord.start_date || 'N/A'}</p>
-              
-              ${isCSS ? `
-              <div style="margin-top: 20px; padding: 15px; background-color: #f0fdf4; border: 1px solid #bbf7d0; border-left: 4px solid #22c55e; border-radius: 6px;">
-                <p style="margin: 0; color: #166534; font-size: 14px; line-height: 1.6;">
-                  <strong>🔒 Official Transaction Verified</strong><br/>
-                  This leave application was personally filed and transmitted by the applicant through the secure OpsHUB System. The attached document is the authentic, digitally generated leave form. This is not a scam or fraud; it is an official system-generated notification. You can personally contact the filer to verify the received email.
-                </p>
-              </div>
-              ` : ''}
-
-              ${!isCSS ? '<p>Please review the application in the OpsHUB system.</p>' : ''}
-              <div style="margin-top: 25px; margin-bottom: 25px;">
-                ${!isCSS ? `<a href="https://operations-hub-iota.vercel.app" style="display: inline-block; padding: 10px 20px; background-color: #0f172a; color: #ffffff; text-decoration: none; border-radius: 6px; font-weight: 500;">Go to OpsHUB</a>` : ''}
-                ${isCSS ? `<a href="mailto:${leaveRecord.user_email}?subject=Signed%20Leave%20Application%20-%20${encodeURIComponent(leaveRecord.leave_type || 'Leave')}${ccParam}" style="display: inline-block; padding: 10px 20px; background-color: #16a34a; color: #ffffff; text-decoration: none; border-radius: 6px; font-weight: 500;">Email Signed Leave to Applicant</a>` : ''}
-              </div>
-              <hr style="border: none; border-top: 1px solid #e2e8f0; margin: 20px 0;" />
-              <p style="font-size: 12px; color: #64748b; margin-bottom: 4px;"><strong>Please do not reply to this email.</strong></p>
-              <p style="font-size: 12px; color: #64748b;">This is an automated notification from OpsHUB.</p>
-            </div>
-          `
+          html: renderEmailLayout({
+            headerTitle: 'Leave Application Transmitted',
+            theme: 'teal',
+            bodyHtml: leaveBodyHtml
+          })
         };
 
         if (ccEmails.length > 0) {
@@ -610,30 +643,69 @@ export default async function handler(req, res) {
                 ? `Leave Application Approved: ${record.leave_type}` 
                 : `Leave Application Disapproved: ${record.leave_type}`;
                 
+              const appBaseUrl = getBaseUrl(req);
               const htmlContent = isApproved
-                ? `
-                  <div style="font-family: sans-serif; padding: 20px;">
-                    <h2 style="color: #059669;">Leave Application Approved</h2>
-                    <p>Great news! Your leave application for <strong>${record.leave_type}</strong> (${record.start_date}) has been approved.</p>
-                    <p>Please find the final approved document attached.</p>
+                ? renderEmailLayout({
+                    headerTitle: 'Leave Application Approved',
+                    theme: 'emerald',
+                    bodyHtml: `
+                      <p style="margin: 0 0 16px 0; font-size: 15px; color: #0f172a;">
+                        Great news! Your leave application for <strong>${escapeHtml(record.leave_type)}</strong> has been approved.
+                      </p>
 
-                    <hr style="border: none; border-top: 1px solid #e2e8f0; margin: 20px 0;" />
-                    <p style="font-size: 12px; color: #64748b; margin-bottom: 4px;"><strong>Please do not reply to this email.</strong></p>
-                    <p style="font-size: 12px; color: #64748b;">This is an automated notification from OpsHUB.</p>
-                  </div>
-                `
-                : `
-                  <div style="font-family: sans-serif; padding: 20px;">
-                    <h2 style="color: #dc2626;">Leave Application Disapproved</h2>
-                    <p>Your leave application for <strong>${record.leave_type}</strong> (${record.start_date}) has been disapproved.</p>
-                    <p><strong>Reason:</strong> ${disapproval_reason || 'No reason provided.'}</p>
-                    <p>Your leave credits have been automatically refunded.</p>
+                      <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 18px 20px; margin-bottom: 20px;">
+                        <p style="margin: 0 0 10px 0; font-size: 11px; font-weight: 700; text-transform: uppercase; color: #64748b; letter-spacing: 0.5px;">Approved Details</p>
+                        <table style="width: 100%; border-collapse: collapse; font-size: 13px;">
+                          <tr>
+                            <td style="padding: 4px 0; color: #64748b; width: 35%;">Leave Type</td>
+                            <td style="padding: 4px 0; color: #0f172a; font-weight: 600;">${escapeHtml(record.leave_type)}</td>
+                          </tr>
+                          <tr>
+                            <td style="padding: 4px 0; color: #64748b;">Inclusive Dates</td>
+                            <td style="padding: 4px 0; color: #059669; font-weight: 700;">${escapeHtml(record.start_date)}</td>
+                          </tr>
+                          <tr>
+                            <td style="padding: 4px 0; color: #64748b;">Status</td>
+                            <td style="padding: 4px 0; color: #059669; font-weight: 700;">Approved</td>
+                          </tr>
+                        </table>
+                      </div>
 
-                    <hr style="border: none; border-top: 1px solid #e2e8f0; margin: 20px 0;" />
-                    <p style="font-size: 12px; color: #64748b; margin-bottom: 4px;"><strong>Please do not reply to this email.</strong></p>
-                    <p style="font-size: 12px; color: #64748b;">This is an automated notification from OpsHUB.</p>
-                  </div>
-                `;
+                      <div style="background: #f0fdf4; border-left: 4px solid #10b981; padding: 12px 16px; border-radius: 4px; margin-bottom: 24px; font-size: 13px; color: #166534; line-height: 1.5;">
+                        📎 <strong>Attached Document:</strong> The final approved and signed leave application PDF is attached to this email for your records.
+                      </div>
+
+                      <div style="text-align: center; margin-bottom: 8px;">
+                        <a href="${appBaseUrl}/leave-credits" style="display: inline-block; padding: 11px 24px; background-color: #0f172a; color: #ffffff; text-decoration: none; border-radius: 8px; font-weight: 600; font-size: 13px;">
+                          View in OpsHUB &rarr;
+                        </a>
+                      </div>
+                    `
+                  })
+                : renderEmailLayout({
+                    headerTitle: 'Leave Application Disapproved',
+                    theme: 'rose',
+                    bodyHtml: `
+                      <p style="margin: 0 0 16px 0; font-size: 15px; color: #0f172a;">
+                        Your leave application for <strong>${escapeHtml(record.leave_type)}</strong> (${escapeHtml(record.start_date)}) has been disapproved.
+                      </p>
+
+                      <div style="background-color: #fff1f2; border: 1px solid #fecdd3; border-radius: 10px; padding: 18px 20px; margin-bottom: 20px;">
+                        <p style="margin: 0 0 8px 0; font-size: 11px; font-weight: 700; text-transform: uppercase; color: #9f1239; letter-spacing: 0.5px;">Reason for Disapproval</p>
+                        <p style="margin: 0; font-size: 13px; color: #881337; line-height: 1.6; white-space: pre-wrap;">${escapeHtml(disapproval_reason || 'No reason provided.')}</p>
+                      </div>
+
+                      <div style="background: #f8fafc; border-left: 4px solid #64748b; padding: 12px 16px; border-radius: 4px; margin-bottom: 24px; font-size: 13px; color: #334155; line-height: 1.5;">
+                        ℹ️ <strong>Credits Restored:</strong> Your leave credits have been automatically refunded back to your available balance.
+                      </div>
+
+                      <div style="text-align: center; margin-bottom: 8px;">
+                        <a href="${appBaseUrl}/leave-credits" style="display: inline-block; padding: 11px 24px; background-color: #0f172a; color: #ffffff; text-decoration: none; border-radius: 8px; font-weight: 600; font-size: 13px;">
+                          View in OpsHUB &rarr;
+                        </a>
+                      </div>
+                    `
+                  });
                 
               const mailOptions = {
                 from: { name: 'OpsHUB Notifier', address: process.env.SMTP_USER || 'kalinga@psa.gov.ph' },
