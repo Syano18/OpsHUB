@@ -2,6 +2,7 @@ import { createClient } from '@libsql/client';
 import { verifyToken, createClerkClient } from '@clerk/backend';
 import crypto from 'crypto';
 import nodemailer from 'nodemailer';
+import { renderEmailLayout, escapeHtml, getBaseUrl } from '../lib/emailTemplate.js';
 
 export default async function handler(req, res) {
   try {
@@ -163,10 +164,49 @@ export default async function handler(req, res) {
 
         if (role !== 'External Signatory') {
           const transporter = nodemailer.createTransport({ host: process.env.SMTP_HOST, port: parseInt(process.env.SMTP_PORT || '587'), secure: process.env.SMTP_PORT === '465', auth: { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS }});
+          const loginUrl = `${getBaseUrl(req)}/`;
+          const bodyHtml = `
+            <p style="margin: 0 0 16px 0; font-size: 15px; color: #0f172a;">
+              Hello <strong>${escapeHtml(firstName)} ${escapeHtml(lastName)}</strong>,
+            </p>
+            <p style="margin: 0 0 20px 0; color: #475569;">
+              An administrator has created an account for you on <strong>OpsHUB</strong> with the role of <strong style="color: #0f766e;">${escapeHtml(role)}</strong>.
+            </p>
+
+            <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 18px 20px; margin-bottom: 24px;">
+              <p style="margin: 0 0 8px 0; font-size: 11px; font-weight: 700; text-transform: uppercase; color: #64748b; letter-spacing: 0.5px;">Account Credentials</p>
+              <div style="margin-bottom: 12px;">
+                <span style="font-size: 12px; color: #64748b; display: block; margin-bottom: 2px;">Login Email</span>
+                <span style="font-size: 14px; font-weight: 600; color: #0f172a; word-break: break-all;">${escapeHtml(email)}</span>
+              </div>
+              <div>
+                <span style="font-size: 12px; color: #64748b; display: block; margin-bottom: 4px;">Temporary Password</span>
+                <span style="display: inline-block; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; font-size: 15px; font-weight: 700; color: #0f766e; background: #ccfbf1; border: 1px solid #99f6e4; padding: 6px 14px; border-radius: 6px; letter-spacing: 0.5px;">
+                  ${escapeHtml(tempPassword)}
+                </span>
+              </div>
+            </div>
+
+            <div style="background: #f0fdf4; border-left: 4px solid #10b981; padding: 12px 16px; border-radius: 4px; margin-bottom: 24px; font-size: 13px; color: #166534; line-height: 1.5;">
+              <strong>Security Notice:</strong> Please log in and change your temporary password as soon as possible under your Profile settings.
+            </div>
+
+            <div style="text-align: center; margin-bottom: 8px;">
+              <a href="${loginUrl}" style="display: inline-block; padding: 12px 28px; background-color: #0d9488; color: #ffffff; text-decoration: none; border-radius: 8px; font-weight: 700; font-size: 14px; letter-spacing: 0.3px; box-shadow: 0 4px 6px -1px rgba(13, 148, 136, 0.3);">
+                Log In to OpsHUB &rarr;
+              </a>
+            </div>
+          `;
+
           const mailOptions = {
             from: { name: 'OpsHUB Notifier', address: process.env.SMTP_USER || 'kalinga@psa.gov.ph' },
-            to: email, subject: 'Welcome to OpsHUB - Your Account Details',
-            html: `<div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;"><h2 style="color: #0d9488;">Welcome to OpsHUB!</h2><p>Hello ${firstName} ${lastName},</p><p>An administrator has created an account for you with the role of <strong>${role}</strong>.</p><div style="background-color: #f8fafc; padding: 15px; border-radius: 8px; margin: 20px 0;"><p style="margin: 0 0 10px 0;"><strong>Your Login Email:</strong> ${email}</p><p style="margin: 0;"><strong>Your Temporary Password:</strong> <span style="font-family: monospace; background: #e2e8f0; padding: 2px 6px; border-radius: 4px;">${tempPassword}</span></p></div><p>Please log in and change your password as soon as possible.</p><p>Best regards,<br>The OpsHUB Admin</p></div>`
+            to: email,
+            subject: 'Welcome to OpsHUB - Your Account Details',
+            html: renderEmailLayout({
+              headerTitle: 'Welcome to OpsHUB!',
+              theme: 'teal',
+              bodyHtml
+            })
           };
           await transporter.sendMail(mailOptions);
         }

@@ -1,6 +1,7 @@
 import { createClient } from '@libsql/client';
 import { verifyToken } from '@clerk/backend';
 import nodemailer from 'nodemailer';
+import { renderEmailLayout, escapeHtml, getBaseUrl } from '../lib/emailTemplate.js';
 
 export default async function handler(req, res) {
   try {
@@ -109,16 +110,55 @@ export default async function handler(req, res) {
                 },
               });
 
-              const emailHtml = `
-                <div style="font-family: sans-serif; color: #333;">
-                  <h2>COSW Rating Submitted</h2>
-                  <p>A performance rating has been successfully submitted for <strong>${employee_name}</strong> (${position}).</p>
-                  <p>Please log in to the <strong>HireTrack</strong> System, click on <strong>Sync from Cloud</strong>, and issue the certificate to the requester.</p>
-                  <hr style="border: none; border-top: 1px solid #e2e8f0; margin: 20px 0;" />
-                  <p style="font-size: 12px; color: #64748b; margin-bottom: 4px;"><strong>Please do not reply to this email.</strong></p>
-                  <p style="font-size: 12px; color: #64748b;">This is an automated notification from OpsHUB.</p>
+              const dashboardUrl = `${getBaseUrl(req)}/cosw-evaluation`;
+              const bodyHtml = `
+                <p style="margin: 0 0 16px 0; font-size: 15px; color: #0f172a;">
+                  A performance rating has been successfully submitted for <strong>${escapeHtml(employee_name)}</strong>.
+                </p>
+
+                <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 18px 20px; margin-bottom: 20px;">
+                  <p style="margin: 0 0 10px 0; font-size: 11px; font-weight: 700; text-transform: uppercase; color: #64748b; letter-spacing: 0.5px;">Evaluation Details</p>
+                  <table style="width: 100%; border-collapse: collapse; font-size: 13px;">
+                    <tr>
+                      <td style="padding: 4px 0; color: #64748b; width: 35%;">Personnel</td>
+                      <td style="padding: 4px 0; color: #0f172a; font-weight: 600;">${escapeHtml(employee_name)}</td>
+                    </tr>
+                    <tr>
+                      <td style="padding: 4px 0; color: #64748b;">Position</td>
+                      <td style="padding: 4px 0; color: #0f172a; font-weight: 600;">${escapeHtml(position)}</td>
+                    </tr>
+                    ${survey_name ? `
+                    <tr>
+                      <td style="padding: 4px 0; color: #64748b;">Survey / Project</td>
+                      <td style="padding: 4px 0; color: #0f172a; font-weight: 600;">${escapeHtml(survey_name)}</td>
+                    </tr>
+                    ` : ''}
+                    <tr>
+                      <td style="padding: 4px 0; color: #64748b;">Submitted Rating</td>
+                      <td style="padding: 4px 0; color: #0f766e; font-weight: 700;">${escapeHtml(rating)}</td>
+                    </tr>
+                  </table>
+                </div>
+
+                <div style="background: linear-gradient(180deg, #f0fdfa 0%, #ecfdf5 100%); border: 1.5px solid #99f6e4; border-radius: 10px; padding: 16px; margin-bottom: 24px;">
+                  <p style="margin: 0 0 4px 0; font-size: 13px; font-weight: 700; color: #0f766e;">Action Required from PACD</p>
+                  <p style="margin: 0; font-size: 13px; color: #0d9488; line-height: 1.5;">
+                    Please log in to the <strong>HireTrack</strong> System, click on <strong>Sync from Cloud</strong>, and issue the certificate to the requester.
+                  </p>
+                </div>
+
+                <div style="text-align: center; margin-bottom: 8px;">
+                  <a href="${dashboardUrl}" style="display: inline-block; padding: 11px 24px; background-color: #0f172a; color: #ffffff; text-decoration: none; border-radius: 8px; font-weight: 600; font-size: 13px;">
+                    Open COSW Evaluations &rarr;
+                  </a>
                 </div>
               `;
+
+              const emailHtml = renderEmailLayout({
+                headerTitle: 'COSW Performance Rating Submitted',
+                theme: 'teal',
+                bodyHtml
+              });
 
               await transporter.sendMail({
                 from: { name: 'OpsHUB Notifier', address: process.env.SMTP_USER || 'kalinga@psa.gov.ph' },
