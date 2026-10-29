@@ -1064,7 +1064,7 @@ export default function DigitalLogbook() {
           {/* Entries List Container */}
           <div className="flex-1 overflow-y-auto pr-1 space-y-3 custom-scrollbar">
             {loading ? (
-              <Loading text="Loading logbook records..." />
+              <Loading type="logbook" text="Loading logbook records..." />
             ) : entries.length > 0 ? (
               renderedEntries
             ) : (

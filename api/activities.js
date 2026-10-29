@@ -180,14 +180,22 @@ function renderAckPage({ success, isAlreadyAcknowledged, title, startDate, endDa
   const badgeBorder = success ? (isAlreadyAcknowledged ? '#fde68a' : '#a7f3d0') : '#fecdd3';
   const statusLabel = isAlreadyAcknowledged ? 'Already Acknowledged' : (success ? 'Successfully Acknowledged' : 'Verification Issue');
 
-  const formattedDate = readAt ? new Date(readAt).toLocaleString('en-US', {
+  let normalizedReadAt = readAt ? String(readAt).trim() : '';
+  if (normalizedReadAt && !normalizedReadAt.includes('T') && !normalizedReadAt.includes('Z') && !normalizedReadAt.includes('+')) {
+    normalizedReadAt = normalizedReadAt.replace(' ', 'T') + 'Z';
+  } else if (normalizedReadAt && normalizedReadAt.includes('T') && !normalizedReadAt.endsWith('Z') && !normalizedReadAt.includes('+')) {
+    normalizedReadAt = normalizedReadAt + 'Z';
+  }
+
+  const formattedDate = normalizedReadAt ? new Date(normalizedReadAt).toLocaleString('en-US', {
+    timeZone: 'Asia/Manila',
     month: 'short',
     day: 'numeric',
     year: 'numeric',
     hour: 'numeric',
     minute: '2-digit',
     hour12: true
-  }) : new Date().toLocaleString();
+  }) : new Date().toLocaleString('en-US', { timeZone: 'Asia/Manila' });
 
   const datesFormatted = startDate ? (endDate && endDate !== startDate ? `${startDate} to ${endDate}` : startDate) : 'N/A';
 
@@ -491,11 +499,12 @@ async function handleEmailAcknowledgment(req, res, turso) {
     isAlreadyAcknowledged = true;
     readAt = existingRead.rows[0].read_at;
   } else {
+    const nowIso = new Date().toISOString();
     await turso.execute({
       sql: `INSERT INTO Office_Activity_Reads (activity_id, user_email, user_name, read_at)
-            VALUES (?, ?, ?, datetime('now', 'localtime'))
-            ON CONFLICT(activity_id, user_email) DO UPDATE SET read_at = datetime('now', 'localtime')`,
-      args: [id, email.trim().toLowerCase(), userName]
+            VALUES (?, ?, ?, ?)
+            ON CONFLICT(activity_id, user_email) DO UPDATE SET read_at = excluded.read_at`,
+      args: [id, email.trim().toLowerCase(), userName, nowIso]
     });
     const checkRes = await turso.execute({
       sql: "SELECT read_at FROM Office_Activity_Reads WHERE activity_id = ? AND LOWER(user_email) = LOWER(?)",
@@ -669,11 +678,12 @@ export default async function handler(req, res) {
             UNIQUE(activity_id, user_email)
           )
         `);
+        const nowIso = new Date().toISOString();
         await turso.execute({
           sql: `INSERT INTO Office_Activity_Reads (activity_id, user_email, user_name, read_at)
-                VALUES (?, ?, ?, datetime('now', 'localtime'))
-                ON CONFLICT(activity_id, user_email) DO UPDATE SET read_at = datetime('now', 'localtime')`,
-          args: [activityId, userEmail.trim().toLowerCase(), userName || '']
+                VALUES (?, ?, ?, ?)
+                ON CONFLICT(activity_id, user_email) DO UPDATE SET read_at = excluded.read_at`,
+          args: [activityId, userEmail.trim().toLowerCase(), userName || '', nowIso]
         });
         const readsRes = await turso.execute("SELECT activity_id, user_email, user_name, read_at FROM Office_Activity_Reads");
         return res.status(200).json({ success: true, reads: readsRes.rows || [] });
@@ -694,12 +704,13 @@ export default async function handler(req, res) {
             UNIQUE(activity_id, user_email)
           )
         `);
+        const nowIso = new Date().toISOString();
         for (const actId of activityIds) {
           await turso.execute({
             sql: `INSERT INTO Office_Activity_Reads (activity_id, user_email, user_name, read_at)
-                  VALUES (?, ?, ?, datetime('now', 'localtime'))
-                  ON CONFLICT(activity_id, user_email) DO UPDATE SET read_at = datetime('now', 'localtime')`,
-            args: [actId, userEmail.trim().toLowerCase(), userName || '']
+                  VALUES (?, ?, ?, ?)
+                  ON CONFLICT(activity_id, user_email) DO UPDATE SET read_at = excluded.read_at`,
+            args: [actId, userEmail.trim().toLowerCase(), userName || '', nowIso]
           });
         }
         const readsRes = await turso.execute("SELECT activity_id, user_email, user_name, read_at FROM Office_Activity_Reads");
@@ -863,6 +874,60 @@ export default async function handler(req, res) {
       const { action, id, status, formData } = req.body;
       
       if (action === 'updateStatus') {
+        // Enforce that status cannot be updated until all assignees have acknowledged
+        const actRes = await turso.execute({
+          sql: "SELECT * FROM Office_Activities WHERE id = ?",
+          args: [id]
+        });
+        if (actRes.rows.length === 0) {
+          return res.status(404).json({ error: 'Activity not found' });
+        }
+        const act = actRes.rows[0];
+        let assigned = [];
+        try { assigned = JSON.parse(act.assigned_to); } catch (_) { assigned = []; }
+
+        const empRes = await turso.execute(
+          "SELECT Email, First_Name, Middle_Name, Last_Name, Suffix FROM User_Permissions WHERE (LOWER(Status) != 'inactive' OR Status IS NULL) AND IFNULL(is_regional, 0) != 1 AND IFNULL(Role, '') NOT IN ('Super Admin', 'External Signatory')"
+        );
+        const allEmployees = empRes.rows.map(row => {
+          const name = `${row.First_Name || ''} ${row.Middle_Name ? row.Middle_Name.charAt(0) + '. ' : ''}${row.Last_Name || ''}${row.Suffix ? ' ' + row.Suffix : ''}`.replace(/\s+/g, ' ').trim();
+          return { email: (row.Email || '').toLowerCase(), name };
+        });
+
+        const readsRes = await turso.execute({
+          sql: "SELECT user_email, user_name FROM Office_Activity_Reads WHERE activity_id = ?",
+          args: [id]
+        });
+        const actReads = readsRes.rows || [];
+
+        let targetAssignees = [];
+        if (assigned.includes('All')) {
+          targetAssignees = allEmployees;
+        } else {
+          targetAssignees = assigned.map(name => {
+            const emp = allEmployees.find(e =>
+              e.name.toLowerCase() === name.toLowerCase() ||
+              normalizeStr(e.name) === normalizeStr(name)
+            );
+            return { name, email: emp?.email || '' };
+          });
+        }
+
+        const total = targetAssignees.length;
+        const readCount = targetAssignees.filter(assignee => {
+          return actReads.some(r => {
+            if (assignee.email && r.user_email && r.user_email.toLowerCase() === assignee.email.toLowerCase()) return true;
+            if (assignee.name && r.user_name && normalizeStr(assignee.name) === normalizeStr(r.user_name)) return true;
+            return false;
+          });
+        }).length;
+
+        if (total > 0 && readCount < total) {
+          return res.status(400).json({
+            error: `Status cannot be updated. Not all assignees have acknowledged this activity (${readCount}/${total} acknowledged).`
+          });
+        }
+
         await turso.execute({
           sql: "UPDATE Office_Activities SET status = ? WHERE id = ?",
           args: [status, id]

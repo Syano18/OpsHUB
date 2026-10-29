@@ -41,12 +41,14 @@ export default function OfficeActivities() {
   const [editingActivityId, setEditingActivityId] = useState(null);
   const [isSaving, setIsSaving] = useState(false);
   const [emailProgress, setEmailProgress] = useState({ current: 0, total: 0 });
+  const [assignMode, setAssignMode] = useState('include'); // 'include' | 'exclude'
+  const [excludedList, setExcludedList] = useState([]);
   const [formData, setFormData] = useState({
     title: '',
     description: '',
     start_date: '',
     end_date: '',
-    assigned_to: ['All'],
+    assigned_to: [],
     status: 'Pending',
     attachment: null
   });
@@ -213,9 +215,18 @@ export default function OfficeActivities() {
   const formatReadTime = (dateStr) => {
     if (!dateStr) return '';
     try {
-      const d = new Date(dateStr);
+      let val = String(dateStr).trim();
+      // If it's a bare UTC timestamp like "2026-10-29 04:00:00" without timezone offset,
+      // append Z so JavaScript parses it in UTC and converts to Philippine Time (UTC+8)
+      if (!val.includes('T') && !val.includes('Z') && !val.includes('+')) {
+        val = val.replace(' ', 'T') + 'Z';
+      } else if (val.includes('T') && !val.endsWith('Z') && !val.includes('+')) {
+        val = val + 'Z';
+      }
+      const d = new Date(val);
       if (isNaN(d.getTime())) return dateStr;
-      return d.toLocaleDateString('en-US', {
+      return d.toLocaleString('en-US', {
+        timeZone: 'Asia/Manila',
         month: 'short',
         day: 'numeric',
         year: 'numeric',
@@ -329,9 +340,18 @@ export default function OfficeActivities() {
       setAlertConfig({ message: "Description is required.", type: 'info' });
       return;
     }
-    if (formData.assigned_to.length === 0) {
-      setAlertConfig({ message: "Please assign at least one person.", type: 'info' });
-      return;
+    if (assignMode === 'exclude') {
+      const remaining = excludedList.length === 0 ? ['All'] : employees.filter(emp => !excludedList.includes(emp));
+      if (remaining.length === 0) {
+        setAlertConfig({ message: "You have excluded all employees. Please include at least one attendee.", type: 'info' });
+        return;
+      }
+      setFormData(prev => ({ ...prev, assigned_to: remaining }));
+    } else {
+      if (formData.assigned_to.length === 0) {
+        setAlertConfig({ message: "Please assign at least one person.", type: 'info' });
+        return;
+      }
     }
     if (!formData.attachment && !editingActivityId) {
       setShowNoAttachmentWarning(true);
@@ -346,12 +366,14 @@ export default function OfficeActivities() {
     setAssigneeSearchTerm('');
     setEmailProgress({ current: 0, total: 0 });
     setEditingActivityId(null);
+    setAssignMode('include');
+    setExcludedList([]);
     setFormData({
       title: '',
       description: '',
       start_date: '',
       end_date: '',
-      assigned_to: ['All'],
+      assigned_to: [],
       status: 'Pending',
       attachment: null
     });
@@ -359,17 +381,33 @@ export default function OfficeActivities() {
   };
 
   const handleUpdateStatus = async (id, newStatus) => {
+    const act = activities.find(a => a.id === id);
+    if (act) {
+      const summary = getActReceiptSummary(act);
+      if (summary.total > 0 && summary.read < summary.total) {
+        setAlertConfig({
+          message: `Status cannot be updated until all assignees acknowledge this activity (${summary.read}/${summary.total} acknowledged).`,
+          type: 'info'
+        });
+        return;
+      }
+    }
     try {
       const token = await getToken();
-      await fetch('/api/activities', {
+      const res = await fetch('/api/activities', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
         body: JSON.stringify({ action: 'updateStatus', id, status: newStatus })
       });
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        throw new Error(data.error || "Failed to update status.");
+      }
       setActivities(prev => prev.map(act => act.id === id ? { ...act, status: newStatus } : act));
+      setAlertConfig({ message: `Status updated to ${newStatus} successfully!`, type: 'success' });
     } catch (err) {
       console.error("Error updating status:", err);
-      setAlertConfig({ message: "Failed to update status.", type: 'error' });
+      setAlertConfig({ message: err.message || "Failed to update status.", type: 'error' });
     }
   };
 
@@ -439,6 +477,17 @@ export default function OfficeActivities() {
     } catch {
       assigned = ['All'];
     }
+    if (assigned.includes('All')) {
+      setAssignMode('include');
+      setExcludedList([]);
+    } else if (employees.length > 0 && assigned.length >= employees.length - 10 && assigned.length < employees.length) {
+      const missing = employees.filter(e => !assigned.includes(e));
+      setExcludedList(missing);
+      setAssignMode('exclude');
+    } else {
+      setAssignMode('include');
+      setExcludedList([]);
+    }
     setFormData({
       title: act.title,
       description: act.description || '',
@@ -459,19 +508,32 @@ export default function OfficeActivities() {
       let updated = [...prev.assigned_to];
       if (emp === 'All') {
         if (updated.includes('All')) {
-          updated = []; // Toggle off All
+          updated = [];
         } else {
-          updated = ['All']; // Toggle on All
+          updated = ['All'];
         }
       } else {
-        updated = updated.filter(a => a !== 'All'); // Remove 'All' if a specific person is selected
-        if (updated.includes(emp)) {
-          updated = updated.filter(a => a !== emp);
+        if (updated.includes('All')) {
+          updated = employees.filter(a => a !== emp);
         } else {
-          updated.push(emp);
+          updated = updated.filter(a => a !== 'All');
+          if (updated.includes(emp)) {
+            updated = updated.filter(a => a !== emp);
+          } else {
+            updated.push(emp);
+          }
         }
       }
       return { ...prev, assigned_to: updated };
+    });
+  };
+
+  const toggleExclude = (emp) => {
+    setExcludedList(prev => {
+      const next = prev.includes(emp) ? prev.filter(e => e !== emp) : [...prev, emp];
+      const remaining = next.length === 0 ? ['All'] : employees.filter(e => !next.includes(e));
+      setFormData(f => ({ ...f, assigned_to: remaining }));
+      return next;
     });
   };
 
@@ -673,6 +735,7 @@ export default function OfficeActivities() {
     const assignedToUser = isUserAssigned(act);
     const userRead = getUserReadRecord(act.id);
     const receiptCounts = getActReceiptSummary(act);
+    const isAllAcknowledged = receiptCounts.total === 0 || receiptCounts.read >= receiptCounts.total;
 
     return (
       <div
@@ -840,42 +903,86 @@ export default function OfficeActivities() {
         {canUpdateStatus && (
           <div
             onClick={(e) => e.stopPropagation()}
-            className="bg-slate-50/80 dark:bg-slate-800/80 px-6 py-3 border-t border-slate-100 dark:border-slate-800 flex items-center gap-2 justify-end"
+            className="bg-slate-50/80 dark:bg-slate-800/80 px-6 py-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between gap-2"
           >
-            <span className="text-xs font-semibold text-slate-500 dark:text-slate-400 mr-2">Update Status:</span>
-            <div className="relative group/status">
-              <div className="flex items-center gap-2 text-xs font-bold bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 py-1.5 pl-3 pr-2 rounded-lg shadow-sm cursor-pointer hover:border-slate-300 dark:hover:border-slate-600 transition-colors">
-                <div className="flex items-center gap-1.5">
-                  <span className={`w-2 h-2 rounded-full ${displayStatus === 'Completed' ? 'bg-emerald-500' : displayStatus === 'Canceled' ? 'bg-red-500' : displayStatus === 'In Progress' ? 'bg-blue-500' : 'bg-amber-500'}`}></span>
-                  {displayStatus}
-                </div>
-                <svg className="w-3.5 h-3.5 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" /></svg>
+            {!isAllAcknowledged ? (
+              <div
+                className="flex items-center gap-1.5 text-xs text-amber-600 dark:text-amber-400 font-medium"
+                title={`${receiptCounts.read} of ${receiptCounts.total} assignees have acknowledged`}
+              >
+                <svg className="w-3.5 h-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                </svg>
+                <span className="truncate">Awaiting acknowledgment ({receiptCounts.read}/{receiptCounts.total})</span>
               </div>
+            ) : (
+              <div className="flex items-center gap-1.5 text-xs text-emerald-600 dark:text-emerald-400 font-medium">
+                <svg className="w-3.5 h-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+                </svg>
+                <span>All assignees acknowledged</span>
+              </div>
+            )}
 
-              <div className="absolute right-0 bottom-full pb-2 hidden group-hover/status:flex flex-col w-36 z-30">
-                <div className="flex flex-col w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl shadow-[0_10px_25px_-5px_rgba(0,0,0,0.1),0_8px_10px_-6px_rgba(0,0,0,0.1)] overflow-hidden pb-1">
-                  <div className="px-3 py-2 text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 bg-slate-50/50 dark:bg-slate-800/50 border-b border-slate-100 dark:border-slate-700 mb-1">Set Status</div>
-                  {['Pending', 'In Progress', 'Completed', 'Canceled'].map(st => (
-                    <button
-                      key={st}
-                      onClick={() => {
-                        if (st === 'Canceled') {
-                          setActivityToCancel(act);
-                          setCancelReason('');
-                        } else {
-                          handleUpdateStatus(act.id, st);
-                        }
-                      }}
-                      className={`text-left w-full px-3 py-2 text-xs font-bold transition-all border-l-2 ${displayStatus === st ? 'bg-slate-50/80 dark:bg-slate-800/80 text-slate-900 dark:text-white border-teal-500' : 'border-transparent text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-slate-800 dark:hover:text-slate-200 hover:border-slate-300 dark:hover:border-slate-600'}`}
-                    >
-                      <div className="flex items-center gap-2.5">
-                        <span className={`w-1.5 h-1.5 rounded-full shadow-sm ${st === 'Completed' ? 'bg-emerald-500' : st === 'Canceled' ? 'bg-red-500' : st === 'In Progress' ? 'bg-blue-500' : 'bg-amber-500'}`}></span>
-                        {st}
-                      </div>
-                    </button>
-                  ))}
+            <div className="flex items-center gap-2 shrink-0">
+              <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">Update Status:</span>
+
+              {!isAllAcknowledged ? (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setAlertConfig({
+                      message: `Status cannot be updated until all assignees acknowledge this activity. Currently ${receiptCounts.read} of ${receiptCounts.total} acknowledged.`,
+                      type: 'info'
+                    });
+                  }}
+                  className="flex items-center gap-1.5 text-xs font-bold bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400 py-1.5 px-3 rounded-lg shadow-sm cursor-not-allowed transition-colors hover:border-amber-300 dark:hover:border-amber-700 hover:text-amber-600 dark:hover:text-amber-400"
+                  title="Status locked: Awaiting acknowledgment from all assignees"
+                >
+                  <svg className="w-3.5 h-3.5 text-amber-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 15v2m0 0v2m0-2h2m-2 0H10m7-7V7a5 5 0 00-10 0v3m-2 0h14a2 2 0 012 2v7a2 2 0 01-2 2H5a2 2 0 01-2-2v-7a2 2 0 012-2z" />
+                  </svg>
+                  <span>{displayStatus}</span>
+                  <span className="text-[10px] bg-amber-100 dark:bg-amber-900/50 text-amber-700 dark:text-amber-300 px-1.5 py-0.5 rounded font-bold">
+                    Locked
+                  </span>
+                </button>
+              ) : (
+                <div className="relative group/status">
+                  <div className="flex items-center gap-2 text-xs font-bold bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 py-1.5 pl-3 pr-2 rounded-lg shadow-sm cursor-pointer hover:border-slate-300 dark:hover:border-slate-600 transition-colors">
+                    <div className="flex items-center gap-1.5">
+                      <span className={`w-2 h-2 rounded-full ${displayStatus === 'Completed' ? 'bg-emerald-500' : displayStatus === 'Canceled' ? 'bg-red-500' : displayStatus === 'In Progress' ? 'bg-blue-500' : 'bg-amber-500'}`}></span>
+                      {displayStatus}
+                    </div>
+                    <svg className="w-3.5 h-3.5 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" /></svg>
+                  </div>
+
+                  <div className="absolute right-0 bottom-full pb-2 hidden group-hover/status:flex flex-col w-36 z-30">
+                    <div className="flex flex-col w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl shadow-[0_10px_25px_-5px_rgba(0,0,0,0.1),0_8px_10px_-6px_rgba(0,0,0,0.1)] overflow-hidden pb-1">
+                      <div className="px-3 py-2 text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 bg-slate-50/50 dark:bg-slate-800/50 border-b border-slate-100 dark:border-slate-700 mb-1">Set Status</div>
+                      {['Pending', 'In Progress', 'Completed', 'Canceled'].map(st => (
+                        <button
+                          key={st}
+                          onClick={() => {
+                            if (st === 'Canceled') {
+                              setActivityToCancel(act);
+                              setCancelReason('');
+                            } else {
+                              handleUpdateStatus(act.id, st);
+                            }
+                          }}
+                          className={`text-left w-full px-3 py-2 text-xs font-bold transition-all border-l-2 ${displayStatus === st ? 'bg-slate-50/80 dark:bg-slate-800/80 text-slate-900 dark:text-white border-teal-500' : 'border-transparent text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-slate-800 dark:hover:text-slate-200 hover:border-slate-300 dark:hover:border-slate-600'}`}
+                        >
+                          <div className="flex items-center gap-2.5">
+                            <span className={`w-1.5 h-1.5 rounded-full shadow-sm ${st === 'Completed' ? 'bg-emerald-500' : st === 'Canceled' ? 'bg-red-500' : st === 'In Progress' ? 'bg-blue-500' : 'bg-amber-500'}`}></span>
+                            {st}
+                          </div>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
                 </div>
-              </div>
+              )}
             </div>
           </div>
         )}
@@ -942,27 +1049,44 @@ export default function OfficeActivities() {
               </div>
 
               {/* Tab Switcher */}
-              <div className="flex items-center bg-slate-200/70 dark:bg-slate-800/70 p-1 rounded-xl shrink-0 self-start sm:self-auto">
+              <div className="flex items-center bg-slate-200/70 dark:bg-slate-800/70 p-1 rounded-xl shrink-0 self-start sm:self-auto overflow-x-auto max-w-full">
                 <button
                   type="button"
                   onClick={() => setCurrentTab('active')}
-                  className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all ${currentTab === 'active'
+                  className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all whitespace-nowrap ${currentTab === 'active'
                     ? 'bg-white dark:bg-slate-900 text-slate-800 dark:text-white shadow-sm'
                     : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
                     }`}
                 >
-                  <svg className="w-4 h-4 text-teal-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                  </svg>
+                  <span className="relative flex h-2 w-2">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-teal-400 opacity-75"></span>
+                    <span className="relative inline-flex rounded-full h-2 w-2 bg-teal-500"></span>
+                  </span>
                   <span>Active</span>
                   <span className={`px-1.5 py-0.5 text-[10px] font-bold rounded-full ${currentTab === 'active' ? 'bg-teal-100 dark:bg-teal-900/50 text-teal-700 dark:text-teal-300' : 'bg-slate-300/60 dark:bg-slate-700 text-slate-700 dark:text-slate-300'}`}>
-                    {ongoing.length + upcoming.length + pastPending.length}
+                    {ongoing.length + pastPending.length}
+                  </span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setCurrentTab('incoming')}
+                  className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all whitespace-nowrap ${currentTab === 'incoming'
+                    ? 'bg-white dark:bg-slate-900 text-slate-800 dark:text-white shadow-sm'
+                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                    }`}
+                >
+                  <svg className="w-4 h-4 text-amber-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                  </svg>
+                  <span>Incoming Activities</span>
+                  <span className={`px-1.5 py-0.5 text-[10px] font-bold rounded-full ${currentTab === 'incoming' ? 'bg-amber-100 dark:bg-amber-900/50 text-amber-700 dark:text-amber-300' : 'bg-slate-300/60 dark:bg-slate-700 text-slate-700 dark:text-slate-300'}`}>
+                    {upcoming.length}
                   </span>
                 </button>
                 <button
                   type="button"
                   onClick={() => setCurrentTab('archive')}
-                  className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all ${currentTab === 'archive'
+                  className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all whitespace-nowrap ${currentTab === 'archive'
                     ? 'bg-white dark:bg-slate-900 text-slate-800 dark:text-white shadow-sm'
                     : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
                     }`}
@@ -991,7 +1115,7 @@ export default function OfficeActivities() {
 
           {/* Activities Content Area */}
           {loading ? (
-            <Loading type="grid" />
+            <Loading type="stack" />
           ) : currentTab === 'active' ? (
             <div className="flex-1 overflow-y-auto pr-1 pb-10 flex flex-col gap-6">
               {/* For Status Update Container (Past Pending Activities) */}
@@ -1008,7 +1132,7 @@ export default function OfficeActivities() {
                           For Status Update
                         </h3>
                         <p className="text-xs text-amber-700/80 dark:text-amber-400/80 mt-0.5">
-                          Concluded activities awaiting status update to Completed or Canceled.
+                          Concluded activities awaiting status update to Completed or Canceled. All assignees must acknowledge before status can be updated.
                         </p>
                       </div>
                     </div>
@@ -1017,77 +1141,91 @@ export default function OfficeActivities() {
                     </span>
                   </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  <div className="flex flex-col gap-4">
                     {pastPending.map(renderActivityCard)}
                   </div>
                 </div>
               )}
 
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
-                {/* Today Container */}
-                <div className="bg-slate-100/70 dark:bg-slate-900/40 border border-slate-200/80 dark:border-slate-800/80 rounded-2xl p-4 sm:p-5 flex flex-col gap-4 shadow-sm">
-                  <div className="flex items-center justify-between pb-3 border-b border-slate-200/80 dark:border-slate-800">
-                    <div className="flex items-center gap-2.5">
-                      <span className="relative flex h-3 w-3">
-                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-teal-400 opacity-75"></span>
-                        <span className="relative inline-flex rounded-full h-3 w-3 bg-teal-500"></span>
-                      </span>
-                      <h3 className="text-base font-bold text-slate-800 dark:text-slate-100">
-                        Today
-                      </h3>
-                    </div>
-                    <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-teal-100 dark:bg-teal-950/60 text-teal-700 dark:text-teal-300 border border-teal-200 dark:border-teal-800/60">
-                      {ongoing.length} {ongoing.length === 1 ? 'Activity' : 'Activities'}
+              {/* Today's Active Activities Container */}
+              <div className="bg-slate-100/70 dark:bg-slate-900/40 border border-slate-200/80 dark:border-slate-800/80 rounded-2xl p-4 sm:p-5 flex flex-col gap-4 shadow-sm">
+                <div className="flex items-center justify-between pb-3 border-b border-slate-200/80 dark:border-slate-800">
+                  <div className="flex items-center gap-2.5">
+                    <span className="relative flex h-3 w-3">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-teal-400 opacity-75"></span>
+                      <span className="relative inline-flex rounded-full h-3 w-3 bg-teal-500"></span>
                     </span>
+                    <div>
+                      <h3 className="text-base font-bold text-slate-800 dark:text-slate-100">
+                        Today's Active Activities
+                      </h3>
+                      <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                        Activities actively ongoing today.
+                      </p>
+                    </div>
                   </div>
-
-                  {ongoing.length === 0 ? (
-                    <div className="bg-white/80 dark:bg-slate-900/60 rounded-xl border border-dashed border-slate-200 dark:border-slate-800 p-8 flex flex-col items-center justify-center text-center">
-                      <div className="w-12 h-12 rounded-full bg-teal-50 dark:bg-teal-900/30 flex items-center justify-center text-teal-600 dark:text-teal-400 mb-2">
-                        <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                        </svg>
-                      </div>
-                      <p className="text-sm font-bold text-slate-700 dark:text-slate-300">No activities today</p>
-                      <p className="text-xs text-slate-400 dark:text-slate-500 mt-1">There are no ongoing office activities scheduled for today.</p>
-                    </div>
-                  ) : (
-                    <div className="flex flex-col gap-4">
-                      {ongoing.map(renderActivityCard)}
-                    </div>
-                  )}
+                  <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-teal-100 dark:bg-teal-950/60 text-teal-700 dark:text-teal-300 border border-teal-200 dark:border-teal-800/60">
+                    {ongoing.length} {ongoing.length === 1 ? 'Activity' : 'Activities'}
+                  </span>
                 </div>
 
-                {/* Incoming / Upcoming Container */}
-                <div className="bg-slate-100/70 dark:bg-slate-900/40 border border-slate-200/80 dark:border-slate-800/80 rounded-2xl p-4 sm:p-5 flex flex-col gap-4 shadow-sm">
-                  <div className="flex items-center justify-between pb-3 border-b border-slate-200/80 dark:border-slate-800">
-                    <div className="flex items-center gap-2.5">
-                      <span className="w-3 h-3 rounded-full bg-amber-500"></span>
+                {ongoing.length === 0 ? (
+                  <div className="bg-white/80 dark:bg-slate-900/60 rounded-xl border border-dashed border-slate-200 dark:border-slate-800 p-8 flex flex-col items-center justify-center text-center">
+                    <div className="w-12 h-12 rounded-full bg-teal-50 dark:bg-teal-900/30 flex items-center justify-center text-teal-600 dark:text-teal-400 mb-2">
+                      <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                    </div>
+                    <p className="text-sm font-bold text-slate-700 dark:text-slate-300">No active activities today</p>
+                    <p className="text-xs text-slate-400 dark:text-slate-500 mt-1">There are no ongoing office activities scheduled for today.</p>
+                  </div>
+                ) : (
+                  <div className="flex flex-col gap-4">
+                    {ongoing.map(renderActivityCard)}
+                  </div>
+                )}
+              </div>
+            </div>
+          ) : currentTab === 'incoming' ? (
+            <div className="flex-1 overflow-y-auto pr-1 pb-10 flex flex-col gap-6">
+              {/* Incoming / Upcoming Activities Container */}
+              <div className="bg-slate-100/70 dark:bg-slate-900/40 border border-slate-200/80 dark:border-slate-800/80 rounded-2xl p-4 sm:p-5 flex flex-col gap-4 shadow-sm">
+                <div className="flex items-center justify-between pb-3 border-b border-slate-200/80 dark:border-slate-800">
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-8 h-8 rounded-xl bg-amber-500/10 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0">
+                      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                      </svg>
+                    </div>
+                    <div>
                       <h3 className="text-base font-bold text-slate-800 dark:text-slate-100">
                         Incoming Activities
                       </h3>
+                      <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                        Activities and events scheduled for upcoming dates.
+                      </p>
                     </div>
-                    <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-amber-100 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800/60">
-                      {upcoming.length} {upcoming.length === 1 ? 'Activity' : 'Activities'}
-                    </span>
                   </div>
-
-                  {upcoming.length === 0 ? (
-                    <div className="bg-white/80 dark:bg-slate-900/60 rounded-xl border border-dashed border-slate-200 dark:border-slate-800 p-8 flex flex-col items-center justify-center text-center">
-                      <div className="w-12 h-12 rounded-full bg-amber-50 dark:bg-amber-900/30 flex items-center justify-center text-amber-600 dark:text-amber-400 mb-2">
-                        <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                        </svg>
-                      </div>
-                      <p className="text-sm font-bold text-slate-700 dark:text-slate-300">No incoming activities</p>
-                      <p className="text-xs text-slate-400 dark:text-slate-500 mt-1">No upcoming activities have been scheduled yet.</p>
-                    </div>
-                  ) : (
-                    <div className="flex flex-col gap-4">
-                      {upcoming.map(renderActivityCard)}
-                    </div>
-                  )}
+                  <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-amber-100 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800/60">
+                    {upcoming.length} {upcoming.length === 1 ? 'Activity' : 'Activities'}
+                  </span>
                 </div>
+
+                {upcoming.length === 0 ? (
+                  <div className="bg-white/80 dark:bg-slate-900/60 rounded-xl border border-dashed border-slate-200 dark:border-slate-800 p-8 flex flex-col items-center justify-center text-center">
+                    <div className="w-12 h-12 rounded-full bg-amber-50 dark:bg-amber-900/30 flex items-center justify-center text-amber-600 dark:text-amber-400 mb-2">
+                      <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                      </svg>
+                    </div>
+                    <p className="text-sm font-bold text-slate-700 dark:text-slate-300">No incoming activities</p>
+                    <p className="text-xs text-slate-400 dark:text-slate-500 mt-1">No upcoming activities have been scheduled yet.</p>
+                  </div>
+                ) : (
+                  <div className="flex flex-col gap-4">
+                    {upcoming.map(renderActivityCard)}
+                  </div>
+                )}
               </div>
             </div>
           ) : (
@@ -1272,113 +1410,241 @@ export default function OfficeActivities() {
 
                   {/* Assignees Selection Area */}
                   <div>
-                    <div className="flex items-center justify-between mb-2">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-2.5">
                       <label className="text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400">
                         Assign Attendees <span className="text-rose-500">*</span>
                       </label>
-                      <button
-                        type="button"
-                        onClick={() => toggleAssignee('All')}
-                        className={`flex items-center gap-2 px-3 py-1 rounded-full text-xs font-bold border transition-all ${
-                          formData.assigned_to.includes('All')
-                            ? 'bg-teal-500 text-white border-teal-600 shadow-sm shadow-teal-500/20'
-                            : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-700 hover:bg-slate-200'
-                        }`}
-                      >
-                        <span className={`w-2 h-2 rounded-full ${formData.assigned_to.includes('All') ? 'bg-white' : 'bg-slate-400'}`}></span>
-                        <span>Assign to Everyone ({employees.length})</span>
-                      </button>
+                      
+                      {/* Segmented Include / Exclude Mode Switcher */}
+                      <div className="flex items-center bg-slate-100 dark:bg-slate-800 p-1 rounded-xl border border-slate-200 dark:border-slate-700/80 self-start sm:self-auto">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (assignMode !== 'include') {
+                              setAssignMode('include');
+                              if (excludedList.length === 0) {
+                                setFormData(prev => ({ ...prev, assigned_to: ['All'] }));
+                              } else {
+                                const remaining = employees.filter(e => !excludedList.includes(e));
+                                setFormData(prev => ({ ...prev, assigned_to: remaining }));
+                              }
+                            }
+                          }}
+                          className={`flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-bold transition-all ${
+                            assignMode === 'include'
+                              ? 'bg-white dark:bg-slate-900 text-teal-700 dark:text-teal-300 shadow-sm'
+                              : 'text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200'
+                          }`}
+                        >
+                          <svg className="w-3.5 h-3.5 text-teal-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+                          </svg>
+                          <span>Include</span>
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (assignMode !== 'exclude') {
+                              setAssignMode('exclude');
+                              if (formData.assigned_to.includes('All')) {
+                                setExcludedList([]);
+                              } else {
+                                const excluded = employees.filter(e => !formData.assigned_to.includes(e));
+                                setExcludedList(excluded);
+                              }
+                            }
+                          }}
+                          className={`flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-bold transition-all ${
+                            assignMode === 'exclude'
+                              ? 'bg-white dark:bg-slate-900 text-rose-600 dark:text-rose-400 shadow-sm'
+                              : 'text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200'
+                          }`}
+                        >
+                          <svg className="w-3.5 h-3.5 text-rose-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M18 12H6" />
+                          </svg>
+                          <span>Exclude</span>
+                        </button>
+                      </div>
                     </div>
 
-                    {/* Search & Quick Action Toolbar */}
-                    {!formData.assigned_to.includes('All') && (
-                      <div className="flex items-center gap-2 mb-2">
-                        <div className="relative flex-1">
+                    {assignMode === 'include' ? (
+                      /* INCLUDE MODE UI */
+                      <div className="flex flex-col gap-2">
+                        {/* Search & Quick Action Toolbar */}
+                        <div className="flex items-center gap-2">
+                          <div className="relative flex-1">
+                            <svg className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
+                            <input
+                              type="text"
+                              placeholder="Search employee name to include..."
+                              value={assigneeSearchTerm}
+                              onChange={(e) => setAssigneeSearchTerm(e.target.value)}
+                              className="w-full pl-9 pr-3 py-1.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-teal-500/50 text-xs text-slate-800 dark:text-slate-200"
+                            />
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => setFormData(prev => ({ ...prev, assigned_to: [...employees] }))}
+                            className="px-2.5 py-1.5 text-xs font-semibold text-teal-600 dark:text-teal-400 hover:bg-teal-50 dark:hover:bg-teal-950/40 rounded-lg transition-colors whitespace-nowrap"
+                          >
+                            Select All
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setFormData(prev => ({ ...prev, assigned_to: [] }))}
+                            className="px-2.5 py-1.5 text-xs font-semibold text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors whitespace-nowrap"
+                          >
+                            Clear
+                          </button>
+                        </div>
+
+                        {/* Employee Checklist Grid */}
+                        <div className="bg-slate-50/60 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 rounded-2xl p-2.5 max-h-52 overflow-y-auto custom-scrollbar">
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
+                            {employees.filter(emp => emp.toLowerCase().includes(assigneeSearchTerm.toLowerCase())).map(emp => {
+                              const isChecked = formData.assigned_to.includes('All') || formData.assigned_to.includes(emp);
+                              return (
+                                <label
+                                  key={emp}
+                                  className={`flex items-center gap-2.5 p-2 rounded-xl cursor-pointer transition-all border ${
+                                    isChecked
+                                      ? 'bg-teal-50/80 dark:bg-teal-950/40 border-teal-400/80 dark:border-teal-700 shadow-sm'
+                                      : 'bg-white dark:bg-slate-800/80 border-slate-100 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700'
+                                  }`}
+                                >
+                                  <div className={`w-7 h-7 rounded-lg shrink-0 flex items-center justify-center font-bold text-xs shadow-sm ${getAvatarBg(emp)}`}>
+                                    {getInitials(emp)}
+                                  </div>
+                                  <div className="flex-1 min-w-0">
+                                    <p className={`text-xs font-semibold truncate ${isChecked ? 'text-teal-900 dark:text-teal-200' : 'text-slate-800 dark:text-slate-200'}`}>
+                                      {emp}
+                                    </p>
+                                  </div>
+                                  <div className={`w-4 h-4 rounded-md border flex items-center justify-center shrink-0 transition-colors ${
+                                    isChecked ? 'bg-teal-500 border-teal-500 text-white' : 'border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900'
+                                  }`}>
+                                    {isChecked && (
+                                      <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="3"><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
+                                    )}
+                                  </div>
+                                  <input
+                                    type="checkbox"
+                                    checked={isChecked}
+                                    onChange={() => toggleAssignee(emp)}
+                                    className="sr-only"
+                                  />
+                                </label>
+                              );
+                            })}
+                            {employees.filter(emp => emp.toLowerCase().includes(assigneeSearchTerm.toLowerCase())).length === 0 && (
+                              <div className="col-span-2 py-4 text-center text-xs text-slate-400 italic">
+                                No employees matching "{assigneeSearchTerm}"
+                              </div>
+                            )}
+                          </div>
+                        </div>
+
+                      </div>
+                    ) : (
+                      /* EXCLUDE MODE UI */
+                      <div className="flex flex-col gap-2">
+                        <div className="p-2.5 bg-rose-50/60 dark:bg-rose-950/20 border border-rose-200/80 dark:border-rose-800/50 rounded-xl flex items-center justify-between gap-2">
+                          <p className="text-xs text-rose-700 dark:text-rose-300 font-medium">
+                            All employees will be assigned by default. Check any names below to <strong>exclude</strong> them.
+                          </p>
+                          {excludedList.length > 0 && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setExcludedList([]);
+                                setFormData(prev => ({ ...prev, assigned_to: ['All'] }));
+                              }}
+                              className="px-2 py-0.5 text-[11px] font-bold text-rose-600 hover:text-rose-800 bg-white dark:bg-slate-900 border border-rose-200 dark:border-rose-800 rounded-lg shadow-sm whitespace-nowrap shrink-0"
+                            >
+                              Exclude None
+                            </button>
+                          )}
+                        </div>
+
+                        {/* Search Toolbar */}
+                        <div className="relative">
                           <svg className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
                           <input
                             type="text"
-                            placeholder="Search employee name..."
+                            placeholder="Search employee name to exclude..."
                             value={assigneeSearchTerm}
                             onChange={(e) => setAssigneeSearchTerm(e.target.value)}
-                            className="w-full pl-9 pr-3 py-1.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-teal-500/50 text-xs text-slate-800 dark:text-slate-200"
+                            className="w-full pl-9 pr-3 py-1.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-rose-500/50 text-xs text-slate-800 dark:text-slate-200"
                           />
                         </div>
-                        <button
-                          type="button"
-                          onClick={() => setFormData(prev => ({ ...prev, assigned_to: [...employees] }))}
-                          className="px-2.5 py-1.5 text-xs font-semibold text-teal-600 dark:text-teal-400 hover:bg-teal-50 dark:hover:bg-teal-950/40 rounded-lg transition-colors whitespace-nowrap"
-                        >
-                          Select All
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => setFormData(prev => ({ ...prev, assigned_to: [] }))}
-                          className="px-2.5 py-1.5 text-xs font-semibold text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors whitespace-nowrap"
-                        >
-                          Clear
-                        </button>
-                      </div>
-                    )}
 
-                    {/* Employee Checklist Grid */}
-                    <div className={`bg-slate-50/60 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 rounded-2xl p-2.5 max-h-52 overflow-y-auto custom-scrollbar transition-opacity ${
-                      formData.assigned_to.includes('All') ? 'opacity-50 pointer-events-none' : ''
-                    }`}>
-                      {formData.assigned_to.includes('All') ? (
-                        <div className="py-6 text-center text-xs font-bold text-teal-600 dark:text-teal-400 flex flex-col items-center gap-1">
-                          <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" /></svg>
-                          <span>All {employees.length} employees will be assigned</span>
-                        </div>
-                      ) : (
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
-                          {employees.filter(emp => emp.toLowerCase().includes(assigneeSearchTerm.toLowerCase())).map(emp => {
-                            const isChecked = formData.assigned_to.includes(emp);
-                            return (
-                              <label
-                                key={emp}
-                                className={`flex items-center gap-2.5 p-2 rounded-xl cursor-pointer transition-all border ${
-                                  isChecked
-                                    ? 'bg-teal-50/80 dark:bg-teal-950/40 border-teal-400/80 dark:border-teal-700 shadow-sm'
-                                    : 'bg-white dark:bg-slate-800/80 border-slate-100 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700'
-                                }`}
-                              >
-                                <div className={`w-7 h-7 rounded-lg shrink-0 flex items-center justify-center font-bold text-xs shadow-sm ${getAvatarBg(emp)}`}>
-                                  {getInitials(emp)}
-                                </div>
-                                <div className="flex-1 min-w-0">
-                                  <p className={`text-xs font-semibold truncate ${isChecked ? 'text-teal-900 dark:text-teal-200' : 'text-slate-800 dark:text-slate-200'}`}>
-                                    {emp}
-                                  </p>
-                                </div>
-                                <div className={`w-4 h-4 rounded-md border flex items-center justify-center shrink-0 transition-colors ${
-                                  isChecked ? 'bg-teal-500 border-teal-500 text-white' : 'border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900'
-                                }`}>
-                                  {isChecked && (
-                                    <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="3"><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
+                        {/* Employee Checklist Grid for Exclude */}
+                        <div className="bg-slate-50/60 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 rounded-2xl p-2.5 max-h-52 overflow-y-auto custom-scrollbar">
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
+                            {employees.filter(emp => emp.toLowerCase().includes(assigneeSearchTerm.toLowerCase())).map(emp => {
+                              const isExcluded = excludedList.includes(emp);
+                              return (
+                                <label
+                                  key={emp}
+                                  className={`flex items-center gap-2.5 p-2 rounded-xl cursor-pointer transition-all border ${
+                                    isExcluded
+                                      ? 'bg-rose-50/90 dark:bg-rose-950/40 border-rose-300 dark:border-rose-800 shadow-sm'
+                                      : 'bg-white dark:bg-slate-800/80 border-slate-100 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700'
+                                  }`}
+                                >
+                                  <div className={`w-7 h-7 rounded-lg shrink-0 flex items-center justify-center font-bold text-xs shadow-sm ${isExcluded ? 'bg-rose-500 text-white' : getAvatarBg(emp)}`}>
+                                    {getInitials(emp)}
+                                  </div>
+                                  <div className="flex-1 min-w-0">
+                                    <p className={`text-xs font-semibold truncate ${isExcluded ? 'text-rose-700 dark:text-rose-300 line-through' : 'text-slate-800 dark:text-slate-200'}`}>
+                                      {emp}
+                                    </p>
+                                  </div>
+                                  {isExcluded ? (
+                                    <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-rose-100 dark:bg-rose-900/60 text-rose-700 dark:text-rose-300 border border-rose-200 dark:border-rose-800">
+                                      Excluded
+                                    </span>
+                                  ) : (
+                                    <span className="text-[10px] font-medium text-emerald-600 dark:text-emerald-400">
+                                      Attending
+                                    </span>
                                   )}
-                                </div>
-                                <input
-                                  type="checkbox"
-                                  checked={isChecked}
-                                  onChange={() => toggleAssignee(emp)}
-                                  className="sr-only"
-                                />
-                              </label>
-                            );
-                          })}
-                          {employees.filter(emp => emp.toLowerCase().includes(assigneeSearchTerm.toLowerCase())).length === 0 && (
-                            <div className="col-span-2 py-4 text-center text-xs text-slate-400 italic">
-                              No employees matching "{assigneeSearchTerm}"
-                            </div>
-                          )}
+                                  <div className={`w-4 h-4 rounded-md border flex items-center justify-center shrink-0 transition-colors ${
+                                    isExcluded ? 'bg-rose-500 border-rose-500 text-white' : 'border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900'
+                                  }`}>
+                                    {isExcluded && (
+                                      <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="3"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
+                                    )}
+                                  </div>
+                                  <input
+                                    type="checkbox"
+                                    checked={isExcluded}
+                                    onChange={() => toggleExclude(emp)}
+                                    className="sr-only"
+                                  />
+                                </label>
+                              );
+                            })}
+                            {employees.filter(emp => emp.toLowerCase().includes(assigneeSearchTerm.toLowerCase())).length === 0 && (
+                              <div className="col-span-2 py-4 text-center text-xs text-slate-400 italic">
+                                No employees matching "{assigneeSearchTerm}"
+                              </div>
+                            )}
+                          </div>
                         </div>
-                      )}
-                    </div>
 
-                    {!formData.assigned_to.includes('All') && formData.assigned_to.length > 0 && (
-                      <p className="text-[11px] font-semibold text-teal-600 dark:text-teal-400 mt-1.5">
-                        ✓ {formData.assigned_to.length} {formData.assigned_to.length === 1 ? 'person' : 'people'} selected
-                      </p>
+                        <p className="text-[11px] font-semibold text-slate-600 dark:text-slate-400">
+                          {excludedList.length === 0 ? (
+                            <span className="text-teal-600 dark:text-teal-400">✓ All {employees.length} employees included (0 excluded)</span>
+                          ) : (
+                            <span>
+                              <strong className="text-rose-600 dark:text-rose-400">{excludedList.length}</strong> excluded • <strong className="text-teal-600 dark:text-teal-400">{Math.max(0, employees.length - excludedList.length)}</strong> will be assigned
+                            </span>
+                          )}
+                        </p>
+                      </div>
                     )}
                   </div>
 
@@ -1456,7 +1722,7 @@ export default function OfficeActivities() {
                 <div className="flex flex-col gap-4 animate-fadeIn">
                   
                   {/* Summary Banner Card */}
-                  <div className="bg-gradient-to-br from-teal-50/70 via-white to-slate-50 dark:from-slate-900 dark:to-slate-800 text-slate-900 dark:text-white p-5 rounded-2xl border border-teal-100 dark:border-slate-700/60 shadow-sm flex flex-col gap-2">
+                  <div className="bg-gradient-to-br from-teal-50/80 to-slate-50 dark:from-slate-900 dark:to-slate-800 text-slate-900 dark:text-white p-5 rounded-2xl border border-teal-100 dark:border-slate-700/60 shadow-sm flex flex-col gap-2">
                     <div className="flex items-center justify-between">
                       <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold tracking-wider uppercase bg-teal-100 dark:bg-teal-400/20 text-teal-800 dark:text-teal-300 border border-teal-200 dark:border-teal-400/30">
                         {editingActivityId ? 'Activity Update' : 'New Activity'}
@@ -1483,9 +1749,28 @@ export default function OfficeActivities() {
                         Assigned Attendees
                       </span>
                       <span className="text-xs font-bold text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-700 px-2 py-0.5 rounded-md border border-slate-200 dark:border-slate-600">
-                        {formData.assigned_to.includes('All') ? `Everyone (${employees.length})` : `${formData.assigned_to.length} selected`}
+                        {formData.assigned_to.includes('All')
+                          ? `Everyone (${employees.length})`
+                          : `${formData.assigned_to.length} of ${employees.length} assigned`}
                       </span>
                     </div>
+
+                    {assignMode === 'exclude' && excludedList.length > 0 && (
+                      <div className="mb-3 p-2.5 bg-rose-50/80 dark:bg-rose-950/30 border border-rose-200 dark:border-rose-800/50 rounded-xl">
+                        <div className="flex items-center gap-1.5 text-xs font-bold text-rose-700 dark:text-rose-300 mb-1">
+                          <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5"><path strokeLinecap="round" strokeLinejoin="round" d="M18 12H6" /></svg>
+                          <span>Excluded Personnel ({excludedList.length}):</span>
+                        </div>
+                        <div className="flex flex-wrap gap-1 mt-1">
+                          {excludedList.map(emp => (
+                            <span key={emp} className="px-2 py-0.5 rounded-md bg-white dark:bg-slate-900 border border-rose-200 dark:border-rose-800 text-[11px] font-semibold text-rose-700 dark:text-rose-300 shadow-sm">
+                              {emp}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
                     <div className="flex flex-wrap gap-1.5 max-h-32 overflow-y-auto custom-scrollbar">
                       {formData.assigned_to.map(emp => (
                         <div
@@ -1691,7 +1976,7 @@ export default function OfficeActivities() {
                     <h3 className="text-lg font-bold text-slate-900 dark:text-white leading-tight">
                       Unacknowledged Activities
                     </h3>
-                    <span className="px-2 py-0.5 rounded-full text-xs font-bold bg-amber-100 dark:bg-amber-900/60 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800">
+                    <span className="shrink-0 whitespace-nowrap px-2 py-0.5 rounded-full text-xs font-bold bg-amber-100 dark:bg-amber-900/60 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800">
                       {unacknowledgedActivities.length} Pending
                     </span>
                   </div>
@@ -1846,12 +2131,12 @@ export default function OfficeActivities() {
                       <path strokeLinecap="round" strokeLinejoin="round" d="M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 018.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0111.964-3.07M12 6.375a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zm8.25 2.25a2.625 2.625 0 11-5.25 0 2.625 2.625 0 015.25 0z" />
                     </svg>
                   </div>
-                  <div className="min-w-0">
-                    <div className="flex items-center gap-2">
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-2 min-w-0">
                       <h3 className="text-base font-bold text-slate-900 dark:text-white truncate">
                         Acknowledgment Tracking: {receiptsModalAct.title}
                       </h3>
-                      <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-teal-100 dark:bg-teal-900/60 text-teal-700 dark:text-teal-300 border border-teal-200 dark:border-teal-800">
+                      <span className="shrink-0 whitespace-nowrap px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-teal-100 dark:bg-teal-900/60 text-teal-700 dark:text-teal-300 border border-teal-200 dark:border-teal-800">
                         Admin View
                       </span>
                     </div>

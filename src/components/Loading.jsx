@@ -21,6 +21,105 @@ const Loading = ({ type = "table", text = "Loading..." }) => {
     );
   }
 
+  if (type === "logbook") {
+    return (
+      <div className="flex flex-col gap-3 w-full animate-pulse">
+        {Array.from({ length: 5 }).map((_, i) => (
+          <div
+            key={i}
+            className="p-4 sm:p-5 rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900/60 shadow-sm flex flex-col gap-3"
+          >
+            {/* Top bar: Reference Badge, Timestamp, Action */}
+            <div className="flex justify-between items-start gap-3">
+              <div className="flex items-center gap-2">
+                <div className="h-6 w-28 bg-teal-100/70 dark:bg-teal-950/60 rounded-full"></div>
+                <div className="h-5 w-20 bg-slate-100 dark:bg-slate-800 rounded-full"></div>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="h-4 w-32 bg-slate-100 dark:bg-slate-800 rounded"></div>
+                <div className="h-6 w-6 bg-slate-100 dark:bg-slate-800 rounded-xl"></div>
+              </div>
+            </div>
+
+            {/* Particulars (Title / Subject) */}
+            <div className="flex flex-col gap-1.5 my-1">
+              <div className="h-5 w-3/4 bg-slate-200 dark:bg-slate-700 rounded-lg"></div>
+              <div className="h-4 w-1/2 bg-slate-100 dark:bg-slate-800 rounded"></div>
+            </div>
+
+            {/* Metadata Details Grid */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-2.5 p-3 rounded-xl bg-slate-50/80 dark:bg-slate-800/40 border border-slate-100 dark:border-slate-800/60">
+              {Array.from({ length: 4 }).map((_, colIdx) => (
+                <div key={colIdx} className="flex flex-col gap-1.5">
+                  <div className="h-3 w-16 bg-slate-200 dark:bg-slate-700 rounded"></div>
+                  <div className="h-4 w-24 bg-slate-100 dark:bg-slate-800 rounded"></div>
+                </div>
+              ))}
+            </div>
+
+            {/* Remarks / Encoded by Footer */}
+            <div className="pt-2 border-t border-slate-100 dark:border-slate-800 flex justify-between items-center gap-2">
+              <div className="h-3.5 w-48 bg-slate-100 dark:bg-slate-800 rounded"></div>
+              <div className="h-3.5 w-32 bg-slate-100 dark:bg-slate-800 rounded"></div>
+            </div>
+          </div>
+        ))}
+      </div>
+    );
+  }
+
+  if (type === "stack" || type === "stacked") {
+    return (
+      <div className="flex flex-col gap-4 w-full animate-pulse">
+        {Array.from({ length: 4 }).map((_, i) => (
+          <div
+            key={i}
+            className="w-full bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-6 flex flex-col gap-4 shadow-sm"
+          >
+            {/* Header: Status pill + actions */}
+            <div className="flex items-center justify-between gap-4">
+              <div className="flex items-center gap-2">
+                <div className="h-6 w-24 bg-slate-200 dark:bg-slate-800 rounded-full"></div>
+                <div className="h-5 w-32 bg-slate-100 dark:bg-slate-800/60 rounded-md hidden sm:block"></div>
+              </div>
+              <div className="flex gap-2">
+                <div className="h-6 w-6 bg-slate-100 dark:bg-slate-800 rounded-lg"></div>
+                <div className="h-6 w-6 bg-slate-100 dark:bg-slate-800 rounded-lg"></div>
+              </div>
+            </div>
+
+            {/* Title & Date */}
+            <div className="flex flex-col gap-2">
+              <div className="h-6 w-3/5 bg-slate-200 dark:bg-slate-800 rounded-lg"></div>
+              <div className="h-4 w-1/3 bg-slate-100 dark:bg-slate-800/70 rounded"></div>
+            </div>
+
+            {/* Description lines */}
+            <div className="flex flex-col gap-2 my-1">
+              <div className="h-4 w-full bg-slate-100 dark:bg-slate-800/60 rounded"></div>
+              <div className="h-4 w-4/5 bg-slate-100 dark:bg-slate-800/60 rounded"></div>
+            </div>
+
+            {/* Meta row: Assigned To & Created By */}
+            <div className="pt-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between gap-4">
+              <div className="flex items-center gap-2">
+                <div className="h-3 w-16 bg-slate-200 dark:bg-slate-800 rounded"></div>
+                <div className="h-6 w-28 bg-slate-100 dark:bg-slate-800 rounded-md"></div>
+              </div>
+              <div className="h-4 w-24 bg-slate-100 dark:bg-slate-800 rounded"></div>
+            </div>
+
+            {/* Bottom action row: Status update bar */}
+            <div className="pt-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between gap-2">
+              <div className="h-5 w-36 bg-slate-100 dark:bg-slate-800 rounded"></div>
+              <div className="h-8 w-28 bg-slate-200 dark:bg-slate-800 rounded-lg"></div>
+            </div>
+          </div>
+        ))}
+      </div>
+    );
+  }
+
   if (type === "grid") {
     return (
       <div className="grid grid-cols-1 md:grid-cols-[repeat(auto-fit,minmax(350px,1fr))] gap-6 w-full animate-pulse">
