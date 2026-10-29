@@ -654,17 +654,8 @@ export default function OfficeActivities() {
     } catch {
       assigned = ['All'];
     }
-    if (assigned.includes('All')) {
-      setAssignMode('include');
-      setExcludedList([]);
-    } else if (employees.length > 0 && assigned.length >= employees.length - 10 && assigned.length < employees.length) {
-      const missing = employees.filter(e => !assigned.includes(e));
-      setExcludedList(missing);
-      setAssignMode('exclude');
-    } else {
-      setAssignMode('include');
-      setExcludedList([]);
-    }
+    setAssignMode('include');
+    setExcludedList([]);
     setFormData({
       title: act.title,
       description: act.description || '',
@@ -1663,12 +1654,7 @@ export default function OfficeActivities() {
                           onClick={() => {
                             if (assignMode !== 'include') {
                               setAssignMode('include');
-                              if (excludedList.length === 0) {
-                                setFormData(prev => ({ ...prev, assigned_to: ['All'] }));
-                              } else {
-                                const remaining = employees.filter(e => !excludedList.includes(e));
-                                setFormData(prev => ({ ...prev, assigned_to: remaining }));
-                              }
+                              setFormData(prev => ({ ...prev, assigned_to: [] }));
                             }
                           }}
                           className={`flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-bold transition-all ${
@@ -1688,12 +1674,7 @@ export default function OfficeActivities() {
                           onClick={() => {
                             if (assignMode !== 'exclude') {
                               setAssignMode('exclude');
-                              if (formData.assigned_to.includes('All')) {
-                                setExcludedList([]);
-                              } else {
-                                const excluded = employees.filter(e => !formData.assigned_to.includes(e));
-                                setExcludedList(excluded);
-                              }
+                              setExcludedList([]);
                             }
                           }}
                           className={`flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-bold transition-all ${
@@ -2081,7 +2062,7 @@ export default function OfficeActivities() {
                   <button
                     type="submit"
                     form="add-activity-form"
-                    disabled={formData.assigned_to.length === 0}
+                    disabled={assignMode === 'include' ? formData.assigned_to.length === 0 : (employees.length > 0 && excludedList.length >= employees.length)}
                     className="flex items-center gap-2 px-6 py-2.5 font-bold text-xs text-white bg-gradient-to-r from-teal-500 to-emerald-500 hover:from-teal-400 hover:to-emerald-400 rounded-xl shadow-md hover:shadow-teal-500/20 hover:-translate-y-0.5 transition-all disabled:opacity-50 disabled:hover:translate-y-0 disabled:hover:shadow-none"
                   >
                     <span>Review Details</span>
