@@ -1,6 +1,7 @@
-import { createClient } from "@libsql/client/web";
+import { createClient } from "@libsql/client";
 import nodemailer from "nodemailer";
 import { renderEmailLayout, escapeHtml, getBaseUrl } from "../lib/emailTemplate.js";
+import { syncLeaveAccrual } from "../lib/leaveAccrual.js";
 
 export default async function handler(req, res) {
   // Basic Security Check: Ensure the request comes from Vercel Cron
@@ -20,39 +21,13 @@ export default async function handler(req, res) {
 
   try {
     if (action === 'leaves') {
-      const currentDate = new Date();
-      const currentMonth = currentDate.getMonth() + 1; // 1-12
-      const currentYear = currentDate.getFullYear();
-
-      const targetEmployeesCondition = `
-        LOWER(user_email) IN (
-          SELECT LOWER(Email) FROM User_Permissions 
-          WHERE (emp_stat = 'Permanent' OR emp_stat = 'Contractual')
-          AND (Status IS NULL OR Status != 'Inactive')
-        )
-      `;
-
-      const results = [];
-
-      // Monthly Addition
-      await client.execute(`
-        UPDATE Leave_Credits 
-        SET vl_balance = vl_balance + 1.25, sl_balance = sl_balance + 1.25 
-        WHERE ${targetEmployeesCondition}
-      `);
-      results.push('Successfully added 1.25 to VL and SL.');
-
-      // Yearly Reset
-      if (currentMonth === 1) {
-        await client.execute(`
-          UPDATE Leave_Credits
-          SET fl_balance = 5, spl_balance = 3, wl_balance = 5, use_balance = 6
-          WHERE ${targetEmployeesCondition}
-        `);
-        results.push(`Successfully reset FL, SPL, WL, and USE balances for year ${currentYear}.`);
-      }
-
-      return res.status(200).json({ success: true, message: 'Leaves updated', details: results });
+      const { currentMonthStr, results } = await syncLeaveAccrual(client);
+      return res.status(200).json({ 
+        success: true, 
+        message: 'Leave accrual executed', 
+        currentMonth: currentMonthStr, 
+        details: results 
+      });
     }
 
     if (action === 'reminders') {

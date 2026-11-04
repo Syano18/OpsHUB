@@ -14,6 +14,7 @@ const s3Client = new S3Client({
 });
 const BUCKET_NAME = process.env.R2_BUCKET_NAME?.trim();
 import { verifyToken } from '@clerk/backend';
+import { syncLeaveAccrual } from '../lib/leaveAccrual.js';
 
 function parseFormattedDates(dateStr) {
   const dates = [];
@@ -84,9 +85,13 @@ export default async function handler(req, res) {
         fl_balance REAL DEFAULT 0,
         wl_balance REAL DEFAULT 0,
         use_balance REAL DEFAULT 0,
-        spl_balance REAL DEFAULT 0
+        spl_balance REAL DEFAULT 0,
+        last_reset_year INTEGER,
+        last_accrual_month TEXT
       )
     `);
+    try { await turso.execute("ALTER TABLE Leave_Credits ADD COLUMN last_reset_year INTEGER"); } catch (e) {}
+    try { await turso.execute("ALTER TABLE Leave_Credits ADD COLUMN last_accrual_month TEXT"); } catch (e) {}
     
     await turso.execute(`
       CREATE TABLE IF NOT EXISTS Leave_History (
@@ -194,7 +199,15 @@ export default async function handler(req, res) {
           return res.status(500).json({ error: 'Failed to retrieve document' });
         }
         
+      } else if (action === 'syncAccrual') {
+        const result = await syncLeaveAccrual(turso);
+        return res.status(200).json({ success: true, ...result });
       } else if (action === 'getAllUsersData') {
+        try {
+          await syncLeaveAccrual(turso);
+        } catch (accrualErr) {
+          console.error("Auto accrual error:", accrualErr);
+        }
         const usersRs = await turso.execute("SELECT First_Name, Middle_Name, Last_Name, Email, Role, emp_stat, Status FROM User_Permissions WHERE IFNULL(Status, '') != 'Inactive' AND IFNULL(is_regional, 0) != 1 AND IFNULL(Role, '') != 'Super Admin'");
         const creditsRs = await turso.execute("SELECT * FROM Leave_Credits");
         return res.status(200).json({ users: usersRs.rows, credits: creditsRs.rows });
