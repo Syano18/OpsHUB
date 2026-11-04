@@ -6,35 +6,35 @@ import { Document, Page, Text, View, StyleSheet, Image, Font } from '@react-pdf/
 
 const styles = StyleSheet.create({
   page: {
-    padding: 20,
-    paddingTop: 10,
-    paddingBottom: 10,
+    paddingHorizontal: 16,
+    paddingTop: 8,
+    paddingBottom: 6,
     fontFamily: 'Helvetica',
-    fontSize: 8,
+    fontSize: 7.5,
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginBottom: 5,
+    marginBottom: 2,
   },
   formNo: {
-    fontSize: 7,
+    fontSize: 6.5,
     fontStyle: 'italic',
   },
   logoContainer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 40,
-    marginBottom: 5,
+    paddingHorizontal: 35,
+    marginBottom: 2,
   },
   logo: {
-    width: 50,
-    height: 50,
+    width: 42,
+    height: 42,
   },
   logoBagong: {
-    width: 60,
-    height: 60,
+    width: 48,
+    height: 48,
   },
   headerTextContainer: {
     alignItems: 'center',
@@ -42,31 +42,31 @@ const styles = StyleSheet.create({
   },
   republicText: {
     fontWeight: 'bold',
-    fontSize: 9,
+    fontSize: 8.5,
   },
   psaText: {
     fontFamily: 'Times-Roman',
     fontWeight: 'bold',
-    fontSize: 10,
-    letterSpacing: 1,
-    marginTop: 2,
+    fontSize: 9.5,
+    letterSpacing: 0.5,
+    marginTop: 1,
   },
   addressText: {
-    fontSize: 7,
+    fontSize: 6.5,
     marginTop: 1,
   },
   titleText: {
     fontWeight: 'bold',
-    fontSize: 12,
+    fontSize: 11,
     textAlign: 'center',
-    marginTop: 5,
-    marginBottom: 5,
-    letterSpacing: 1,
+    marginTop: 2,
+    marginBottom: 2,
+    letterSpacing: 0.5,
   },
   table: {
     borderWidth: 1,
     borderColor: '#000',
-    marginBottom: 5,
+    marginBottom: 2,
   },
   row: {
     flexDirection: 'row',
@@ -79,17 +79,17 @@ const styles = StyleSheet.create({
   col: {
     borderRightWidth: 1,
     borderColor: '#000',
-    padding: 3,
+    padding: 2,
   },
   colNoBorderRight: {
-    padding: 3,
+    padding: 2,
   },
   flexRow: {
     flexDirection: 'row',
     alignItems: 'center',
   },
   label: {
-    marginRight: 5,
+    marginRight: 4,
   },
   valueLine: {
     borderBottomWidth: 1,
@@ -109,8 +109,8 @@ const styles = StyleSheet.create({
   valueContainer: {
     borderBottomWidth: 1,
     borderColor: '#000',
-    marginTop: 2,
-    paddingBottom: 2,
+    marginTop: 1,
+    paddingBottom: 1,
   },
   valueText: {
     textAlign: 'center',
@@ -124,34 +124,34 @@ const styles = StyleSheet.create({
     backgroundColor: '#f3f4f6',
     borderBottomWidth: 1,
     borderColor: '#000',
-    padding: 3,
+    padding: 1.5,
     textAlign: 'center',
     fontWeight: 'bold',
-    fontSize: 9,
+    fontSize: 8,
   },
   checkbox: {
-    width: 10,
-    height: 10,
+    width: 8.5,
+    height: 8.5,
     borderWidth: 1,
     borderColor: '#000',
-    marginRight: 4,
+    marginRight: 3.5,
     alignItems: 'center',
     justifyContent: 'center',
   },
   checkboxText: {
-    fontSize: 8,
+    fontSize: 7,
     fontWeight: 'bold',
     marginTop: -1,
   },
   smallItalic: {
-    fontSize: 6,
+    fontSize: 5.5,
     fontStyle: 'italic',
   },
   mb: {
-    marginBottom: 4,
+    marginBottom: 2,
   },
   mt: {
-    marginTop: 4,
+    marginTop: 2,
   },
   line: {
     borderBottomWidth: 1,
@@ -414,7 +414,7 @@ export default function CscForm6Pdf({ formData, userBalances, signatories }) {
             </View>
             <View style={[styles.colNoBorderRight, { width: '50%' }]}>
               <Text style={[styles.bold, styles.mb]}>6.D COMMUTATION</Text>
-              <View style={[styles.flexRow, { justifyContent: 'space-around', marginVertical: 10 }]}>
+              <View style={[styles.flexRow, { justifyContent: 'space-around', marginVertical: 4 }]}>
                 <View style={styles.flexRow}>
                   <View style={styles.checkbox}><Text style={styles.checkboxText}>X</Text></View>
                   <Text>Not Requested</Text>
@@ -424,7 +424,7 @@ export default function CscForm6Pdf({ formData, userBalances, signatories }) {
                   <Text>Requested</Text>
                 </View>
               </View>
-              <View style={{ alignItems: 'center', marginTop: 15 }}>
+              <View style={{ alignItems: 'center', marginTop: 8 }}>
                 <View style={[styles.line, { width: '75%', marginBottom: 2 }]} />
                 <Text style={{ fontSize: 7 }}>(Signature of Applicant)</Text>
               </View>
@@ -468,7 +468,7 @@ export default function CscForm6Pdf({ formData, userBalances, signatories }) {
 
             <View style={[styles.colNoBorderRight, { width: '50%' }]}>
               <Text style={[styles.bold, styles.mb]}>7.B RECOMMENDATION</Text>
-              <View style={{ marginLeft: 10, marginTop: 10 }}>
+              <View style={{ marginLeft: 10, marginTop: 4 }}>
                 <View style={[styles.flexRow, styles.mb]}>
                   <View style={styles.checkbox}></View>
                   <Text>For approval</Text>
@@ -485,13 +485,13 @@ export default function CscForm6Pdf({ formData, userBalances, signatories }) {
           </View>
           
           <View style={styles.row}>
-            <View style={[styles.col, { width: '50%', alignItems: 'center', paddingTop: 30 }]}>
+            <View style={[styles.col, { width: '50%', alignItems: 'center', paddingTop: 14 }]}>
               <Text style={[styles.bold, { fontSize: 10 }]}>{signatories?.hr?.name || 'DONAH GRACE C. CAPULAC'}</Text>
               <View style={[styles.line, { width: '80%', marginVertical: 2 }]} />
               <Text style={{ fontSize: 8 }}>{signatories?.hr?.position || 'HR Designate'}</Text>
               <Text style={{ fontSize: 8 }}>(Authorized Officer)</Text>
             </View>
-            <View style={[styles.colNoBorderRight, { width: '50%', alignItems: 'center', paddingTop: 30 }]}>
+            <View style={[styles.colNoBorderRight, { width: '50%', alignItems: 'center', paddingTop: 14 }]}>
               <Text style={[styles.bold, { fontSize: 10 }]}>
                 {formData?.position?.toLowerCase().includes('chief statistical') ? ' ' : ((signatories?.supervisor?.name && signatories.supervisor.name.trim() !== '') ? signatories.supervisor.name : 'RANDOLF M. LADERAS')}
               </Text>
@@ -527,18 +527,18 @@ export default function CscForm6Pdf({ formData, userBalances, signatories }) {
             </View>
             <View style={[styles.colNoBorderRight, { width: '50%' }]}>
               <Text style={[styles.bold, styles.mb]}>7.D DISAPPROVED DUE TO:</Text>
-              <View style={[styles.line, styles.mt, { width: '100%', marginBottom: 8 }]} />
-              <View style={[styles.line, styles.mt, { width: '100%', marginBottom: 8 }]} />
-              <View style={[styles.line, styles.mt, { width: '100%', marginBottom: 8 }]} />
+              <View style={[styles.line, styles.mt, { width: '100%', marginBottom: 4 }]} />
+              <View style={[styles.line, styles.mt, { width: '100%', marginBottom: 4 }]} />
+              <View style={[styles.line, styles.mt, { width: '100%', marginBottom: 4 }]} />
             </View>
           </View>
         </View>
 
-        <View style={{ alignItems: 'center', marginTop: 25 }}>
-          <Text style={[styles.bold, { fontSize: 10 }]}>{signatories?.chief?.name || 'MARIBEL M. DALAYDAY'}</Text>
-          <View style={[styles.line, { width: '40%', marginVertical: 2 }]} />
-          <Text style={{ fontSize: 8 }}>{signatories?.chief?.position || 'Chief Statistical Specialist'}</Text>
-          <Text style={{ fontSize: 8 }}>(Authorized Official)</Text>
+        <View style={{ alignItems: 'center', marginTop: 10 }} wrap={false}>
+          <Text style={[styles.bold, { fontSize: 9.5 }]}>{signatories?.chief?.name || 'MARIBEL M. DALAYDAY'}</Text>
+          <View style={[styles.line, { width: '40%', marginVertical: 1.5 }]} />
+          <Text style={{ fontSize: 7.5 }}>{signatories?.chief?.position || 'Chief Statistical Specialist'}</Text>
+          <Text style={{ fontSize: 7.5 }}>(Authorized Official)</Text>
         </View>
 
       </Page>
