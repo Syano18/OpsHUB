@@ -114,6 +114,7 @@ export default async function handler(req, res) {
       
       if (action === 'getCredits') {
         if (!email) return res.status(400).json({ error: 'Email required' });
+        try { await syncLeaveAccrual(turso); } catch (e) { console.error('Accrual sync error:', e); }
         
         let rs = await turso.execute({
           sql: 'SELECT * FROM Leave_Credits WHERE LOWER(user_email) = LOWER(?)',
