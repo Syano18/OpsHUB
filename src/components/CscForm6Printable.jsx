@@ -43,6 +43,13 @@ export default function CscForm6Printable({ formData, userBalances, signatories 
     'adoption leave'
   ].includes(normalizedLeaveType));
 
+  const otherReason = (leaveDetailSpecify || reason || '').trim();
+  const otherLeaveDisplay = isOtherLeave
+    ? (fileLeaveType === 'Wellness Leave'
+        ? (otherReason ? `${fileLeaveType} - ${otherReason}` : `${fileLeaveType} - `)
+        : (otherReason ? `${fileLeaveType} - ${otherReason}` : fileLeaveType))
+    : '';
+
   const parsedDays = parseFloat(requestedDays) || 0;
   const isVL = fileLeaveType === 'Vacation Leave' || fileLeaveType === 'Mandatory/Forced Leave' || fileLeaveType === 'Forced Leave';
   const isSL = fileLeaveType === 'Sick Leave';
@@ -226,8 +233,8 @@ export default function CscForm6Printable({ formData, userBalances, signatories 
                       <div className="w-3.5 h-3.5 min-w-[14px] min-h-[14px] flex-shrink-0 border border-black flex items-center justify-center font-bold">{isOtherLeave ? '✓' : ''}</div>
                       <span>Others:</span>
                     </div>
-                    <div className="border-b border-black mt-1 pb-1 font-bold ml-6 uppercase">
-                      {isOtherLeave ? fileLeaveType : ""}
+                    <div className="border-b border-black mt-1 pb-1 font-bold ml-4 uppercase text-[7pt] min-h-[16px]">
+                      {otherLeaveDisplay}
                     </div>
                   </div>
                 </td>

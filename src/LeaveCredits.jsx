@@ -547,7 +547,7 @@ export default function LeaveCredits() {
           leaveType: fileLeaveType,
           startDate: formattedDates,
           daysApplied: parsedDays,
-          reason: reason
+          reason: leaveDetailSpecify ? (reason ? `${leaveDetailSpecify} - ${reason}` : leaveDetailSpecify) : reason
         })
       });
       const resData = await fetchRes.json();
@@ -574,6 +574,7 @@ export default function LeaveCredits() {
         leaveDetailSpecify,
         inclusiveDates: Array.isArray(inclusiveDates) ? formatInclusiveDates(inclusiveDates) : inclusiveDates,
         requestedDays,
+        reason: reason || leaveDetailSpecify,
       };
 
       const pdfDocElement = fileLeaveType === 'USE Leave' 
@@ -642,6 +643,7 @@ export default function LeaveCredits() {
         leaveDetailSpecify,
         inclusiveDates: Array.isArray(inclusiveDates) ? formatInclusiveDates(inclusiveDates) : inclusiveDates,
         requestedDays,
+        reason: reason || leaveDetailSpecify,
       };
 
       const pdfDocElement = fileLeaveType === 'USE Leave' 
@@ -1819,6 +1821,21 @@ export default function LeaveCredits() {
                       onChange={(e) => setLeaveDetailSpecify(e.target.value)} 
                       required 
                       placeholder="Specify location..." 
+                      className="w-full px-3.5 py-2 text-xs bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-teal-500 text-slate-800 dark:text-slate-100" 
+                    />
+                  </div>
+                )}
+
+                {fileLeaveType === "Wellness Leave" && (
+                  <div className="bg-slate-50 dark:bg-slate-800/40 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 space-y-2">
+                    <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300">
+                      Reason for Wellness Leave:
+                    </label>
+                    <input 
+                      type="text" 
+                      value={leaveDetailSpecify} 
+                      onChange={(e) => setLeaveDetailSpecify(e.target.value)} 
+                      placeholder="Specify purpose / reason for wellness leave..." 
                       className="w-full px-3.5 py-2 text-xs bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-teal-500 text-slate-800 dark:text-slate-100" 
                     />
                   </div>
