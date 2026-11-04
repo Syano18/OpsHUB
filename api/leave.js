@@ -242,6 +242,7 @@ export default async function handler(req, res) {
           return res.status(404).json({ error: 'User credits not found' });
         }
         const currentCredits = creditsRs.rows[0];
+        let newId = null;
         
         if (leaveType === 'Forced Leave' || leaveType === 'Forced/Mandatory Leave' || leaveType === 'Mandatory/Forced Leave') {
           const currentFl = Number(currentCredits.fl_balance || 0);
@@ -257,7 +258,7 @@ export default async function handler(req, res) {
                   VALUES (?, ?, ?, ?, ?) RETURNING id`,
             args: [email, leaveType, daysApplied, startDate, reason]
           });
-          const newId = insertRs.rows[0].id;
+          newId = insertRs.rows[0]?.id ?? insertRs.lastInsertRowid;
 
           // 3. Update credits: deduct from both fl_balance and vl_balance per CSC rules
           await turso.execute({
@@ -286,7 +287,7 @@ export default async function handler(req, res) {
                   VALUES (?, ?, ?, ?, ?) RETURNING id`,
             args: [email, leaveType, daysApplied, startDate, reason]
           });
-          const newId = insertRs.rows[0].id;
+          newId = insertRs.rows[0]?.id ?? insertRs.lastInsertRowid;
           
           // 3. Update credits
           if (balanceColumn) {
