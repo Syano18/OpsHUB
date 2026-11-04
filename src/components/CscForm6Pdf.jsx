@@ -7,10 +7,10 @@ import { Document, Page, Text, View, StyleSheet, Image, Font } from '@react-pdf/
 const styles = StyleSheet.create({
   page: {
     paddingHorizontal: 16,
-    paddingTop: 8,
-    paddingBottom: 6,
+    paddingTop: 14,
+    paddingBottom: 14,
     fontFamily: 'Helvetica',
-    fontSize: 7.5,
+    fontSize: 8,
   },
   header: {
     flexDirection: 'row',
@@ -29,12 +29,12 @@ const styles = StyleSheet.create({
     marginBottom: 2,
   },
   logo: {
-    width: 42,
-    height: 42,
+    width: 44,
+    height: 44,
   },
   logoBagong: {
-    width: 48,
-    height: 48,
+    width: 50,
+    height: 50,
   },
   headerTextContainer: {
     alignItems: 'center',
@@ -57,16 +57,16 @@ const styles = StyleSheet.create({
   },
   titleText: {
     fontWeight: 'bold',
-    fontSize: 11,
+    fontSize: 12,
     textAlign: 'center',
-    marginTop: 2,
-    marginBottom: 2,
+    marginTop: 4,
+    marginBottom: 4,
     letterSpacing: 0.5,
   },
   table: {
     borderWidth: 1,
     borderColor: '#000',
-    marginBottom: 2,
+    marginBottom: 5,
   },
   row: {
     flexDirection: 'row',
@@ -79,10 +79,10 @@ const styles = StyleSheet.create({
   col: {
     borderRightWidth: 1,
     borderColor: '#000',
-    padding: 2,
+    padding: 3,
   },
   colNoBorderRight: {
-    padding: 2,
+    padding: 3,
   },
   flexRow: {
     flexDirection: 'row',
@@ -130,25 +130,26 @@ const styles = StyleSheet.create({
     fontSize: 8,
   },
   checkbox: {
-    width: 8.5,
-    height: 8.5,
+    width: 9.5,
+    height: 9.5,
     borderWidth: 1,
     borderColor: '#000',
-    marginRight: 3.5,
+    marginRight: 4,
     alignItems: 'center',
     justifyContent: 'center',
   },
   checkboxText: {
     fontSize: 7,
     fontWeight: 'bold',
-    marginTop: -1,
+    textAlign: 'center',
+    lineHeight: 1,
   },
   smallItalic: {
     fontSize: 5.5,
     fontStyle: 'italic',
   },
   mb: {
-    marginBottom: 2,
+    marginBottom: 4,
   },
   mt: {
     marginTop: 2,
@@ -177,7 +178,31 @@ export default function CscForm6Pdf({ formData, userBalances, signatories }) {
     asOfDate = ''
   } = formData || {};
 
-  const isChecked = (type) => (fileLeaveType === type || (type === 'Mandatory/Forced Leave' && (fileLeaveType === 'Forced Leave' || fileLeaveType === 'Mandatory/Forced Leave'))) ? 'X' : '';
+  const normalizedLeaveType = (fileLeaveType || '').trim().toLowerCase();
+
+  const isChecked = (type) => {
+    const norm = (type || '').trim().toLowerCase();
+    if (normalizedLeaveType === norm) return 'X';
+    if (norm === 'mandatory/forced leave' && (normalizedLeaveType === 'forced leave' || normalizedLeaveType === 'mandatory/forced leave')) return 'X';
+    return '';
+  };
+
+  const isOtherLeave = Boolean(normalizedLeaveType && ![
+    'vacation leave',
+    'mandatory/forced leave',
+    'forced leave',
+    'sick leave',
+    'maternity leave',
+    'paternity leave',
+    'special privilege leave',
+    'solo parent leave',
+    'study leave',
+    '10-day vawc leave',
+    'rehabilitation privilege',
+    'special leave benefits for women',
+    'special emergency (calamity) leave',
+    'adoption leave'
+  ].includes(normalizedLeaveType));
 
   const parsedDays = parseFloat(requestedDays) || 0;
   const isVL = fileLeaveType === 'Vacation Leave' || fileLeaveType === 'Mandatory/Forced Leave' || fileLeaveType === 'Forced Leave';
@@ -322,11 +347,11 @@ export default function CscForm6Pdf({ formData, userBalances, signatories }) {
                 <Text>Adoption Leave <Text style={styles.smallItalic}>(R.A. No. 8552)</Text></Text>
               </View>
               <View style={[styles.flexRow, styles.mb]}>
-                <View style={styles.checkbox}><Text style={styles.checkboxText}>{isChecked("Wellness Leave") || isChecked("USE Leave") ? 'X' : ''}</Text></View>
+                <View style={styles.checkbox}><Text style={styles.checkboxText}>{isOtherLeave ? 'X' : ''}</Text></View>
                 <Text>Others:</Text>
               </View>
               <Text style={[styles.valueLine, { marginLeft: 20 }]}>
-                {fileLeaveType === "Wellness Leave" || fileLeaveType === "USE Leave" ? fileLeaveType : ""}
+                {isOtherLeave ? fileLeaveType : ""}
               </Text>
             </View>
             
@@ -414,7 +439,7 @@ export default function CscForm6Pdf({ formData, userBalances, signatories }) {
             </View>
             <View style={[styles.colNoBorderRight, { width: '50%' }]}>
               <Text style={[styles.bold, styles.mb]}>6.D COMMUTATION</Text>
-              <View style={[styles.flexRow, { justifyContent: 'space-around', marginVertical: 4 }]}>
+              <View style={[styles.flexRow, { justifyContent: 'space-around', marginVertical: 6 }]}>
                 <View style={styles.flexRow}>
                   <View style={styles.checkbox}><Text style={styles.checkboxText}>X</Text></View>
                   <Text>Not Requested</Text>
@@ -424,8 +449,8 @@ export default function CscForm6Pdf({ formData, userBalances, signatories }) {
                   <Text>Requested</Text>
                 </View>
               </View>
-              <View style={{ alignItems: 'center', marginTop: 8 }}>
-                <View style={[styles.line, { width: '75%', marginBottom: 2 }]} />
+              <View style={{ alignItems: 'center', marginTop: 16 }}>
+                <View style={[styles.line, { width: '75%', marginBottom: 3 }]} />
                 <Text style={{ fontSize: 7 }}>(Signature of Applicant)</Text>
               </View>
             </View>
@@ -478,20 +503,20 @@ export default function CscForm6Pdf({ formData, userBalances, signatories }) {
                   <Text style={styles.label}>For disapproval due to</Text>
                   <Text style={styles.valueLine}></Text>
                 </View>
-                <View style={[styles.line, styles.mt, { width: '100%', marginBottom: 5 }]} />
-                <View style={[styles.line, styles.mt, { width: '100%', marginBottom: 5 }]} />
+                <View style={[styles.line, styles.mt, { width: '100%', marginBottom: 2 }]} />
+                <View style={[styles.line, styles.mt, { width: '100%', marginBottom: 2 }]} />
               </View>
             </View>
           </View>
           
           <View style={styles.row}>
-            <View style={[styles.col, { width: '50%', alignItems: 'center', paddingTop: 14 }]}>
+            <View style={[styles.col, { width: '50%', alignItems: 'center', paddingTop: 24 }]}>
               <Text style={[styles.bold, { fontSize: 10 }]}>{signatories?.hr?.name || 'DONAH GRACE C. CAPULAC'}</Text>
               <View style={[styles.line, { width: '80%', marginVertical: 2 }]} />
               <Text style={{ fontSize: 8 }}>{signatories?.hr?.position || 'HR Designate'}</Text>
               <Text style={{ fontSize: 8 }}>(Authorized Officer)</Text>
             </View>
-            <View style={[styles.colNoBorderRight, { width: '50%', alignItems: 'center', paddingTop: 14 }]}>
+            <View style={[styles.colNoBorderRight, { width: '50%', alignItems: 'center', paddingTop: 24 }]}>
               <Text style={[styles.bold, { fontSize: 10 }]}>
                 {formData?.position?.toLowerCase().includes('chief statistical') ? ' ' : ((signatories?.supervisor?.name && signatories.supervisor.name.trim() !== '') ? signatories.supervisor.name : 'RANDOLF M. LADERAS')}
               </Text>
@@ -527,18 +552,18 @@ export default function CscForm6Pdf({ formData, userBalances, signatories }) {
             </View>
             <View style={[styles.colNoBorderRight, { width: '50%' }]}>
               <Text style={[styles.bold, styles.mb]}>7.D DISAPPROVED DUE TO:</Text>
-              <View style={[styles.line, styles.mt, { width: '100%', marginBottom: 4 }]} />
-              <View style={[styles.line, styles.mt, { width: '100%', marginBottom: 4 }]} />
-              <View style={[styles.line, styles.mt, { width: '100%', marginBottom: 4 }]} />
+              <View style={[styles.line, styles.mt, { width: '100%', marginBottom: 5 }]} />
+              <View style={[styles.line, styles.mt, { width: '100%', marginBottom: 5 }]} />
+              <View style={[styles.line, styles.mt, { width: '100%', marginBottom: 5 }]} />
             </View>
           </View>
         </View>
 
-        <View style={{ alignItems: 'center', marginTop: 10 }} wrap={false}>
-          <Text style={[styles.bold, { fontSize: 9.5 }]}>{signatories?.chief?.name || 'MARIBEL M. DALAYDAY'}</Text>
+        <View style={{ alignItems: 'center', marginTop: 40 }} wrap={false}>
+          <Text style={[styles.bold, { fontSize: 10 }]}>{signatories?.chief?.name || 'MARIBEL M. DALAYDAY'}</Text>
           <View style={[styles.line, { width: '40%', marginVertical: 1.5 }]} />
-          <Text style={{ fontSize: 7.5 }}>{signatories?.chief?.position || 'Chief Statistical Specialist'}</Text>
-          <Text style={{ fontSize: 7.5 }}>(Authorized Official)</Text>
+          <Text style={{ fontSize: 8 }}>{signatories?.chief?.position || 'Chief Statistical Specialist'}</Text>
+          <Text style={{ fontSize: 8 }}>(Authorized Official)</Text>
         </View>
 
       </Page>

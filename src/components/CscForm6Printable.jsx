@@ -17,7 +17,31 @@ export default function CscForm6Printable({ formData, userBalances, signatories 
     requestedDays = '',
   } = formData || {};
 
-  const isChecked = (type) => (fileLeaveType === type || (type === 'Mandatory/Forced Leave' && (fileLeaveType === 'Forced Leave' || fileLeaveType === 'Mandatory/Forced Leave'))) ? '✓' : '';
+  const normalizedLeaveType = (fileLeaveType || '').trim().toLowerCase();
+
+  const isChecked = (type) => {
+    const norm = (type || '').trim().toLowerCase();
+    if (normalizedLeaveType === norm) return '✓';
+    if (norm === 'mandatory/forced leave' && (normalizedLeaveType === 'forced leave' || normalizedLeaveType === 'mandatory/forced leave')) return '✓';
+    return '';
+  };
+
+  const isOtherLeave = Boolean(normalizedLeaveType && ![
+    'vacation leave',
+    'mandatory/forced leave',
+    'forced leave',
+    'sick leave',
+    'maternity leave',
+    'paternity leave',
+    'special privilege leave',
+    'solo parent leave',
+    'study leave',
+    '10-day vawc leave',
+    'rehabilitation privilege',
+    'special leave benefits for women',
+    'special emergency (calamity) leave',
+    'adoption leave'
+  ].includes(normalizedLeaveType));
 
   const parsedDays = parseFloat(requestedDays) || 0;
   const isVL = fileLeaveType === 'Vacation Leave' || fileLeaveType === 'Mandatory/Forced Leave' || fileLeaveType === 'Forced Leave';
@@ -199,11 +223,11 @@ export default function CscForm6Printable({ formData, userBalances, signatories 
                       <span className="whitespace-nowrap">Adoption Leave <span className="text-[5.5pt]">(R.A. No. 8552)</span></span>
                     </div>
                     <div className="flex items-center gap-1.5 mt-1">
-                      <div className="w-3.5 h-3.5 min-w-[14px] min-h-[14px] flex-shrink-0 border border-black flex items-center justify-center font-bold">{isChecked("Wellness Leave") || isChecked("USE Leave") ? '✓' : ''}</div>
+                      <div className="w-3.5 h-3.5 min-w-[14px] min-h-[14px] flex-shrink-0 border border-black flex items-center justify-center font-bold">{isOtherLeave ? '✓' : ''}</div>
                       <span>Others:</span>
                     </div>
                     <div className="border-b border-black mt-1 pb-1 font-bold ml-6 uppercase">
-                      {fileLeaveType === "Wellness Leave" || fileLeaveType === "USE Leave" ? fileLeaveType : ""}
+                      {isOtherLeave ? fileLeaveType : ""}
                     </div>
                   </div>
                 </td>
