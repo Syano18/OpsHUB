@@ -124,7 +124,7 @@ export default function DigitalLogbook() {
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
-    if (name === 'addresse' && error && !value.includes('@')) {
+    if (error && (name !== 'addresse' || !value.includes('@'))) {
       setError("");
     }
   };
@@ -149,7 +149,15 @@ export default function DigitalLogbook() {
 
   const handleSubmit = (e) => {
     e.preventDefault();
+    const trimmedSection = (formData.section || '').trim();
     const cleanedAddressee = cleanAddresseeName(formData.addresse);
+    const trimmedMode = (formData.modeOfTransmittal || '').trim();
+    const trimmedParticulars = (formData.particulars || '').trim();
+
+    if (!trimmedSection || !cleanedAddressee || !trimmedMode || !trimmedParticulars) {
+      setError("All fields except Remarks are required. Please fill in Section, Addressee, Mode of Transmittal, and Particulars.");
+      return;
+    }
 
     // Validate that addressee does not contain email addresses
     if (cleanedAddressee && (cleanedAddressee.includes('@') || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(cleanedAddressee))) {
@@ -163,7 +171,13 @@ export default function DigitalLogbook() {
       return;
     }
 
-    setFormData(prev => ({ ...prev, addresse: cleanedAddressee }));
+    setFormData(prev => ({
+      ...prev,
+      section: trimmedSection,
+      addresse: cleanedAddressee,
+      modeOfTransmittal: trimmedMode,
+      particulars: trimmedParticulars
+    }));
     setError("");
     setIsReviewing(true);
   };
@@ -750,7 +764,7 @@ export default function DigitalLogbook() {
                         {/* Section Picker */}
                         <div>
                           <label className="block text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400 mb-1.5">
-                            Section
+                            Section <span className="text-rose-500">*</span>
                           </label>
                           <div className={`relative ${isDropdownOpen ? 'z-50' : ''}`} tabIndex={0} onBlur={(e) => {
                             if (!e.currentTarget.contains(e.relatedTarget)) {
@@ -759,6 +773,7 @@ export default function DigitalLogbook() {
                           }}>
                             <div className="relative">
                               <input
+                                required
                                 type="text"
                                 name="section"
                                 value={formData.section}
@@ -804,7 +819,7 @@ export default function DigitalLogbook() {
                         {/* Addressee Picker */}
                         <div>
                           <label className="block text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400 mb-1.5">
-                            Addressee (To)
+                            Addressee (To) <span className="text-rose-500">*</span>
                           </label>
                           <div className={`relative ${isAddresseeDropdownOpen ? 'z-50' : ''}`} tabIndex={0} onBlur={(e) => {
                             if (!e.currentTarget.contains(e.relatedTarget)) {
@@ -813,6 +828,7 @@ export default function DigitalLogbook() {
                           }}>
                             <div className="relative">
                               <input
+                                required
                                 type="text"
                                 name="addresse"
                                 value={formData.addresse}
@@ -865,7 +881,7 @@ export default function DigitalLogbook() {
                       {/* Mode of Transmittal */}
                       <div>
                         <label className="block text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400 mb-1.5">
-                          Mode of Transmittal
+                          Mode of Transmittal <span className="text-rose-500">*</span>
                         </label>
                         <div className={`relative ${isTransmittalDropdownOpen ? 'z-40' : ''}`} tabIndex={0} onBlur={(e) => {
                           if (!e.currentTarget.contains(e.relatedTarget)) {
@@ -874,6 +890,7 @@ export default function DigitalLogbook() {
                         }}>
                           <div className="relative">
                             <input
+                              required
                               type="text"
                               name="modeOfTransmittal"
                               value={formData.modeOfTransmittal}

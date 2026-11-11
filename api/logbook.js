@@ -1,6 +1,47 @@
 import { createClient } from '@libsql/client';
 import { verifyToken } from '@clerk/backend';
 
+const GENERIC_ADDRESSEES = ['co', 'centraloffice', 'psaco', 'rsso', 'rssocar', 'carrsso', 'psarsso', 'psarssocar', 'car'];
+
+/** Sanitizes logbook fields and validates required inputs (all except remarks). */
+function sanitizeAndValidateLogbookEntry(body) {
+  const { particulars, addresse, transmitterName, section, modeOfTransmittal, remarks, encodedBy } = body || {};
+
+  // Clean addressee to ensure Names only (stripping <email@...> and extra whitespace)
+  const cleanAddressee = (addresse || '')
+    .replace(/<[^>]+>/g, '')
+    .replace(/\([^)]*@[^)]*\)/g, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+
+  const normalizedAddressee = cleanAddressee.toLowerCase().replace(/[^a-z0-9]/g, '');
+  if (GENERIC_ADDRESSEES.includes(normalizedAddressee)) {
+    return {
+      error: "Addressee cannot be just '" + cleanAddressee + "' alone. Please specify a specific person name, section, or division (e.g., 'CO - ITDS' or 'RSSO CAR - SOCD')."
+    };
+  }
+
+  const safeParticulars = (particulars || '').trim();
+  const safeSection = (section || '').trim();
+  const safeModeOfTransmittal = (modeOfTransmittal || '').trim();
+
+  if (!safeSection || !cleanAddressee || !safeModeOfTransmittal || !safeParticulars) {
+    return { error: 'All fields except Remarks are required.' };
+  }
+
+  return {
+    data: {
+      cleanAddressee,
+      safeParticulars,
+      safeTransmitter: transmitterName || '',
+      safeSection,
+      safeModeOfTransmittal,
+      safeRemarks: remarks || '',
+      safeEncodedBy: encodedBy || ''
+    }
+  };
+}
+
 export default async function handler(req, res) {
   try {
     const authHeader = req.headers.authorization;
@@ -73,30 +114,14 @@ export default async function handler(req, res) {
       });
 
     } else if (req.method === 'POST') {
-      const { 
-        referenceOverride, timestampOverride, particulars, addresse, 
-        transmitterName, section, modeOfTransmittal, remarks, encodedBy 
-      } = req.body;
+      const { referenceOverride, timestampOverride } = req.body;
+      const validation = sanitizeAndValidateLogbookEntry(req.body);
+      if (validation.error) return res.status(400).json({ error: validation.error });
 
-      // Clean addressee to ensure Names only (stripping <email@...> and extra whitespace)
-      const cleanAddressee = (addresse || '')
-        .replace(/<[^>]+>/g, '')
-        .replace(/\([^)]*@[^)]*\)/g, '')
-        .replace(/\s+/g, ' ')
-        .trim();
-
-      const normalizedAddressee = cleanAddressee.toLowerCase().replace(/[^a-z0-9]/g, '');
-      const genericAddressees = ['co', 'centraloffice', 'psaco', 'rsso', 'rssocar', 'carrsso', 'psarsso', 'psarssocar', 'car'];
-      if (genericAddressees.includes(normalizedAddressee)) {
-        return res.status(400).json({ error: "Addressee cannot be just '" + cleanAddressee + "' alone. Please specify a specific person name, section, or division (e.g., 'CO - ITDS' or 'RSSO CAR - SOCD')." });
-      }
-
-      const safeParticulars = particulars || '';
-      const safeTransmitter = transmitterName || '';
-      const safeSection = section || '';
-      const safeModeOfTransmittal = modeOfTransmittal || '';
-      const safeRemarks = remarks || '';
-      const safeEncodedBy = encodedBy || '';
+      const {
+        cleanAddressee, safeParticulars, safeTransmitter,
+        safeSection, safeModeOfTransmittal, safeRemarks, safeEncodedBy
+      } = validation.data;
 
       let generatedRef = "";
 
@@ -161,31 +186,16 @@ export default async function handler(req, res) {
       return res.status(200).json({ success: true, generatedRef });
 
     } else if (req.method === 'PUT') {
-      const { 
-        id, particulars, addresse, transmitterName, 
-        section, modeOfTransmittal, remarks, encodedBy 
-      } = req.body;
-
+      const { id } = req.body;
       if (!id) return res.status(400).json({ error: 'ID is required' });
 
-      const cleanAddressee = (addresse || '')
-        .replace(/<[^>]+>/g, '')
-        .replace(/\([^)]*@[^)]*\)/g, '')
-        .replace(/\s+/g, ' ')
-        .trim();
+      const validation = sanitizeAndValidateLogbookEntry(req.body);
+      if (validation.error) return res.status(400).json({ error: validation.error });
 
-      const normalizedAddressee = cleanAddressee.toLowerCase().replace(/[^a-z0-9]/g, '');
-      const genericAddressees = ['co', 'centraloffice', 'psaco', 'rsso', 'rssocar', 'carrsso', 'psarsso', 'psarssocar', 'car'];
-      if (genericAddressees.includes(normalizedAddressee)) {
-        return res.status(400).json({ error: "Addressee cannot be just '" + cleanAddressee + "' alone. Please specify a specific person name, section, or division (e.g., 'CO - ITDS' or 'RSSO CAR - SOCD')." });
-      }
-
-      const safeParticulars = particulars || '';
-      const safeTransmitter = transmitterName || '';
-      const safeSection = section || '';
-      const safeModeOfTransmittal = modeOfTransmittal || '';
-      const safeRemarks = remarks || '';
-      const safeEncodedBy = encodedBy || '';
+      const {
+        cleanAddressee, safeParticulars, safeTransmitter,
+        safeSection, safeModeOfTransmittal, safeRemarks, safeEncodedBy
+      } = validation.data;
 
       await turso.execute({
         sql: `UPDATE Digital_Logbook SET 
