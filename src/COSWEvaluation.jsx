@@ -43,6 +43,7 @@ export default function COSWEvaluation() {
   const [ratingCriteria, setRatingCriteria] = useState({ timeliness: '', quality: '', quantity: '' });
   const [ratingRemarks, setRatingRemarks] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [assigningId, setAssigningId] = useState(null);
 
   const fetchData = async () => {
     try {
@@ -165,6 +166,40 @@ export default function COSWEvaluation() {
       alert('Failed to save rating.');
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  const handleAssignFocal = async (empId, newFocalEmail) => {
+    try {
+      setAssigningId(empId);
+      const token = await getToken();
+      const email = user?.primaryEmailAddress?.emailAddress;
+      if (!email) return;
+
+      const res = await fetch(`/api/employments?email=${encodeURIComponent(email)}`, {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          action: 'assignFocalPerson',
+          id: empId,
+          focal_person_email: newFocalEmail || null
+        })
+      });
+
+      if (res.ok) {
+        setEmployments(prev => prev.map(e => e.id === empId ? { ...e, focal_person_email: newFocalEmail || null } : e));
+      } else {
+        const errData = await res.json();
+        alert(`Error: ${errData.error || 'Failed to update focal person.'}`);
+      }
+    } catch (err) {
+      console.error("Failed to assign focal person:", err);
+      alert('Failed to update focal person.');
+    } finally {
+      setAssigningId(null);
     }
   };
 
@@ -460,11 +495,35 @@ export default function COSWEvaluation() {
                           </span>
                         </div>
 
-                        <div className="flex flex-col">
+                        <div className="flex flex-col min-w-0">
                           <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase">Focal Person</span>
-                          <span className="font-semibold text-slate-700 dark:text-slate-300 truncate mt-0.5" title={focalName}>
-                            {focalName}
-                          </span>
+                          {(userRole === 'Super Admin' || userRole === 'Admin') && !isRated ? (
+                            <div className="relative mt-0.5">
+                              <select
+                                value={emp.focal_person_email || ''}
+                                onChange={(e) => handleAssignFocal(emp.id, e.target.value)}
+                                disabled={assigningId === emp.id}
+                                aria-label={`Assign focal person for ${emp.employee_name}`}
+                                className="w-full text-xs font-semibold bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-2 py-1 text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-1 focus:ring-purple-500 truncate disabled:opacity-60 cursor-pointer"
+                              >
+                                <option value="">Unassigned</option>
+                                {focalPersons.map(fp => (
+                                  <option key={fp.email} value={fp.email}>
+                                    {fp.name}
+                                  </option>
+                                ))}
+                              </select>
+                              {assigningId === emp.id && (
+                                <span className="absolute right-2 top-1.5 text-[10px] font-bold text-purple-600 dark:text-purple-400 animate-pulse">
+                                  ...
+                                </span>
+                              )}
+                            </div>
+                          ) : (
+                            <span className="font-semibold text-slate-700 dark:text-slate-300 truncate mt-0.5" title={focalName}>
+                              {focalName}
+                            </span>
+                          )}
                         </div>
                       </div>
 

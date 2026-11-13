@@ -3,6 +3,88 @@ import { verifyToken } from '@clerk/backend';
 import nodemailer from 'nodemailer';
 import { renderEmailLayout, escapeHtml, getBaseUrl } from '../lib/emailTemplate.js';
 
+async function sendFocalAssignmentEmail(req, emp) {
+  try {
+    if (!emp.focal_person_email || !emp.focal_person_email.includes('@')) return;
+
+    const transporter = nodemailer.createTransport({
+      host: process.env.SMTP_HOST,
+      port: parseInt(process.env.SMTP_PORT || '587'),
+      secure: process.env.SMTP_PORT === '465',
+      auth: {
+        user: process.env.SMTP_USER,
+        pass: process.env.SMTP_PASS,
+      },
+    });
+
+    const dashboardUrl = `${getBaseUrl(req)}/cosw-evaluation`;
+    const bodyHtml = `
+      <p style="margin: 0 0 16px 0; font-size: 15px; color: #0f172a;">
+        You have been designated as the focal person evaluator for <strong>${escapeHtml(emp.employee_name)}</strong>.
+      </p>
+
+      <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 18px 20px; margin-bottom: 20px;">
+        <p style="margin: 0 0 10px 0; font-size: 11px; font-weight: 700; text-transform: uppercase; color: #64748b; letter-spacing: 0.5px;">Assignment Details</p>
+        <table style="width: 100%; border-collapse: collapse; font-size: 13px;">
+          <tr>
+            <td style="padding: 4px 0; color: #64748b; width: 35%;">Personnel</td>
+            <td style="padding: 4px 0; color: #0f172a; font-weight: 600;">${escapeHtml(emp.employee_name)}</td>
+          </tr>
+          <tr>
+            <td style="padding: 4px 0; color: #64748b;">Position</td>
+            <td style="padding: 4px 0; color: #0f172a; font-weight: 600;">${escapeHtml(emp.position || 'COSW Staff')}</td>
+          </tr>
+          ${emp.survey_name ? `
+          <tr>
+            <td style="padding: 4px 0; color: #64748b;">Survey / Project</td>
+            <td style="padding: 4px 0; color: #0f172a; font-weight: 600;">${escapeHtml(emp.survey_name)}</td>
+          </tr>
+          ` : ''}
+          ${(emp.contract_start_date || emp.contract_end_date) ? `
+          <tr>
+            <td style="padding: 4px 0; color: #64748b;">Contract Period</td>
+            <td style="padding: 4px 0; color: #0f172a; font-weight: 600;">${escapeHtml(emp.contract_start_date || '—')} to ${escapeHtml(emp.contract_end_date || '—')}</td>
+          </tr>
+          ` : ''}
+          <tr>
+            <td style="padding: 4px 0; color: #64748b;">Evaluation Status</td>
+            <td style="padding: 4px 0; color: #0f766e; font-weight: 700;">Pending Evaluation</td>
+          </tr>
+        </table>
+      </div>
+
+      <div style="background: linear-gradient(180deg, #f0fdfa 0%, #ecfdf5 100%); border: 1.5px solid #99f6e4; border-radius: 10px; padding: 16px; margin-bottom: 24px;">
+        <p style="margin: 0 0 4px 0; font-size: 13px; font-weight: 700; color: #0f766e;">Instructions for Focal Person</p>
+        <p style="margin: 0; font-size: 13px; color: #0d9488; line-height: 1.5;">
+          Please log in to OpsHUB to record their performance rating across the standard evaluation criteria (Quality, Quantity, Timeliness, Dependability, and Interpersonal Relations).
+        </p>
+      </div>
+
+      <div style="text-align: center; margin-bottom: 8px;">
+        <a href="${dashboardUrl}" style="display: inline-block; padding: 11px 24px; background-color: #0f172a; color: #ffffff; text-decoration: none; border-radius: 8px; font-weight: 600; font-size: 13px;">
+          Open COSW Evaluations &rarr;
+        </a>
+      </div>
+    `;
+
+    const emailHtml = renderEmailLayout({
+      headerTitle: 'COSW Performance Evaluation Assigned',
+      theme: 'teal',
+      bodyHtml
+    });
+
+    await transporter.sendMail({
+      from: { name: 'OpsHUB Notifier', address: process.env.SMTP_USER || 'kalinga@psa.gov.ph' },
+      to: emp.focal_person_email,
+      subject: `Action Required: Performance Evaluation Assigned for ${emp.employee_name}`,
+      text: `Action Required: You have been designated as the focal person evaluator for ${emp.employee_name} (${emp.position || 'COSW Staff'}${emp.survey_name ? ` - ${emp.survey_name}` : ''}).\n\nPlease evaluate their performance in OpsHUB: ${dashboardUrl}\n\n---\nPlease do not reply to this email. This is an automated notification from OpsHUB.`,
+      html: emailHtml
+    });
+  } catch (err) {
+    console.error("Failed to send focal assignment email:", err);
+  }
+}
+
 export default async function handler(req, res) {
   try {
     const authHeader = req.headers.authorization;
@@ -87,12 +169,31 @@ export default async function handler(req, res) {
       if (action === 'updateEmployment') {
         const { id, employee_name, position, survey_name, contract_start_date, contract_end_date, focal_person_email, rating, remarks } = req.body.data;
         
+        const prevRes = await turso.execute({
+          sql: "SELECT focal_person_email, rating FROM Employments WHERE id = ?",
+          args: [id]
+        });
+        const prevEmp = prevRes.rows[0];
+        const isFocalChanged = focal_person_email && (!prevEmp?.focal_person_email || prevEmp.focal_person_email.toLowerCase() !== focal_person_email.toLowerCase());
+
         await turso.execute({
           sql: `UPDATE Employments 
                 SET employee_name = ?, position = ?, survey_name = ?, contract_start_date = ?, contract_end_date = ?, focal_person_email = ?, rating = ?, remarks = ?
                 WHERE id = ?`,
           args: [employee_name, position, survey_name, contract_start_date, contract_end_date, focal_person_email || null, rating || null, remarks || null, id]
         });
+
+        // If a focal person was newly assigned or changed and not yet rated, notify them
+        if (isFocalChanged && !rating) {
+          await sendFocalAssignmentEmail(req, {
+            employee_name,
+            position,
+            survey_name,
+            contract_start_date,
+            contract_end_date,
+            focal_person_email
+          });
+        }
 
         if (rating) {
           try {
@@ -110,7 +211,6 @@ export default async function handler(req, res) {
                 },
               });
 
-              const dashboardUrl = `${getBaseUrl(req)}/cosw-evaluation`;
               const bodyHtml = `
                 <p style="margin: 0 0 16px 0; font-size: 15px; color: #0f172a;">
                   A performance rating has been successfully submitted for <strong>${escapeHtml(employee_name)}</strong>.
@@ -140,17 +240,11 @@ export default async function handler(req, res) {
                   </table>
                 </div>
 
-                <div style="background: linear-gradient(180deg, #f0fdfa 0%, #ecfdf5 100%); border: 1.5px solid #99f6e4; border-radius: 10px; padding: 16px; margin-bottom: 24px;">
+                <div style="background: linear-gradient(180deg, #f0fdfa 0%, #ecfdf5 100%); border: 1.5px solid #99f6e4; border-radius: 10px; padding: 16px;">
                   <p style="margin: 0 0 4px 0; font-size: 13px; font-weight: 700; color: #0f766e;">Action Required from PACD</p>
                   <p style="margin: 0; font-size: 13px; color: #0d9488; line-height: 1.5;">
                     Please log in to the <strong>HireTrack</strong> System, click on <strong>Sync from Cloud</strong>, and issue the certificate to the requester.
                   </p>
-                </div>
-
-                <div style="text-align: center; margin-bottom: 8px;">
-                  <a href="${dashboardUrl}" style="display: inline-block; padding: 11px 24px; background-color: #0f172a; color: #ffffff; text-decoration: none; border-radius: 8px; font-weight: 600; font-size: 13px;">
-                    Open COSW Evaluations &rarr;
-                  </a>
                 </div>
               `;
 
@@ -172,6 +266,41 @@ export default async function handler(req, res) {
           }
         }
         
+        return res.status(200).json({ success: true });
+      } else if (action === 'assignFocalPerson') {
+        const { id, focal_person_email } = req.body;
+        if (!id) return res.status(400).json({ error: 'Employment ID is required' });
+
+        if (!['Super Admin', 'Admin'].includes(userRole)) {
+          return res.status(403).json({ error: 'Forbidden: Only administrators can assign focal persons.' });
+        }
+
+        const currentRes = await turso.execute({
+          sql: "SELECT * FROM Employments WHERE id = ?",
+          args: [id]
+        });
+
+        if (currentRes.rows.length === 0) {
+          return res.status(404).json({ error: 'Employment record not found' });
+        }
+
+        const emp = currentRes.rows[0];
+        const prevFocal = emp.focal_person_email;
+
+        await turso.execute({
+          sql: "UPDATE Employments SET focal_person_email = ? WHERE id = ?",
+          args: [focal_person_email || null, id]
+        });
+
+        // Send assignment email if a new focal person was assigned and record is not yet rated
+        const isNewAssignment = focal_person_email && (!prevFocal || prevFocal.toLowerCase() !== focal_person_email.toLowerCase());
+        if (isNewAssignment && !emp.rating) {
+          await sendFocalAssignmentEmail(req, {
+            ...emp,
+            focal_person_email
+          });
+        }
+
         return res.status(200).json({ success: true });
       }
       return res.status(400).json({ error: 'Invalid PUT action' });
